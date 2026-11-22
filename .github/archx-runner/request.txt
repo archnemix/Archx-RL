@@ -7,3 +7,5 @@ Run Linux explorer, request policy and synthetic attack tests.
 Recheck final policy validation and dashboard wording.
 Preserve per-run survey history for comparison in the dashboard.
 Run persistent SQLite, sanitizer, JSON stress, HTTP, performance and Linux permissions classification tests.
+
+Run raw-v2 signal validation, privacy, client and SQLite compatibility tests.

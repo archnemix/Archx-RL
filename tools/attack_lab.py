@@ -9,7 +9,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy
 from sqlite_engine import SQLiteEngine
 
-def token(v): return hashlib.sha256(v.encode()).hexdigest()
+def token(v): return hashlib.sha256(v.encode()).hexdigest()[:32]
 def hit(e, account, machine, ip):
     return e.check({'account':account,'signals':{'machine_id':token(machine)}},ip)['decision']
 def engine(limit=5): return Engine(policy(override={'max_requests':limit}), secret=b'attack-lab-fixed-demo-secret', clock=lambda:1700000000.0)

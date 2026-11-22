@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Native Linux demo client. Sends pseudonymous, app-scoped signal tokens, not raw IDs."""
+"""Native Linux demo: optionally sends selected raw IDs after user confirmation."""
 import argparse
 import fcntl
-import hashlib
-import hmac
+import ipaddress
+import stat
 import json
 import os
 from pathlib import Path
@@ -12,8 +12,9 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit, urlunsplit
 
-from engine import SIGNALS
+from signal_validation import SIGNALS, normalize_signal
 
 BAD = {'', 'none', 'unknown', 'n/a', '-', 'not specified', 'to be filled by o.e.m.', 'uninitialized', '0'}
 
@@ -32,8 +33,13 @@ def installation():
     fd = os.open(root/'installation-id', os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or st.st_mode & 0o077:
+            raise OSError('Installation ID must be a private regular file')
         value = os.read(fd, 128).decode('ascii', errors='ignore')
-        if not re.fullmatch('[0-9a-f]{64}', value):
+        if value and not re.fullmatch('[0-9a-f]{64}', value):
+            raise OSError('Invalid installation ID file')
+        if not value:
             import secrets
             value = secrets.token_hex(32)
             os.ftruncate(fd, 0); os.lseek(fd,0,os.SEEK_SET); os.write(fd,value.encode()); os.fsync(fd)
@@ -57,7 +63,7 @@ def storage(selected):
     walk(root)
     return found
 
-def collect(selected, app):
+def collect(selected):
     if not selected <= set(SIGNALS): raise ValueError('Unknown selected signal')
     raw = {}
     paths = {'machine_id':'/etc/machine-id','product_uuid':'/sys/class/dmi/id/product_uuid',
@@ -85,13 +91,15 @@ def collect(selected, app):
             p=subprocess.run(['nvidia-smi','--query-gpu=uuid','--format=csv,noheader'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True, timeout=5)
             raw['gpu_uuid']=[v for v in (clean(s) for s in p.stdout.splitlines()) if v]
         except (OSError, subprocess.SubprocessError): pass
-    # Signal value is the HMAC key, app and signal are the message: no raw ID sent.
-    # A public app label gives domain separation, not an authentication secret.
+    # Send selected raw values only. Never write these values to logs or disk.
     result={}
     for name, values in raw.items():
         if name not in selected: continue
-        hashes=sorted(hmac.new(v.encode(), ('archx-client-v1\0'+app+'\0'+name).encode(), hashlib.sha256).hexdigest() for v in values)
-        if hashes: result[name]=hashes[0]
+        valid=[]
+        for value in values:
+            try: valid.append(normalize_signal(name, value))
+            except ValueError: pass
+        if valid: result[name] = sorted(valid)[0]
     return result
 
 def system_zone():
@@ -103,19 +111,61 @@ def system_zone():
     except OSError: pass
     return None
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def endpoint(url):
+    parts = urlsplit(url)
+    if parts.scheme not in ('http','https') or not parts.hostname or parts.username or parts.password or parts.fragment or parts.query or parts.path != '/api/v2/check':
+        raise ValueError('Expected a URL ending in /api/v2/check')
+    if parts.scheme == 'http':
+        try: loopback = ipaddress.ip_address(parts.hostname).is_loopback
+        except ValueError: loopback = parts.hostname.lower() == 'localhost'
+        if not loopback: raise ValueError('Raw device identifiers require HTTPS except on local loopback')
+    return urlunsplit((parts.scheme, parts.netloc, '/api/v2/config', '', ''))
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--url',default='http://127.0.0.1:8000/api/v1/check')
-    parser.add_argument('--app-id',default='archx-demo')
+    parser.add_argument('--url',default='http://127.0.0.1:8000/api/v2/check')
     parser.add_argument('--account',default='example')
-    parser.add_argument('--signals', default='machine_id,product_uuid,board_serial')
+    parser.add_argument('--signals',help='comma-separated subset; required signals are always included')
+    parser.add_argument('--confirm-send-raw',action='store_true',help='consent to sending the selected raw identifiers to this server')
     args=parser.parse_args()
-    body={'account':args.account,'signals':collect(set(filter(None,args.signals.split(','))),args.app_id), 'timestamp':time.time()}
-    zone=system_zone()
-    if zone: body['timezone']=zone
-    req=urllib.request.Request(args.url, data=json.dumps(body).encode(), headers={'Content-Type':'application/json'})
     try:
-        with urllib.request.urlopen(req,timeout=10) as res: print(res.read().decode())
-    except urllib.error.HTTPError as exc: print(exc.read().decode()); raise SystemExit(1)
+        config_url=endpoint(args.url)
+        opener=urllib.request.build_opener(NoRedirect())
+        with opener.open(config_url,timeout=10) as response:
+            config=json.loads(response.read(8193))
+        if not isinstance(config,dict) or config.get('protocol') != 'raw-v2': raise ValueError('Server protocol is not supported')
+        required=config.get('required'); conditional=config.get('conditional')
+        if not isinstance(required,list) or not isinstance(conditional,list) or any(not isinstance(x,str) or x not in SIGNALS for x in required+conditional): raise ValueError('Invalid server signal policy')
+        available=set(required+conditional)
+        selected=set(filter(None,args.signals.split(','))) if args.signals is not None else available
+        if not selected <= available: raise ValueError('Requested signal is not enabled by the service')
+        selected.update(required)
+        signals=collect(selected)
+        missing=[name for name in required if name not in signals]
+        if missing:
+            print(json.dumps({'decision':'invalid','reason':'missing_required','missing':missing,
+                  'message':'Your device did not provide information required by this service. Contact the service provider for help.'}))
+            return 2
+        if not args.confirm_send_raw:
+            print(json.dumps({'decision':'not_sent','reason':'confirmation_required',
+                  'message':'This service requests raw device identifiers. Review its privacy notice and use --confirm-send-raw to send them.'}))
+            return 2
+        body={'account':args.account,'signals':signals, 'timestamp':time.time()}
+        zone=system_zone()
+        if zone: body['timezone']=zone
+        req=urllib.request.Request(args.url, data=json.dumps(body).encode(), headers={'Content-Type':'application/json'})
+        with opener.open(req,timeout=10) as response: print(response.read(8193).decode())
+        return 0
+    except urllib.error.HTTPError as exc:
+        # Server error responses contain status/reason, not submitted identifiers.
+        print(exc.read(8193).decode(errors='replace')); return 1
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        print(json.dumps({'decision':'error','message':str(exc)})); return 1
 
-if __name__=='__main__': main()
+if __name__=='__main__': raise SystemExit(main())

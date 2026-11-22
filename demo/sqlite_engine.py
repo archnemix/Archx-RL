@@ -59,7 +59,7 @@ class SQLiteEngine(Engine):
             for sql in SCHEMA: con.execute(sql)
             key_check = hmac.new(self.secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
             policy_check = hashlib.sha256(json.dumps(self.settings, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-            for key, expected in [('schema','2'), ('key_check',key_check), ('policy_check',policy_check)]:
+            for key, expected in [('schema','3'), ('key_check',key_check), ('policy_check',policy_check)]:
                 row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
                 if row is None:
                     con.execute('INSERT INTO meta(name,value) VALUES(?,?)',(key,expected))

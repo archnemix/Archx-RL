@@ -3,17 +3,13 @@ import hashlib
 import hmac
 import ipaddress
 import math
-import re
 import secrets
 import threading
 import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from signal_validation import SIGNALS, normalize_signal
 
-SIGNALS = ('machine_id', 'product_uuid', 'board_serial', 'product_serial', 'chassis_serial',
-           'disk_serial', 'disk_wwn', 'filesystem_uuid', 'partition_uuid', 'gpu_uuid',
-           'mac_address', 'installation_id')
-TOKEN_RE = re.compile(r'^[0-9a-f]{64}$')
 PRESETS = {
     'basic': {'required':['machine_id'], 'conditional':['product_uuid', 'board_serial'], 'min_matches':1},
     'standard': {'required':['machine_id'], 'conditional':['product_uuid','board_serial','disk_serial','disk_wwn','filesystem_uuid','partition_uuid','installation_id'], 'min_matches':2},
@@ -51,7 +47,7 @@ class Engine:
         self.observations = [] # (expires, {signal name: HMAC})
 
     def token(self, name, value):
-        return hmac.new(self.secret, (name+'\0'+value).encode(), hashlib.sha256).hexdigest()
+        return hmac.new(self.secret, ('archx-raw-v2\0'+name+'\0'+value).encode(), hashlib.sha256).hexdigest()
 
     def timezone_status(self, ip, zone, stamp, now):
         if stamp is not None:
@@ -98,7 +94,7 @@ class Engine:
         if not isinstance(signals,dict) or len(signals)>len(SIGNALS): raise ValueError('Invalid signals')
         selected = set(self.settings['required'] + self.settings['conditional'])
         if set(signals) - selected: raise ValueError('Unknown or disabled signal')
-        if any(not isinstance(v,str) or not TOKEN_RE.fullmatch(v) for v in signals.values()): raise ValueError('Signals must be lowercase 64-character tokens')
+        signals = {name: normalize_signal(name, value) for name,value in signals.items()}
         missing = [s for s in self.settings['required'] if s not in signals]
         zone, clock_status = self.timezone_status(ip, raw.get('timezone'), raw.get('timestamp'), now)
         tokens = {s:self.token(s,v) for s,v in signals.items()}
@@ -107,7 +103,7 @@ class Engine:
 
     def decision_before_matching(self, missing, zone, clock_status):
         if missing:
-            return {'decision':'invalid','reason':'missing_required','missing':missing, 'relation':'inconclusive'}
+            return {'decision':'invalid','reason':'missing_required','missing':missing, 'message':'This service requires device information that your device did not provide. Contact the service provider for help.', 'relation':'inconclusive'}
         if self.settings['timezone_enforce'] and zone == 'mismatch':
             return {'decision':'challenge','reason':'timezone_mismatch','message':'Check your timezone or network location, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
         if self.settings['timezone_enforce'] and clock_status == 'clock_out_of_range':

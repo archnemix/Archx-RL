@@ -13,7 +13,7 @@ from sqlite_engine import SQLiteEngine
 
 def measure(factory, n=200):
     e=factory(); samples=[]
-    machine=hashlib.sha256(b'synthetic-machine').hexdigest()
+    machine=hashlib.sha256(b'synthetic-machine').hexdigest()[:32]
     for i in range(n):
         data={'account':str(i),'signals':{'machine_id':machine}}
         start=time.perf_counter()

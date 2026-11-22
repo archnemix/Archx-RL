@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 from engine import Engine, PRESETS, SIGNALS, policy, load_geo
 from sqlite_engine import SQLiteEngine
+from signal_validation import synthetic_signal
 
 ROOT=Path(__file__).resolve().parent
 SURVEY=ROOT.parent/'.github/archx-runner/runs/linux-permissions.json'
@@ -15,16 +16,14 @@ SURVEY=ROOT.parent/'.github/archx-runner/runs/linux-permissions.json'
 
 def scenario(preset, override=None):
     # Completely isolated synthetic tests, never touch the live store or external services.
-    import hashlib
-    def t(x): return hashlib.sha256(x.encode()).hexdigest()
     settings=policy(preset,override)
     engine=Engine(settings,secret=b'demo-simulation-key',clock=lambda:1700000000.0)
     # Supply every selected signal; required-set and threshold behavior remain observable.
     names=settings['required']+settings['conditional']
     def sample(account, changes=None):
-        values={n:t('device-a-'+n) for n in names}
+        values={n:synthetic_signal(n,'device-a') for n in names}
         if changes:
-            for n in changes: values[n]=t('device-b-'+n)
+            for n in changes: values[n]=synthetic_signal(n,'device-b')
         return {'account':account,'signals':values}
     steps=[('First account','192.0.2.1',sample('account-a')),
            ('Same device, new IP','198.51.100.9',sample('account-b')),
@@ -71,6 +70,8 @@ class Handler(BaseHTTPRequestHandler):
         except (UnicodeError, ValueError, RecursionError): raise ValueError('Invalid JSON') from None
     def do_GET(self):
         path=urlsplit(self.path).path
+        if path=='/api/v2/config':
+            return self.json({'protocol':'raw-v2','required':self.server.engine.settings['required'], 'conditional':self.server.engine.settings['conditional']})
         if path=='/api/info':
             try: survey=json.loads(SURVEY.read_text())
             except (OSError, ValueError): survey=None
@@ -91,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=='/api/demo/run':
                 if not isinstance(body,dict) or set(body)-{'preset','config'}: raise ValueError('Invalid request')
                 return self.json(scenario(body.get('preset','basic'),body.get('config')))
-            if path=='/api/v1/check':
+            if path=='/api/v2/check':
                 result=self.server.engine.check(body,self.client_address[0])
                 status={'allow':200,'invalid':400,'challenge':403,'rate_limited':429,'capacity_exceeded':503,'storage_error':503}.get(result['decision'],500)
                 return self.json(result,status)
@@ -100,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection=True
             return
         except (ValueError, TypeError, KeyError) as e:
-            if path == '/api/v1/check':
+            if path == '/api/v2/check':
                 limited=self.server.engine.reject_malformed(self.client_address[0])
                 if limited: return self.json(limited,429 if limited['decision']=='rate_limited' else 503)
             return self.json({'error':str(e)},400)

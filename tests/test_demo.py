@@ -11,10 +11,13 @@ from http.server import ThreadingHTTPServer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy, load_geo
+from signal_validation import normalize_signal, synthetic_signal
 from server import Handler, scenario
-from client import collect
+from client import collect, endpoint, main
+from unittest.mock import patch
+from io import StringIO
 
-def tok(n): return hashlib.sha256(n.encode()).hexdigest()
+def tok(n): return hashlib.sha256(n.encode()).hexdigest()[:32]
 def req(account='a', **values): return {'account':account, 'signals':{'machine_id':tok('m'),**values}}
 
 class PolicyTests(unittest.TestCase):
@@ -31,8 +34,8 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.e.check(req(),'192.0.2.2')['decision'],'allow')
         with self.assertRaises(ValueError): self.e.check(req(disk_serial=tok('d')),'192.0.2.3')
     def test_optional_can_match(self):
-        self.e.check(req(product_uuid=tok('u')),'192.0.2.1')
-        r=self.e.check({'account':'x','signals':{'machine_id':tok('other'),'product_uuid':tok('u')}},'192.0.2.2')
+        self.e.check(req(product_uuid=synthetic_signal('product_uuid','u')),'192.0.2.1')
+        r=self.e.check({'account':'x','signals':{'machine_id':tok('other'),'product_uuid':synthetic_signal('product_uuid','u')}},'192.0.2.2')
         self.assertEqual(r['matched_signals'],['product_uuid'])
     def test_min_matches_and_inconclusive(self):
         e=Engine(policy('standard'),secret=b'secret',clock=lambda:self.now[0])
@@ -79,9 +82,46 @@ class PolicyTests(unittest.TestCase):
     def test_simulation_isolated(self):
         out=scenario('basic');self.assertEqual(out['events'][2]['matched_signals'],['ip']);self.assertTrue(any(e['decision']=='rate_limited' for e in out['events']))
     def test_native_collector(self):
-        ids=collect({'machine_id','product_uuid','board_serial'},'test-app')
-        for v in ids.values(): self.assertRegex(v,r'^[0-9a-f]{64}$')
-        self.assertEqual(ids, collect({'machine_id','product_uuid','board_serial'},'test-app'))
+        ids=collect({'machine_id','product_uuid','board_serial'})
+        for name, value in ids.items(): self.assertEqual(value, normalize_signal(name,value))
+        self.assertEqual(ids, collect({'machine_id','product_uuid','board_serial'}))
+
+class RawSignalTests(unittest.TestCase):
+    def test_formats_and_normalization(self):
+        for name in ('machine_id','installation_id','product_uuid','board_serial','product_serial','chassis_serial','disk_serial','disk_wwn','filesystem_uuid','partition_uuid','gpu_uuid','mac_address'):
+            val=synthetic_signal(name,'sample')
+            self.assertEqual(normalize_signal(name,'  '+val.upper()+'  '),normalize_signal(name,val))
+            for bad in ('', 'unknown', '0', 'x\nattack', 'é'*4, 'x'*129):
+                with self.subTest(name=name,bad=bad):
+                    with self.assertRaises(ValueError): normalize_signal(name,bad)
+        self.assertEqual(normalize_signal('filesystem_uuid','ABCD-1234'),'abcd-1234')
+        self.assertEqual(normalize_signal('partition_uuid','AABBCCDD-01'),'aabbccdd-01')
+        self.assertEqual(normalize_signal('disk_wwn','0x123456789abcdef0'),'123456789abcdef0')
+        for name,value in [('machine_id','0'*32),('product_uuid','00000000-0000-0000-0000-000000000000'),('mac_address','01:00:00:00:00:01'),('board_serial','to be filled by o.e.m.')]:
+            with self.assertRaises(ValueError): normalize_signal(name,value)
+    def test_fabrication_and_replay_remain_possible(self):
+        e=Engine(policy(override={'max_requests':100}),secret=b'secret')
+        first=synthetic_signal('machine_id','fabricated-1'); other=synthetic_signal('machine_id','fabricated-2')
+        self.assertEqual(e.check({'account':'a','signals':{'machine_id':first}},'192.0.2.1')['decision'],'allow')
+        self.assertEqual(e.check({'account':'b','signals':{'machine_id':first}},'192.0.2.2')['relation'],'related')
+        self.assertNotEqual(e.check({'account':'c','signals':{'machine_id':other}},'192.0.2.3')['relation'],'related')
+    def test_endpoint_restricts_transport(self):
+        self.assertEqual(endpoint('https://example.test/api/v2/check'),'https://example.test/api/v2/config')
+        self.assertEqual(endpoint('http://127.0.0.1:8000/api/v2/check'),'http://127.0.0.1:8000/api/v2/config')
+        for bad in ('http://example.test/api/v2/check','https://example.test/api/v1/check','https://user:pass@example.test/api/v2/check'):
+            with self.assertRaises(ValueError): endpoint(bad)
+    def test_missing_required_client_message(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self,*args): pass
+            def read(self,*args): return b'{"protocol":"raw-v2","required":["machine_id"],"conditional":[]}'
+        class Opener:
+            def open(self,*args,**kwargs): return Response()
+        output=StringIO()
+        with patch('sys.argv',['client.py','--confirm-send-raw']), patch('client.collect',return_value={}), patch('client.urllib.request.build_opener',return_value=Opener()), patch('sys.stdout',output):
+            self.assertEqual(main(),2)
+        result=json.loads(output.getvalue())
+        self.assertEqual(result['missing'],['machine_id']); self.assertIn('required',result['message'])
 
 class HttpTests(unittest.TestCase):
     def setUp(self):
@@ -92,24 +132,42 @@ class HttpTests(unittest.TestCase):
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5);con.request('POST',path,body,headers or {'Content-Type':'application/json'});r=con.getresponse();data=r.read();con.close();return r.status,json.loads(data)
     def test_endpoint_and_forward_header_ignored(self):
         a=req(); b={'account':'b','signals':{'machine_id':tok('other')}}
-        self.assertEqual(self.request('/api/v1/check',json.dumps(a))[0],200)
-        status,data=self.request('/api/v1/check',json.dumps(b),{'Content-Type':'application/json','X-Forwarded-For':'198.51.100.1'})
+        self.assertEqual(self.request('/api/v2/check',json.dumps(a))[0],200)
+        status,data=self.request('/api/v2/check',json.dumps(b),{'Content-Type':'application/json','X-Forwarded-For':'198.51.100.1'})
         self.assertEqual(status,200);self.assertEqual(data['matched_signals'],['ip'])
+    def test_client_real_http_with_synthetic_signal(self):
+        value=synthetic_signal('machine_id','client-sample')
+        output=StringIO()
+        argv=['client.py','--url',f'http://127.0.0.1:{self.port}/api/v2/check','--confirm-send-raw']
+        with patch('sys.argv',argv), patch('client.collect',return_value={'machine_id':value}), patch('sys.stdout',output):
+            self.assertEqual(main(),0)
+        self.assertEqual(json.loads(output.getvalue())['decision'],'allow')
+        self.assertNotIn(value,str(self.httpd.engine.observations))
+    def test_client_confirmation_blocks_send(self):
+        output=StringIO()
+        argv=['client.py','--url',f'http://127.0.0.1:{self.port}/api/v2/check']
+        with patch('sys.argv',argv), patch('client.collect',return_value={'machine_id':synthetic_signal('machine_id','consent')}), patch('sys.stdout',output):
+            self.assertEqual(main(),2)
+        self.assertEqual(json.loads(output.getvalue())['reason'],'confirmation_required')
+        self.assertEqual(self.httpd.engine.observations,[])
     def test_malformed_and_duplicate_charged(self):
-        for _ in range(3):self.assertEqual(self.request('/api/v1/check','{"account":"x", "account":"y"}')[0],400)
-        self.assertEqual(self.request('/api/v1/check','{}')[0],429)
+        for _ in range(3):self.assertEqual(self.request('/api/v2/check','{"account":"x", "account":"y"}')[0],400)
+        self.assertEqual(self.request('/api/v2/check','{}')[0],429)
+    def test_invalid_raw_values_are_charged(self):
+        for _ in range(3): self.assertEqual(self.request('/api/v2/check',json.dumps({'account':'a','signals':{'machine_id':'1'}}))[0],400)
+        self.assertEqual(self.request('/api/v2/check',json.dumps(req()))[0],429)
     def test_non_json_number_rejected_and_charged(self):
-        status, _ = self.request('/api/v1/check', '{"account":"x","signals":{},"timestamp":NaN}')
+        status, _ = self.request('/api/v2/check', '{"account":"x","signals":{},"timestamp":NaN}')
         self.assertEqual(status,400)
     def test_duplicate_content_length_rejected(self):
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
-        con.putrequest('POST','/api/v1/check')
+        con.putrequest('POST','/api/v2/check')
         con.putheader('Content-Type','application/json');con.putheader('Content-Length','2');con.putheader('Content-Length','2');con.endheaders();con.send(b'{}')
         res=con.getresponse();res.read();con.close();self.assertEqual(res.status,400)
     def test_retry_after_header(self):
-        for _ in range(3): self.request('/api/v1/check',json.dumps(req()))
+        for _ in range(3): self.request('/api/v2/check',json.dumps(req()))
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
-        con.request('POST','/api/v1/check',json.dumps(req()),{'Content-Type':'application/json'})
+        con.request('POST','/api/v2/check',json.dumps(req()),{'Content-Type':'application/json'})
         res=con.getresponse();self.assertEqual(res.status,429);self.assertGreater(int(res.getheader('Retry-After')),0);res.read();con.close()
     def test_survey_history_endpoint(self):
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5); con.request('GET','/api/info')

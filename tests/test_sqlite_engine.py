@@ -14,11 +14,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy
+from signal_validation import synthetic_signal
 from sqlite_engine import SQLiteEngine
 from server import Handler
 
 SECRET = b'synthetic-persistent-test-secret-0123456789'
-def tok(s): return hashlib.sha256(s.encode()).hexdigest()
+def tok(s): return hashlib.sha256(s.encode()).hexdigest()[:32]
 def req(account='a', **values): return {'account':account,'signals':{'machine_id':tok('machine'),**values}}
 def child(db, queue):
     try:
@@ -47,6 +48,10 @@ class PersistentTests(unittest.TestCase):
         with self.assertRaises(ValueError): SQLiteEngine(self.path,policy(),b'x'*32)
         with self.assertRaises(ValueError): SQLiteEngine(self.path,policy('hard'),SECRET)
         with self.assertRaises(ValueError): SQLiteEngine(self.path,policy(),b'short')
+    def test_old_schema_rejected(self):
+        self.engine()
+        with sqlite3.connect(self.path) as db: db.execute("UPDATE meta SET value='2' WHERE name='schema'")
+        with self.assertRaisesRegex(ValueError,'schema'): self.engine()
     def test_private_permissions_and_symlink(self):
         self.engine()
         self.assertEqual(os.stat(self.path).st_mode & 0o777,0o600)
@@ -110,7 +115,7 @@ class PersistentTests(unittest.TestCase):
             return httpd,thread
         def request(httpd):
             con=http.client.HTTPConnection('127.0.0.1',httpd.server_address[1],timeout=5)
-            con.request('POST','/api/v1/check',json.dumps(req()),{'Content-Type':'application/json'})
+            con.request('POST','/api/v2/check',json.dumps(req()),{'Content-Type':'application/json'})
             result=con.getresponse();status=result.status;body=json.loads(result.read());con.close();return status,body
         s,t=server()
         try:self.assertEqual(request(s)[0],200)
@@ -126,7 +131,7 @@ class PersistentTests(unittest.TestCase):
         p=policy(override={'max_requests':100})
         memory=Engine(p,secret=SECRET,clock=lambda:self.now[0])
         db=SQLiteEngine(self.path,p,SECRET,clock=lambda:self.now[0])
-        requests=[(req(), '192.0.2.1'),(req('b'),'198.51.100.1'),({'account':'c','signals':{'machine_id':tok('different')}},'192.0.2.1'),(req('d',product_uuid=tok('uuid')),'203.0.113.5')]
+        requests=[(req(), '192.0.2.1'),(req('b'),'198.51.100.1'),({'account':'c','signals':{'machine_id':tok('different')}},'192.0.2.1'),(req('d',product_uuid=synthetic_signal('product_uuid','uuid')),'203.0.113.5')]
         for data,ip in requests:
             a,b=memory.check(data,ip),db.check(data,ip)
             for k in ('decision','relation','matched_signals'): self.assertEqual(a[k],b[k])
