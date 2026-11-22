@@ -1,5 +1,5 @@
-Commit: 05a0683de5fba1a00dfdf2a037ba9552a8ebd7db
-Run: 45040577056
+Commit: e294db759f55b729477880ea1dd2881af50fb4a3
+Run: 45040686496
 Runner: Linux
 
 == libarchx.so ==
@@ -33,7 +33,7 @@ test_simulation_isolated (__main__.PolicyTests.test_simulation_isolated) ... ok
 test_timezone_and_clock (__main__.PolicyTests.test_timezone_and_clock) ... ok
 
 ----------------------------------------------------------------------
-Ran 16 tests in 1.526s
+Ran 16 tests in 1.555s
 
 OK
 {
