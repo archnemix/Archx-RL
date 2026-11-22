@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "tested_at_utc": "2026-11-22T15:52:58.059111+00:00",
+  "tested_at_utc": "2026-11-22T15:54:19.120100+00:00",
   "environment": {
     "platform": "linux",
-    "kernel": "7.0.0-1016-aws",
+    "kernel": "7.0.0-1020-azure",
     "arch": "x86_64",
     "runner": "GitHub-hosted ubuntu-latest",
-    "run_id": "45040686496",
-    "commit": "e294db759f55b729477880ea1dd2881af50fb4a3"
+    "run_id": "45040808213",
+    "commit": "667420922a8e85c7b2d5f4e2b23447bcf77a2ed9"
   },
   "disclaimer": "Availability only; no identifier values are included. One virtual runner is not representative of physical desktops.",
   "access_levels": [
@@ -24,7 +24,7 @@
         "machine_id": "available",
         "partition_uuid": "available",
         "product_serial": "permission_denied",
-        "product_uuid": "permission_denied",
+        "product_uuid": "available",
         "timezone": "available",
         "tpm_device": "absent"
       },
@@ -43,7 +43,7 @@
         "machine_id": "available",
         "partition_uuid": "available",
         "product_serial": "permission_denied",
-        "product_uuid": "permission_denied",
+        "product_uuid": "available",
         "timezone": "available",
         "tpm_device": "absent"
       },
@@ -52,8 +52,8 @@
     {
       "access_level": "root",
       "signals": {
-        "board_serial": "empty_or_placeholder",
-        "chassis_serial": "empty_or_placeholder",
+        "board_serial": "available",
+        "chassis_serial": "available",
         "disk_serial": "available",
         "disk_wwn": "available",
         "filesystem_uuid": "available",

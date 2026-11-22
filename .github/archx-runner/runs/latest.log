@@ -1,5 +1,5 @@
-Commit: e294db759f55b729477880ea1dd2881af50fb4a3
-Run: 45040686496
+Commit: 667420922a8e85c7b2d5f4e2b23447bcf77a2ed9
+Run: 45040808213
 Runner: Linux
 
 == libarchx.so ==
@@ -18,6 +18,7 @@ matching policy tests passed
 test_demo_endpoint (__main__.HttpTests.test_demo_endpoint) ... ok
 test_endpoint_and_forward_header_ignored (__main__.HttpTests.test_endpoint_and_forward_header_ignored) ... ok
 test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_duplicate_charged) ... ok
+test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
 test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
 test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
 test_capacity_closed (__main__.PolicyTests.test_capacity_closed) ... ok
@@ -33,7 +34,7 @@ test_simulation_isolated (__main__.PolicyTests.test_simulation_isolated) ... ok
 test_timezone_and_clock (__main__.PolicyTests.test_timezone_and_clock) ... ok
 
 ----------------------------------------------------------------------
-Ran 16 tests in 1.555s
+Ran 17 tests in 2.030s
 
 OK
 {

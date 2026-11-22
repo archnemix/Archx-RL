@@ -1,0 +1,84 @@
+Commit: 667420922a8e85c7b2d5f4e2b23447bcf77a2ed9
+Run: 45040808213
+Runner: Linux
+
+== libarchx.so ==
+== libarchx.a ==
+== archx-probe ==
+built: build/libarchx.so  build/libarchx.a  build/archx-probe
+PASS sha256 empty
+PASS sha256 abc
+PASS sha256 56-byte
+PASS hmac rfc4231 case1
+PASS hmac rfc4231 case2
+PASS hmac rfc4231 case6
+all vectors passed
+core tests passed
+matching policy tests passed
+test_demo_endpoint (__main__.HttpTests.test_demo_endpoint) ... ok
+test_endpoint_and_forward_header_ignored (__main__.HttpTests.test_endpoint_and_forward_header_ignored) ... ok
+test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_duplicate_charged) ... ok
+test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
+test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
+test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
+test_capacity_closed (__main__.PolicyTests.test_capacity_closed) ... ok
+test_concurrency_atomic (__main__.PolicyTests.test_concurrency_atomic) ... ok
+test_min_matches_and_inconclusive (__main__.PolicyTests.test_min_matches_and_inconclusive) ... ok
+test_missing_required_and_optional (__main__.PolicyTests.test_missing_required_and_optional) ... ok
+test_native_collector (__main__.PolicyTests.test_native_collector) ... ok
+test_no_raw_values_stored (__main__.PolicyTests.test_no_raw_values_stored) ... ok
+test_optional_can_match (__main__.PolicyTests.test_optional_can_match) ... ok
+test_rate_limit_ip_and_machine_independent (__main__.PolicyTests.test_rate_limit_ip_and_machine_independent) ... ok
+test_shared_ip_warning (__main__.PolicyTests.test_shared_ip_warning) ... ok
+test_simulation_isolated (__main__.PolicyTests.test_simulation_isolated) ... ok
+test_timezone_and_clock (__main__.PolicyTests.test_timezone_and_clock) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 2.030s
+
+OK
+{
+  "schema_version": 1,
+  "environment": "local in-process synthetic traffic; no external network requests",
+  "policy": "basic, 5 requests / 60 seconds unless noted",
+  "results": [
+    {
+      "scenario": "same device, rotating IP and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared machine bucket limits requests"
+    },
+    {
+      "scenario": "same IP, rotating device and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared IP bucket limits requests"
+    },
+    {
+      "scenario": "rotating both device signals and IP",
+      "allowed": 40,
+      "rate_limited": 0,
+      "expected": "known bypass: no stable common key"
+    },
+    {
+      "scenario": "two unrelated users behind one IP",
+      "first": "allow",
+      "second": "rate_limited",
+      "expected": "known false positive from shared IP bucket"
+    },
+    {
+      "scenario": "replay of the same self-reported signal",
+      "allowed": 5,
+      "rate_limited": 5,
+      "expected": "bucket limits repetition; the signal is not authenticated"
+    }
+  ],
+  "limitations": [
+    "Client identifiers are forgeable and replayable.",
+    "Shared networks may cause false positives.",
+    "Rotating all observed identifiers avoids these per-key limits."
+  ]
+}
+probe tests passed
+
+Exit status: 0
