@@ -25,7 +25,7 @@ def policy(preset='basic', override=None):
     if preset not in PRESETS: raise ValueError('Unknown preset')
     p = {'name':preset, **PRESETS[preset], 'window_seconds':60, 'max_requests':5,
          'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False}
-    if override:
+    if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
         allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')

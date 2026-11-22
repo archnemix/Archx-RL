@@ -69,7 +69,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'allow')
         self.assertEqual(e.check(req('b'),'192.0.2.2')['decision'],'capacity_exceeded')
     def test_bad_config_and_schema(self):
-        for o in [{'min_matches':0},{'required':['wrong']},{'max_requests':0},{'required':['machine_id'],'conditional':['machine_id']},{'timezone_enforce':'yes'}]:
+        for o in [False, 0, 'bad', {'min_matches':0},{'required':['wrong']},{'max_requests':0},{'required':['machine_id'],'conditional':['machine_id']},{'timezone_enforce':'yes'}]:
             with self.assertRaises(ValueError):policy(override=o)
         for data in [{'account':'x','signals':{'machine_id':'raw-id'}}, {'account':'x','signals':{'machine_id':tok('x')},'ip':'1.2.3.4'}]:
             with self.assertRaises(ValueError):self.e.check(data,'192.0.2.1')
