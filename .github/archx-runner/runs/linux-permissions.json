@@ -1,18 +1,42 @@
 {
-  "schema_version": 1,
-  "tested_at_utc": "2026-11-22T15:54:19.120100+00:00",
+  "schema_version": 2,
+  "tested_at_utc": "2026-11-22T16:58:04.523894+00:00",
   "environment": {
     "platform": "linux",
     "kernel": "7.0.0-1020-azure",
     "arch": "x86_64",
     "runner": "GitHub-hosted ubuntu-latest",
-    "run_id": "45040808213",
-    "commit": "667420922a8e85c7b2d5f4e2b23447bcf77a2ed9"
+    "run_id": "45046721392",
+    "commit": "88fff1b6fed3aab641460d626253a0a14a9ae5c4"
   },
   "disclaimer": "Availability only; no identifier values are included. One virtual runner is not representative of physical desktops.",
+  "classification": {
+    "board_serial": "root_only_on_this_runner",
+    "chassis_serial": "root_only_on_this_runner",
+    "disk_serial": "readable_by_both_unprivileged_users",
+    "disk_wwn": "readable_by_both_unprivileged_users",
+    "filesystem_uuid": "readable_by_both_unprivileged_users",
+    "gpu_uuid_nvidia": "unavailable_or_unverified_on_this_runner",
+    "mac_address": "readable_by_both_unprivileged_users",
+    "machine_id": "readable_by_both_unprivileged_users",
+    "partition_uuid": "readable_by_both_unprivileged_users",
+    "product_serial": "root_only_on_this_runner",
+    "product_uuid": "readable_by_both_unprivileged_users",
+    "timezone": "readable_by_both_unprivileged_users",
+    "tpm_device": "unavailable_or_unverified_on_this_runner"
+  },
   "access_levels": [
     {
       "access_level": "runner-user",
+      "file_modes": {
+        "board_serial": "0400",
+        "chassis_serial": "0400",
+        "machine_id": "0444",
+        "product_serial": "0400",
+        "product_uuid": "0444",
+        "tpm_device": null
+      },
+      "passwordless_sudo": true,
       "signals": {
         "board_serial": "permission_denied",
         "chassis_serial": "permission_denied",
@@ -28,10 +52,20 @@
         "timezone": "available",
         "tpm_device": "absent"
       },
+      "supplementary_group_count": 5,
       "uid_is_root": false
     },
     {
       "access_level": "isolated-user",
+      "file_modes": {
+        "board_serial": "0400",
+        "chassis_serial": "0400",
+        "machine_id": "0444",
+        "product_serial": "0400",
+        "product_uuid": "0444",
+        "tpm_device": null
+      },
+      "passwordless_sudo": false,
       "signals": {
         "board_serial": "permission_denied",
         "chassis_serial": "permission_denied",
@@ -47,10 +81,20 @@
         "timezone": "available",
         "tpm_device": "absent"
       },
+      "supplementary_group_count": 1,
       "uid_is_root": false
     },
     {
       "access_level": "root",
+      "file_modes": {
+        "board_serial": "0400",
+        "chassis_serial": "0400",
+        "machine_id": "0444",
+        "product_serial": "0400",
+        "product_uuid": "0444",
+        "tpm_device": null
+      },
+      "passwordless_sudo": true,
       "signals": {
         "board_serial": "available",
         "chassis_serial": "available",
@@ -66,6 +110,7 @@
         "timezone": "available",
         "tpm_device": "absent"
       },
+      "supplementary_group_count": 1,
       "uid_is_root": true
     }
   ]

@@ -1,5 +1,5 @@
-Commit: 667420922a8e85c7b2d5f4e2b23447bcf77a2ed9
-Run: 45040808213
+Commit: 88fff1b6fed3aab641460d626253a0a14a9ae5c4
+Run: 45046721392
 Runner: Linux
 
 == libarchx.so ==
@@ -16,8 +16,11 @@ all vectors passed
 core tests passed
 matching policy tests passed
 test_demo_endpoint (__main__.HttpTests.test_demo_endpoint) ... ok
+test_duplicate_content_length_rejected (__main__.HttpTests.test_duplicate_content_length_rejected) ... ok
 test_endpoint_and_forward_header_ignored (__main__.HttpTests.test_endpoint_and_forward_header_ignored) ... ok
 test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_duplicate_charged) ... ok
+test_non_json_number_rejected_and_charged (__main__.HttpTests.test_non_json_number_rejected_and_charged) ... ok
+test_retry_after_header (__main__.HttpTests.test_retry_after_header) ... ok
 test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
 test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
 test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
@@ -34,7 +37,34 @@ test_simulation_isolated (__main__.PolicyTests.test_simulation_isolated) ... ok
 test_timezone_and_clock (__main__.PolicyTests.test_timezone_and_clock) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 2.030s
+Ran 20 tests in 3.543s
+
+OK
+test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
+test_atomic_threads_across_instances (__main__.PersistentTests.test_atomic_threads_across_instances) ... ok
+test_capacity_fail_closed (__main__.PersistentTests.test_capacity_fail_closed) ... ok
+test_database_failure_rolls_back_partial_charges (__main__.PersistentTests.test_database_failure_rolls_back_partial_charges) ... ok
+test_http_restart_preserves_limit (__main__.PersistentTests.test_http_restart_preserves_limit) ... ok
+test_malformed_requests_share_ip_bucket (__main__.PersistentTests.test_malformed_requests_share_ip_bucket) ... ok
+test_memory_and_database_agree (__main__.PersistentTests.test_memory_and_database_agree) ... ok
+test_missing_database_returns_storage_error (__main__.PersistentTests.test_missing_database_returns_storage_error) ... ok
+test_missing_required_charged_and_not_enrolled (__main__.PersistentTests.test_missing_required_charged_and_not_enrolled) ... ok
+test_no_raw_request_data_stored (__main__.PersistentTests.test_no_raw_request_data_stored) ... ok
+test_private_permissions_and_symlink (__main__.PersistentTests.test_private_permissions_and_symlink) ... ok
+test_repeat_snapshot_does_not_grow_history (__main__.PersistentTests.test_repeat_snapshot_does_not_grow_history) ... ok
+test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_history_retention) ... ok
+test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.752s
+
+OK
+test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
+test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_value) ... ok
+test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.021s
 
 OK
 {
@@ -71,6 +101,12 @@ OK
       "allowed": 5,
       "rate_limited": 5,
       "expected": "bucket limits repetition; the signal is not authenticated"
+    },
+    {
+      "scenario": "rotate account after persistent backend restart",
+      "first": "allow",
+      "after_restart": "rate_limited",
+      "expected": "SQLite preserves the active IP and machine buckets across restart"
     }
   ],
   "limitations": [
@@ -79,6 +115,9 @@ OK
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.123, "median_ms": 0.065, "p95_ms": 0.114, "requests": 200}, "sqlite": {"max_ms": 22.901, "median_ms": 2.409, "p95_ms": 3.083, "requests": 200}}
+core tests passed
+bounded JSON malformed-input stress passed
 probe tests passed
 
 Exit status: 0
