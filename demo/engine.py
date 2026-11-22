@@ -24,17 +24,17 @@ PRESETS = {
 def policy(preset='basic', override=None):
     if preset not in PRESETS: raise ValueError('Unknown preset')
     p = {'name':preset, **PRESETS[preset], 'window_seconds':60, 'max_requests':5,
-         'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False}
+         'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False, 'history_seconds':86400}
     if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
-        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce'}
+        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')
         p.update(override)
     for key in ('required','conditional'):
         if not isinstance(p[key], list) or any(not isinstance(x, str) or x not in SIGNALS for x in p[key]) or len(p[key]) != len(set(p[key])):
             raise ValueError('Invalid signal list')
     if set(p['required']) & set(p['conditional']): raise ValueError('Signal roles overlap')
-    for key, low, high in [('min_matches',1,1+len(p['required'])+len(p['conditional'])),('window_seconds',1,86400),('max_requests',1,10000),('max_clock_skew_seconds',0,86400),('timezone_tolerance_minutes',0,180)]:
+    for key, low, high in [('min_matches',1,1+len(p['required'])+len(p['conditional'])),('window_seconds',1,86400),('history_seconds',60,31536000),('max_requests',1,10000),('max_clock_skew_seconds',0,86400),('timezone_tolerance_minutes',0,180)]:
         if type(p[key]) is not int or not low <= p[key] <= high: raise ValueError('Invalid '+key)
     if not isinstance(p['timezone_enforce'], bool): raise ValueError('Invalid timezone enforcement')
     return p
@@ -85,7 +85,7 @@ class Engine:
                 return {'decision':'rate_limited','retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
         return None
 
-    def check(self, raw, peer):
+    def prepare(self, raw, peer):
         now = self.clock()
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
@@ -103,6 +103,19 @@ class Engine:
         zone, clock_status = self.timezone_status(ip, raw.get('timezone'), raw.get('timestamp'), now)
         tokens = {s:self.token(s,v) for s,v in signals.items()}
         tokens['ip'] = self.token('ip', str(ip))
+        return now, tokens, missing, zone, clock_status
+
+    def decision_before_matching(self, missing, zone, clock_status):
+        if missing:
+            return {'decision':'invalid','reason':'missing_required','missing':missing, 'relation':'inconclusive'}
+        if self.settings['timezone_enforce'] and zone == 'mismatch':
+            return {'decision':'challenge','reason':'timezone_mismatch','message':'Check your timezone or network location, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
+        if self.settings['timezone_enforce'] and clock_status == 'clock_out_of_range':
+            return {'decision':'challenge','reason':'clock_out_of_range','message':'Check your device clock, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
+        return None
+
+    def check(self, raw, peer):
+        now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
         # Limit independently by IP and each selected observation. A shared IP is a shared bucket.
         keys = list(tokens.values())
         window = self.settings['window_seconds']
@@ -120,12 +133,9 @@ class Engine:
                     retry = max(retry, math.ceil(window - (now-row[0])))
             if retry:
                 return {'decision':'rate_limited','retry_after_seconds':retry, 'relation':'inconclusive'}
-            if missing:
-                return {'decision':'invalid','reason':'missing_required','missing':missing, 'relation':'inconclusive'}
-            if self.settings['timezone_enforce'] and zone == 'mismatch':
-                return {'decision':'challenge','reason':'timezone_mismatch','message':'Check your timezone or network location, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
-            if self.settings['timezone_enforce'] and clock_status == 'clock_out_of_range':
-                return {'decision':'challenge','reason':'clock_out_of_range','message':'Check your device clock, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
+            failure = self.decision_before_matching(missing, zone, clock_status)
+            if failure:
+                return failure
             best = []
             possible = False
             for _, prior in self.observations:
@@ -134,7 +144,7 @@ class Engine:
                 possible |= len(set(tokens) & set(prior)) >= self.settings['min_matches']
             relation = 'related' if len(best) >= self.settings['min_matches'] else ('below_threshold' if self.observations and possible else 'inconclusive' if self.observations else 'new')
             if len(self.observations) >= self.max_entries: self.observations.pop(0)
-            self.observations.append((now + window, tokens))
+            self.observations.append((now + self.settings['history_seconds'], tokens))
             return {'decision':'allow','relation':relation,'matched_signals':best,
                     'timezone':zone, 'clock':clock_status, 'retry_after_seconds':0,
                     'warning':'A relation is not proof of the same person; shared IPs can link unrelated users.'}

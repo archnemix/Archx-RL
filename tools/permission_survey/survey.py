@@ -3,11 +3,9 @@
 import glob
 import json
 import os
-import platform
-import re
+import stat
 import subprocess
 import sys
-from datetime import datetime, timezone
 
 
 def value_status(value):
@@ -40,7 +38,8 @@ def lsblk():
     try:
         p = subprocess.run(['lsblk', '-J', '-o', 'TYPE,SERIAL,WWN,UUID,PARTUUID'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=5, check=True)
         data = json.loads(p.stdout)
-        out = {x: 'absent' for x in ('disk_serial', 'disk_wwn', 'filesystem_uuid', 'partition_uuid')}
+        # Empty metadata can mean absent hardware, permissions or missing udev data.
+        out = {x: 'unavailable_or_unsupported' for x in ('disk_serial', 'disk_wwn', 'filesystem_uuid', 'partition_uuid')}
         def walk(items):
             for item in items:
                 for key, field in [('disk_serial','serial'), ('disk_wwn','wwn'), ('filesystem_uuid','uuid'), ('partition_uuid','partuuid')]:
@@ -81,6 +80,23 @@ def main():
     except FileNotFoundError: roles['tpm_device'] = 'absent'
     except PermissionError: roles['tpm_device'] = 'permission_denied'
     except OSError: roles['tpm_device'] = 'unreadable'
-    print(json.dumps({'access_level': sys.argv[1], 'uid_is_root': os.geteuid() == 0, 'signals': roles}, sort_keys=True))
+    mode_paths = {
+        'machine_id': '/etc/machine-id',
+        'product_uuid': '/sys/class/dmi/id/product_uuid',
+        'product_serial': '/sys/class/dmi/id/product_serial',
+        'board_serial': '/sys/class/dmi/id/board_serial',
+        'chassis_serial': '/sys/class/dmi/id/chassis_serial',
+        'tpm_device': '/dev/tpmrm0',
+    }
+    modes = {}
+    for name, path in mode_paths.items():
+        try: modes[name] = format(stat.S_IMODE(os.stat(path).st_mode), '04o')
+        except OSError: modes[name] = None
+    try:
+        sudo = subprocess.run(['sudo', '-n', 'true'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3).returncode == 0
+    except (OSError, subprocess.SubprocessError): sudo = False
+    print(json.dumps({'access_level': sys.argv[1], 'uid_is_root': os.geteuid() == 0,
+                      'passwordless_sudo': sudo, 'supplementary_group_count': len(os.getgroups()),
+                      'file_modes': modes, 'signals': roles}, sort_keys=True))
 
 if __name__ == '__main__': main()

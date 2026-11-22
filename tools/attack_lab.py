@@ -3,9 +3,11 @@
 import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy
+from sqlite_engine import SQLiteEngine
 
 def token(v): return hashlib.sha256(v.encode()).hexdigest()
 def hit(e, account, machine, ip):
@@ -23,6 +25,16 @@ def report():
     out.append({'scenario':'two unrelated users behind one IP','first':a,'second':b,'expected':'known false positive from shared IP bucket'})
     e=engine();actions=[hit(e,'replayed-account','replayed-machine','192.0.2.1') for _ in range(10)]
     out.append({'scenario':'replay of the same self-reported signal','allowed':actions.count('allow'),'rate_limited':actions.count('rate_limited'),'expected':'bucket limits repetition; the signal is not authenticated'})
+    with tempfile.TemporaryDirectory() as directory:
+        path=str(Path(directory)/'synthetic.sqlite')
+        p=policy(override={'max_requests':1})
+        secret=b'synthetic-attack-restart-secret-012345'
+        e=SQLiteEngine(path,p,secret,clock=lambda:1700000000.0)
+        first=hit(e,'user-a','same-machine','192.0.2.1')
+        e=SQLiteEngine(path,p,secret,clock=lambda:1700000000.0)
+        restarted=hit(e,'user-b','same-machine','192.0.2.1')
+        out.append({'scenario':'rotate account after persistent backend restart','first':first,'after_restart':restarted,'expected':'SQLite preserves the active IP and machine buckets across restart'})
+    assert out[-1]['first']=='allow' and out[-1]['after_restart']=='rate_limited'
     assert (out[0]['allowed'],out[1]['allowed'],out[2]['allowed'],out[3]['second'],out[4]['allowed']) == (5,5,40,'rate_limited',5)
     return {'schema_version':1,'environment':'local in-process synthetic traffic; no external network requests',
             'policy':'basic, 5 requests / 60 seconds unless noted','results':out,

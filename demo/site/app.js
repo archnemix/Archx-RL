@@ -8,17 +8,18 @@ function renderSurvey(survey) {
   if(groups.some(x=>!x)) throw new Error('Survey is incomplete');
   const order=['machine_id','product_uuid','board_serial','product_serial','chassis_serial','disk_serial','disk_wwn','filesystem_uuid','partition_uuid','gpu_uuid_nvidia','mac_address','tpm_device','timezone'];
   const tbody=document.querySelector('#survey-body'); tbody.replaceChildren();
-  for(const key of order){const tr=document.createElement('tr');const name=document.createElement('td');name.textContent=names[key]||key;tr.append(name);for(const g of groups){const td=document.createElement('td');td.append(badge(g.signals[key]));tr.append(td)}tbody.append(tr)}
+  for(const key of order){const tr=document.createElement('tr');const name=document.createElement('td');name.textContent=names[key]||key;tr.append(name);for(const g of groups){const td=document.createElement('td');td.append(badge(g.signals[key]));tr.append(td)}const cls=document.createElement('td');const classNames={readable_by_both_unprivileged_users:'Normal user',runner_user_only:'Runner-specific',isolated_user_only:'Isolated user only',root_only_on_this_runner:'Elevated on this VM',unavailable_or_unverified_on_this_runner:'Not determined'};cls.textContent=classNames[survey.classification?.[key]]||'Not classified';tr.append(cls);tbody.append(tr)}
   const count=order.filter(k=>['available','accessible'].includes(groups[0].signals[k])).length;
   document.querySelector('#available-count').innerHTML=`${count} <small>signals</small>`;
   document.querySelector('#survey-caption').textContent='Readable by runner user';
-  document.querySelector('#survey-meta').textContent=`${survey.environment.runner} · ${survey.environment.arch} · ${survey.environment.kernel}`;
+  document.querySelector('#survey-meta').textContent=`${survey.environment.runner} · ${survey.environment.arch} · ${survey.environment.kernel} · normal user sudo: ${groups[0].passwordless_sudo === undefined ? 'not recorded' : groups[0].passwordless_sudo ? 'available' : 'not available'}`;
   document.querySelector('#survey-date').textContent=new Date(survey.tested_at_utc).toISOString().slice(0,16).replace('T',' ')+' UTC';
 }
 async function loadSurvey() {
   try {
     const response=await fetch('/api/info'); if(!response.ok) throw new Error('Failed to load survey');
     const data=await response.json();
+    document.querySelector('#live-storage').textContent = data.storage_mode === 'sqlite' ? 'SQLITE DEMO' : 'IN-MEMORY DEMO';
     const surveys = [...(data.survey_history || [])];
     if(data.survey && !surveys.some(s=>s.environment.run_id===data.survey.environment.run_id)) surveys.unshift(data.survey);
     if(!surveys.length) throw new Error('No saved survey is available yet');
@@ -26,7 +27,7 @@ async function loadSurvey() {
     for(const survey of surveys){const option=document.createElement('option');option.value=survey.environment.run_id;option.textContent=new Date(survey.tested_at_utc).toISOString().slice(0,16).replace('T',' ')+' UTC';picker.append(option)}
     picker.addEventListener('change',()=>renderSurvey(surveys.find(s=>s.environment.run_id===picker.value)));
     renderSurvey(surveys[0]);
-  } catch(error){document.querySelector('#survey-body').replaceChildren();const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=4;cell.textContent=error.message;row.append(cell);document.querySelector('#survey-body').append(row);document.querySelector('#survey-meta').textContent='Survey unavailable';document.querySelector('#survey-caption').textContent='No saved survey'}
+  } catch(error){document.querySelector('#survey-body').replaceChildren();const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=5;cell.textContent=error.message;row.append(cell);document.querySelector('#survey-body').append(row);document.querySelector('#survey-meta').textContent='Survey unavailable';document.querySelector('#survey-caption').textContent='No saved survey'}
 }
 for(const card of document.querySelectorAll('.policy-card')) card.addEventListener('click',()=>{
   selected=card.dataset.preset;document.querySelectorAll('.policy-card').forEach(c=>c.classList.toggle('selected',c===card));

@@ -98,6 +98,19 @@ class HttpTests(unittest.TestCase):
     def test_malformed_and_duplicate_charged(self):
         for _ in range(3):self.assertEqual(self.request('/api/v1/check','{"account":"x", "account":"y"}')[0],400)
         self.assertEqual(self.request('/api/v1/check','{}')[0],429)
+    def test_non_json_number_rejected_and_charged(self):
+        status, _ = self.request('/api/v1/check', '{"account":"x","signals":{},"timestamp":NaN}')
+        self.assertEqual(status,400)
+    def test_duplicate_content_length_rejected(self):
+        con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
+        con.putrequest('POST','/api/v1/check')
+        con.putheader('Content-Type','application/json');con.putheader('Content-Length','2');con.putheader('Content-Length','2');con.endheaders();con.send(b'{}')
+        res=con.getresponse();res.read();con.close();self.assertEqual(res.status,400)
+    def test_retry_after_header(self):
+        for _ in range(3): self.request('/api/v1/check',json.dumps(req()))
+        con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
+        con.request('POST','/api/v1/check',json.dumps(req()),{'Content-Type':'application/json'})
+        res=con.getresponse();self.assertEqual(res.status,429);self.assertGreater(int(res.getheader('Retry-After')),0);res.read();con.close()
     def test_survey_history_endpoint(self):
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5); con.request('GET','/api/info')
         res=con.getresponse(); payload=json.loads(res.read()); con.close()

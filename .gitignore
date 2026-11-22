@@ -5,3 +5,9 @@ build/
 node_modules/
 __pycache__/
 *.pyc
+
+# Local persistent demo state (may contain pseudonymous identifiers)
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*

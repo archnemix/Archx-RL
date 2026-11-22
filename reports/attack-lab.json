@@ -32,6 +32,12 @@
       "allowed": 5,
       "rate_limited": 5,
       "expected": "bucket limits repetition; the signal is not authenticated"
+    },
+    {
+      "scenario": "rotate account after persistent backend restart",
+      "first": "allow",
+      "after_restart": "rate_limited",
+      "expected": "SQLite preserves the active IP and machine buckets across restart"
     }
   ],
   "limitations": [
