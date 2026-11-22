@@ -1,0 +1,20 @@
+Commit: 4b1bf724dd71f0a6dd3ed87b55785719b7edd637
+Run: 45040091111
+Runner: Linux
+
+== libarchx.so ==
+== libarchx.a ==
+== archx-probe ==
+built: build/libarchx.so  build/libarchx.a  build/archx-probe
+PASS sha256 empty
+PASS sha256 abc
+PASS sha256 56-byte
+PASS hmac rfc4231 case1
+PASS hmac rfc4231 case2
+PASS hmac rfc4231 case6
+all vectors passed
+core tests passed
+matching policy tests passed
+probe tests passed
+
+Exit status: 0
