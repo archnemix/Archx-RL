@@ -47,17 +47,19 @@ def installation():
     finally: os.close(fd)
 
 def storage(selected):
-    if not selected.intersection({'disk_serial','disk_wwn','filesystem_uuid','partition_uuid'}): return {}
+    columns = {'disk_serial':'SERIAL','disk_wwn':'WWN','filesystem_uuid':'UUID','partition_uuid':'PARTUUID'}
+    chosen = [name for name in columns if name in selected]
+    if not chosen: return {}
     try:
-        p = subprocess.run(['lsblk','-J','-o','TYPE,SERIAL,WWN,UUID,PARTUUID'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True, timeout=5)
+        p = subprocess.run(['lsblk','-J','-o',','.join(['TYPE']+[columns[n] for n in chosen])], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True, timeout=5)
         root = json.loads(p.stdout).get('blockdevices',[])
     except (OSError, subprocess.SubprocessError, ValueError): return {}
-    found = {k:[] for k in ('disk_serial','disk_wwn','filesystem_uuid','partition_uuid')}
+    found = {name:[] for name in chosen}
     def walk(items):
         for item in items:
-            for name,key in [('disk_serial','serial'),('disk_wwn','wwn'),('filesystem_uuid','uuid'),('partition_uuid','partuuid')]:
+            for name in chosen:
                 if name in ('disk_serial','disk_wwn') and item.get('type') != 'disk': continue
-                v=clean(str(item.get(key) or ''))
+                v=clean(str(item.get(columns[name].lower()) or ''))
                 if v: found[name].append(v)
             walk(item.get('children') or [])
     walk(root)
@@ -154,6 +156,7 @@ def main():
             return 2
         if not args.confirm_send_raw:
             print(json.dumps({'decision':'not_sent','reason':'confirmation_required',
+                  'recipient':args.url,'requested':sorted(selected),'available':sorted(signals),
                   'message':'This service requests raw device identifiers. Review its privacy notice and use --confirm-send-raw to send them.'}))
             return 2
         body={'account':args.account,'signals':signals, 'timestamp':time.time()}

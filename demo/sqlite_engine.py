@@ -114,52 +114,56 @@ class SQLiteEngine(Engine):
         except sqlite3.Error:
             return self._storage_error()
 
+    def _check_in_transaction(self, con, prepared, extra_keys=()):
+        """Charge, decide and record an observation inside the caller's transaction."""
+        now, tokens, missing, zone, clock_status = prepared
+        failure = self._charge(con, [*tokens.values(), *extra_keys], now)
+        if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
+        if failure:
+            return failure
+        con.execute('DELETE FROM observations WHERE expires <= ?', (now,))
+        # All matching fields must refer to the same prior observation.
+        predicates = ' OR '.join('(name=? AND token=?)' for _ in tokens)
+        params = [x for pair in tokens.items() for x in pair]
+        rows = con.execute(f'SELECT observation_id, name FROM signals WHERE {predicates} ORDER BY observation_id', params).fetchall()
+        matches = {}
+        for obs_id, name in rows: matches.setdefault(obs_id, set()).add(name)
+        best_set = max(matches.values(), key=len) if matches else set()
+        best = [name for name in tokens if name in best_set]
+        threshold = self.settings['min_matches']
+        if len(best) >= threshold:
+            relation = 'related'
+        elif con.execute('SELECT 1 FROM observations LIMIT 1').fetchone() is None:
+            relation = 'new'
+        else:
+            marks = ','.join('?' for _ in tokens)
+            comparable = con.execute(f'SELECT 1 FROM signals WHERE name IN ({marks}) GROUP BY observation_id HAVING count(*) >= ? LIMIT 1', [*tokens,threshold]).fetchone()
+            relation = 'below_threshold' if comparable else 'inconclusive'
+        # Keep one record for an identical signal snapshot, rather than
+        # consuming one history slot per repeated request.
+        fingerprint = hashlib.sha256(json.dumps(sorted(tokens.items()), separators=(',', ':')).encode()).hexdigest()
+        existing = con.execute('SELECT id FROM observations WHERE fingerprint=?', (fingerprint,)).fetchone()
+        expires = now + self.settings['history_seconds']
+        if existing:
+            con.execute('UPDATE observations SET expires=? WHERE id=?', (expires, existing[0]))
+        else:
+            if con.execute('SELECT count(*) FROM observations').fetchone()[0] >= self.max_entries:
+                earliest = con.execute('SELECT min(expires) FROM observations').fetchone()[0]
+                return {'decision':'capacity_exceeded','retry_after_seconds':max(1, math.ceil(earliest-now)), 'relation':'inconclusive'}
+            cur = con.execute('INSERT INTO observations(expires, fingerprint) VALUES(?,?)', (expires, fingerprint))
+            con.executemany('INSERT INTO signals(observation_id,name,token) VALUES(?,?,?)', [(cur.lastrowid, name, token) for name,token in tokens.items()])
+        return {'decision':'allow','relation':relation,'matched_signals':best, 'timezone':zone, 'clock':clock_status,
+                'retry_after_seconds':0, 'warning':'A relation is not proof of the same person; shared IPs can link unrelated users.'}
+
     def check(self, raw, peer):
-        now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        prepared = self.prepare(raw, peer)
         try:
             con = self.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
-                failure = self._charge(con, tokens.values(), now)
-                if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
-                if failure:
-                    con.commit()
-                    return failure
-                con.execute('DELETE FROM observations WHERE expires <= ?', (now,))
-                # All matching fields must refer to the same prior observation.
-                predicates = ' OR '.join('(name=? AND token=?)' for _ in tokens)
-                params = [x for pair in tokens.items() for x in pair]
-                rows = con.execute(f'SELECT observation_id, name FROM signals WHERE {predicates} ORDER BY observation_id', params).fetchall()
-                matches = {}
-                for obs_id, name in rows: matches.setdefault(obs_id, set()).add(name)
-                best_set = max(matches.values(), key=len) if matches else set()
-                best = [name for name in tokens if name in best_set]
-                threshold = self.settings['min_matches']
-                if len(best) >= threshold:
-                    relation = 'related'
-                elif con.execute('SELECT 1 FROM observations LIMIT 1').fetchone() is None:
-                    relation = 'new'
-                else:
-                    marks = ','.join('?' for _ in tokens)
-                    comparable = con.execute(f'SELECT 1 FROM signals WHERE name IN ({marks}) GROUP BY observation_id HAVING count(*) >= ? LIMIT 1', [*tokens,threshold]).fetchone()
-                    relation = 'below_threshold' if comparable else 'inconclusive'
-                # Keep one record for an identical signal snapshot, rather than
-                # consuming one history slot per repeated request.
-                fingerprint = hashlib.sha256(json.dumps(sorted(tokens.items()), separators=(',', ':')).encode()).hexdigest()
-                existing = con.execute('SELECT id FROM observations WHERE fingerprint=?', (fingerprint,)).fetchone()
-                expires = now + self.settings['history_seconds']
-                if existing:
-                    con.execute('UPDATE observations SET expires=? WHERE id=?', (expires, existing[0]))
-                else:
-                    if con.execute('SELECT count(*) FROM observations').fetchone()[0] >= self.max_entries:
-                        earliest = con.execute('SELECT min(expires) FROM observations').fetchone()[0]
-                        con.commit()
-                        return {'decision':'capacity_exceeded','retry_after_seconds':max(1, math.ceil(earliest-now)), 'relation':'inconclusive'}
-                    cur = con.execute('INSERT INTO observations(expires, fingerprint) VALUES(?,?)', (expires, fingerprint))
-                    con.executemany('INSERT INTO signals(observation_id,name,token) VALUES(?,?,?)', [(cur.lastrowid, name, token) for name,token in tokens.items()])
+                result = self._check_in_transaction(con, prepared)
                 con.commit()
-                return {'decision':'allow','relation':relation,'matched_signals':best, 'timezone':zone, 'clock':clock_status,
-                        'retry_after_seconds':0, 'warning':'A relation is not proof of the same person; shared IPs can link unrelated users.'}
+                return result
             except Exception:
                 con.rollback()
                 raise

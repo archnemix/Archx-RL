@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy, load_geo
 from signal_validation import normalize_signal, synthetic_signal
 from server import Handler, scenario
-from client import collect, endpoint, main
+from client import collect, endpoint, main, storage
 from unittest.mock import patch
 from io import StringIO
 
@@ -110,6 +110,12 @@ class RawSignalTests(unittest.TestCase):
         self.assertEqual(endpoint('http://127.0.0.1:8000/api/v2/check'),'http://127.0.0.1:8000/api/v2/config')
         for bad in ('http://example.test/api/v2/check','https://example.test/api/v1/check','https://user:pass@example.test/api/v2/check'):
             with self.assertRaises(ValueError): endpoint(bad)
+    def test_storage_collects_only_requested_columns(self):
+        class Result:
+            stdout='{"blockdevices":[{"type":"disk","serial":"demo-serial-1"}]}'
+        with patch('client.subprocess.run',return_value=Result()) as call:
+            self.assertEqual(storage({'disk_serial'}),{'disk_serial':['demo-serial-1']})
+        self.assertEqual(call.call_args.args[0],['lsblk','-J','-o','TYPE,SERIAL'])
     def test_missing_required_client_message(self):
         class Response:
             def __enter__(self): return self
@@ -148,7 +154,10 @@ class HttpTests(unittest.TestCase):
         argv=['client.py','--url',f'http://127.0.0.1:{self.port}/api/v2/check']
         with patch('sys.argv',argv), patch('client.collect',return_value={'machine_id':synthetic_signal('machine_id','consent')}), patch('sys.stdout',output):
             self.assertEqual(main(),2)
-        self.assertEqual(json.loads(output.getvalue())['reason'],'confirmation_required')
+        info=json.loads(output.getvalue())
+        self.assertEqual(info['reason'],'confirmation_required')
+        self.assertIn('machine_id',info['requested']); self.assertEqual(info['available'],['machine_id'])
+        self.assertEqual(info['recipient'],f'http://127.0.0.1:{self.port}/api/v2/check')
         self.assertEqual(self.httpd.engine.observations,[])
     def test_malformed_and_duplicate_charged(self):
         for _ in range(3):self.assertEqual(self.request('/api/v2/check','{"account":"x", "account":"y"}')[0],400)

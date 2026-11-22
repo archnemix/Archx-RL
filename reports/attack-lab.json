@@ -34,6 +34,11 @@
       "expected": "bucket limits repetition; the signal is not authenticated"
     },
     {
+      "scenario": "forged victim signal exhausts shared device bucket",
+      "victim": "rate_limited",
+      "expected": "known denial-of-service risk: client-reported signals are not authenticated"
+    },
+    {
       "scenario": "rotate account after persistent backend restart",
       "first": "allow",
       "after_restart": "rate_limited",
@@ -43,6 +48,7 @@
   "limitations": [
     "Client identifiers are forgeable and replayable.",
     "Shared networks may cause false positives.",
+    "Forged victim signals can exhaust their rate bucket.",
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }

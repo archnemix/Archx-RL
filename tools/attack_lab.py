@@ -25,6 +25,11 @@ def report():
     out.append({'scenario':'two unrelated users behind one IP','first':a,'second':b,'expected':'known false positive from shared IP bucket'})
     e=engine();actions=[hit(e,'replayed-account','replayed-machine','192.0.2.1') for _ in range(10)]
     out.append({'scenario':'replay of the same self-reported signal','allowed':actions.count('allow'),'rate_limited':actions.count('rate_limited'),'expected':'bucket limits repetition; the signal is not authenticated'})
+    e=engine(2)
+    for i in range(2): hit(e,'attacker','victim-signal',f'192.0.2.{i+1}')
+    victim=hit(e,'victim','victim-signal','198.51.100.1')
+    out.append({'scenario':'forged victim signal exhausts shared device bucket','victim':victim,
+                'expected':'known denial-of-service risk: client-reported signals are not authenticated'})
     with tempfile.TemporaryDirectory() as directory:
         path=str(Path(directory)/'synthetic.sqlite')
         p=policy(override={'max_requests':1})
@@ -35,10 +40,10 @@ def report():
         restarted=hit(e,'user-b','same-machine','192.0.2.1')
         out.append({'scenario':'rotate account after persistent backend restart','first':first,'after_restart':restarted,'expected':'SQLite preserves the active IP and machine buckets across restart'})
     assert out[-1]['first']=='allow' and out[-1]['after_restart']=='rate_limited'
-    assert (out[0]['allowed'],out[1]['allowed'],out[2]['allowed'],out[3]['second'],out[4]['allowed']) == (5,5,40,'rate_limited',5)
+    assert (out[0]['allowed'],out[1]['allowed'],out[2]['allowed'],out[3]['second'],out[4]['allowed'],out[5]['victim']) == (5,5,40,'rate_limited',5,'rate_limited')
     return {'schema_version':1,'environment':'local in-process synthetic traffic; no external network requests',
             'policy':'basic, 5 requests / 60 seconds unless noted','results':out,
-            'limitations':['Client identifiers are forgeable and replayable.','Shared networks may cause false positives.','Rotating all observed identifiers avoids these per-key limits.']}
+            'limitations':['Client identifiers are forgeable and replayable.','Shared networks may cause false positives.', 'Forged victim signals can exhaust their rate bucket.','Rotating all observed identifiers avoids these per-key limits.']}
 
 if __name__=='__main__':
     result=json.dumps(report(),indent=2)+'\n'
