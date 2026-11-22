@@ -1,0 +1,55 @@
+name: Archx Linux tests and permissions survey
+
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/archx-runner/request.txt']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archx-linux-repository-test
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Run tests and capture output
+        id: tests
+        shell: bash
+        run: |
+          mkdir -p .github/archx-runner/runs
+          log=.github/archx-runner/runs/latest.log
+          { printf 'Commit: %s\nRun: %s\nRunner: %s\n\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$RUNNER_OS"; ./test.sh; } > "$log" 2>&1 && status=0 || status=$?
+          printf '\nExit status: %s\n' "$status" >> "$log"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Survey normal, isolated user and root access
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo useradd --no-create-home --shell /usr/sbin/nologin archxsurvey
+          python3 tools/permission_survey/survey.py runner-user > "$RUNNER_TEMP/runner.json"
+          sudo -u archxsurvey python3 tools/permission_survey/survey.py isolated-user > "$RUNNER_TEMP/isolated.json"
+          sudo python3 tools/permission_survey/survey.py root > "$RUNNER_TEMP/root.json"
+          python3 tools/permission_survey/combine.py "$RUNNER_TEMP/runner.json" "$RUNNER_TEMP/isolated.json" "$RUNNER_TEMP/root.json" > .github/archx-runner/runs/linux-permissions.json
+      - name: Save sanitized output to the same branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/archx-runner/runs/latest.log .github/archx-runner/runs/linux-permissions.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Linux test and permissions survey'
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
+      - name: Report test failure
+        if: steps.tests.outputs.status != '0'
+        run: exit 1

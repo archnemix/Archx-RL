@@ -1,0 +1,4 @@
+Change this file and push this session branch to trigger the Linux test workflow.
+Only test output is recorded, in runs/latest.log.
+
+Request: Linux permissions survey, normal user, isolated user and root.

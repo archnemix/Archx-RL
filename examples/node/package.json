@@ -1,0 +1,7 @@
+{
+  "name": "archx-node-example",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Minimal Node.js FFI example for the Archx Linux prototype",
+  "dependencies": { "koffi": "^2.12.0" }
+}

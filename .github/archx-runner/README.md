@@ -1,0 +1,5 @@
+# Repository-backed test runs
+
+The Linux workflow runs **one runner**, on the session branch only. Change `request.txt`, commit and push it to trigger, or run the workflow manually on that branch. The job saves its test log to `runs/latest.log` on the same branch, replacing the preceding result; it does not use artifacts. Its result commit does not retrigger the workflow. If the branch moves while the runner is executing, the push can fail rather than overwrite newer work; fetch the branch and rerun. The branch must permit `GITHUB_TOKEN` writes and Actions must be enabled.
+
+Only run tests whose stdout/stderr are safe to commit. Do not put credentials, production identifiers, real device profiles or confidential downloads in this directory or print them in tests. Workflow infrastructure logs and checkout/action setup errors are held by GitHub and are not captured by the test log. No API keys are configured or used. There is no Windows or macOS collector yet; running this Linux-specific build on those systems would not test those platforms. The one-runner concurrency setting governs this workflow, not other unrelated workflows in the repository.
