@@ -1,0 +1,104 @@
+import hashlib
+import http.client
+import json
+import os
+import sys
+import threading
+import unittest
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from http.server import ThreadingHTTPServer
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'demo'))
+from engine import Engine, policy, load_geo
+from server import Handler, scenario
+from client import collect
+
+def tok(n): return hashlib.sha256(n.encode()).hexdigest()
+def req(account='a', **values): return {'account':account, 'signals':{'machine_id':tok('m'),**values}}
+
+class PolicyTests(unittest.TestCase):
+    def setUp(self):
+        self.now=[1700000000.0]
+        self.e=Engine(policy(override={'max_requests':100}), secret=b'secret', clock=lambda:self.now[0])
+    def test_any_match_with_rotated_ip_and_shared_ip(self):
+        self.assertEqual(self.e.check(req(), '192.0.2.1')['relation'],'new')
+        r=self.e.check(req('b'),'198.51.100.1');self.assertEqual(r['relation'],'related');self.assertIn('machine_id',r['matched_signals'])
+        r=self.e.check({'account':'c','signals':{'machine_id':tok('different')}},'192.0.2.1')
+        self.assertEqual(r['relation'],'related');self.assertEqual(r['matched_signals'],['ip'])
+    def test_missing_required_and_optional(self):
+        self.assertEqual(self.e.check({'account':'a','signals':{}},'192.0.2.1')['reason'],'missing_required')
+        self.assertEqual(self.e.check(req(),'192.0.2.2')['decision'],'allow')
+        with self.assertRaises(ValueError): self.e.check(req(disk_serial=tok('d')),'192.0.2.3')
+    def test_optional_can_match(self):
+        self.e.check(req(product_uuid=tok('u')),'192.0.2.1')
+        r=self.e.check({'account':'x','signals':{'machine_id':tok('other'),'product_uuid':tok('u')}},'192.0.2.2')
+        self.assertEqual(r['matched_signals'],['product_uuid'])
+    def test_min_matches_and_inconclusive(self):
+        e=Engine(policy('standard'),secret=b'secret',clock=lambda:self.now[0])
+        e.check(req(),'192.0.2.1')
+        self.assertEqual(e.check(req(),'192.0.2.2')['relation'],'below_threshold')
+        self.assertEqual(e.check(req(),'192.0.2.1')['relation'],'related')
+    def test_rate_limit_ip_and_machine_independent(self):
+        e=Engine(policy(override={'max_requests':2,'window_seconds':60}),secret=b'secret',clock=lambda:self.now[0])
+        self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'allow')
+        self.assertEqual(e.check(req('b'),'192.0.2.2')['decision'],'allow')
+        self.assertEqual(e.check(req('c'),'192.0.2.3')['decision'],'rate_limited')
+        self.now[0]+=61
+        self.assertEqual(e.check(req('d'),'192.0.2.3')['decision'],'allow')
+        e.check({'account':'z','signals':{'machine_id':tok('z')}},'192.0.2.1')
+        e.check({'account':'z2','signals':{'machine_id':tok('z2')}},'192.0.2.1')
+        self.assertEqual(e.check({'account':'z3','signals':{'machine_id':tok('z3')}},'192.0.2.1')['decision'],'rate_limited')
+    def test_shared_ip_warning(self):
+        e=Engine(policy(override={'max_requests':1}),secret=b'secret',clock=lambda:self.now[0])
+        e.check(req(),'192.0.2.1')
+        self.assertEqual(e.check({'account':'other','signals':{'machine_id':tok('other')}},'192.0.2.1')['decision'],'rate_limited')
+    def test_timezone_and_clock(self):
+        e=Engine(policy(override={'timezone_enforce':True,'max_requests':100}),secret=b'secret',clock=lambda:self.now[0],geo=load_geo([{'network':'192.0.2.0/24','timezones':['Asia/Karachi']}]))
+        r=e.check({**req(),'timezone':'Asia/Karachi','timestamp':self.now[0]-60},'192.0.2.1');self.assertEqual(r['timezone'],'consistent');self.assertEqual(r['clock'],'ok')
+        r=e.check({**req(),'timezone':'America/New_York'},'192.0.2.1');self.assertEqual(r['reason'],'timezone_mismatch')
+        r=e.check({**req(),'timezone':'Asia/Karachi','timestamp':self.now[0]-301},'192.0.2.1');self.assertEqual(r['reason'],'clock_out_of_range')
+        r=e.check({**req(),'timezone':'America/New_York'},'198.51.100.2');self.assertEqual(r['timezone'],'unknown');self.assertEqual(r['decision'],'allow')
+        with self.assertRaises(ValueError):e.check({**req(),'timezone':'No/SuchZone'},'192.0.2.1')
+    def test_concurrency_atomic(self):
+        e=Engine(policy(override={'max_requests':5}),secret=b'secret',clock=lambda:self.now[0])
+        with ThreadPoolExecutor(max_workers=20) as pool: out=list(pool.map(lambda i:e.check(req(str(i)),'192.0.2.1')['decision'],range(100)))
+        self.assertEqual(out.count('allow'),5);self.assertEqual(out.count('rate_limited'),95)
+    def test_capacity_closed(self):
+        e=Engine(policy(override={'max_requests':100}),secret=b'secret',clock=lambda:self.now[0],max_entries=2)
+        self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'allow')
+        self.assertEqual(e.check(req('b'),'192.0.2.2')['decision'],'capacity_exceeded')
+    def test_bad_config_and_schema(self):
+        for o in [{'min_matches':0},{'required':['wrong']},{'max_requests':0},{'required':['machine_id'],'conditional':['machine_id']},{'timezone_enforce':'yes'}]:
+            with self.assertRaises(ValueError):policy(override=o)
+        for data in [{'account':'x','signals':{'machine_id':'raw-id'}}, {'account':'x','signals':{'machine_id':tok('x')},'ip':'1.2.3.4'}]:
+            with self.assertRaises(ValueError):self.e.check(data,'192.0.2.1')
+    def test_no_raw_values_stored(self):
+        x=req();self.e.check(x,'192.0.2.1')
+        self.assertNotIn(x['signals']['machine_id'],str(self.e.observations));self.assertNotIn('192.0.2.1',str(self.e.observations))
+    def test_simulation_isolated(self):
+        out=scenario('basic');self.assertEqual(out['events'][2]['matched_signals'],['ip']);self.assertTrue(any(e['decision']=='rate_limited' for e in out['events']))
+    def test_native_collector(self):
+        ids=collect({'machine_id','product_uuid','board_serial'},'test-app')
+        for v in ids.values(): self.assertRegex(v,r'^[0-9a-f]{64}$')
+        self.assertEqual(ids, collect({'machine_id','product_uuid','board_serial'},'test-app'))
+
+class HttpTests(unittest.TestCase):
+    def setUp(self):
+        self.httpd=ThreadingHTTPServer(('127.0.0.1',0),Handler);self.httpd.engine=Engine(policy(override={'max_requests':3}),secret=b'secret')
+        self.thread=threading.Thread(target=self.httpd.serve_forever,daemon=True);self.thread.start();self.port=self.httpd.server_address[1]
+    def tearDown(self): self.httpd.shutdown();self.httpd.server_close();self.thread.join()
+    def request(self, path, body, headers=None):
+        con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5);con.request('POST',path,body,headers or {'Content-Type':'application/json'});r=con.getresponse();data=r.read();con.close();return r.status,json.loads(data)
+    def test_endpoint_and_forward_header_ignored(self):
+        a=req(); b={'account':'b','signals':{'machine_id':tok('other')}}
+        self.assertEqual(self.request('/api/v1/check',json.dumps(a))[0],200)
+        status,data=self.request('/api/v1/check',json.dumps(b),{'Content-Type':'application/json','X-Forwarded-For':'198.51.100.1'})
+        self.assertEqual(status,200);self.assertEqual(data['matched_signals'],['ip'])
+    def test_malformed_and_duplicate_charged(self):
+        for _ in range(3):self.assertEqual(self.request('/api/v1/check','{"account":"x", "account":"y"}')[0],400)
+        self.assertEqual(self.request('/api/v1/check','{}')[0],429)
+    def test_demo_endpoint(self):
+        status,data=self.request('/api/demo/run','{"preset":"basic"}');self.assertEqual(status,200);self.assertEqual(len(data['events']),8)
+
+if __name__=='__main__': unittest.main(verbosity=2)

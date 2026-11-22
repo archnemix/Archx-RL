@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "environment": "local in-process synthetic traffic; no external network requests",
+  "policy": "basic, 5 requests / 60 seconds unless noted",
+  "results": [
+    {
+      "scenario": "same device, rotating IP and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared machine bucket limits requests"
+    },
+    {
+      "scenario": "same IP, rotating device and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared IP bucket limits requests"
+    },
+    {
+      "scenario": "rotating both device signals and IP",
+      "allowed": 40,
+      "rate_limited": 0,
+      "expected": "known bypass: no stable common key"
+    },
+    {
+      "scenario": "two unrelated users behind one IP",
+      "first": "allow",
+      "second": "rate_limited",
+      "expected": "known false positive from shared IP bucket"
+    },
+    {
+      "scenario": "replay of the same self-reported signal",
+      "allowed": 5,
+      "rate_limited": 5,
+      "expected": "bucket limits repetition; the signal is not authenticated"
+    }
+  ],
+  "limitations": [
+    "Client identifiers are forgeable and replayable.",
+    "Shared networks may cause false positives.",
+    "Rotating all observed identifiers avoids these per-key limits."
+  ]
+}

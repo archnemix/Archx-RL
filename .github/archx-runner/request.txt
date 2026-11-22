@@ -3,3 +3,4 @@ Only test output is recorded, in runs/latest.log.
 
 Request: Linux permissions survey, normal user, isolated user and root.
 Retry survey with isolated-user accessible script and error capture.
+Run Linux explorer, request policy and synthetic attack tests.

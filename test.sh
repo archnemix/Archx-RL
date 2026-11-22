@@ -8,6 +8,8 @@ $CC $FLAGS tests/test_core.c src/signals_linux.c src/sha256.c -Lbuild -larchx -l
 ./build/test_vectors
 ./build/test_core
 python3 tests/test_matching.py
+python3 tests/test_demo.py
+python3 tools/attack_lab.py
 ./build/archx-probe collect | python3 -c 'import json,sys; assert json.load(sys.stdin)["platform"] == "linux"'
 ./build/archx-probe identify --app-id 'test"app' --pepper demo | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["device_hash"]) == 64'
 echo "probe tests passed"

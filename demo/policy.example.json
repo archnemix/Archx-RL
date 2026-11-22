@@ -1,0 +1,10 @@
+{
+  "required": ["machine_id"],
+  "conditional": ["product_uuid", "board_serial", "disk_serial", "filesystem_uuid"],
+  "min_matches": 1,
+  "window_seconds": 60,
+  "max_requests": 5,
+  "timezone_enforce": false,
+  "timezone_tolerance_minutes": 30,
+  "max_clock_skew_seconds": 300
+}
