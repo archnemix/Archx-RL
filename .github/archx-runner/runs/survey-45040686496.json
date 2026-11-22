@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "tested_at_utc": "2026-11-22T15:52:58.059111+00:00",
+  "environment": {
+    "platform": "linux",
+    "kernel": "7.0.0-1016-aws",
+    "arch": "x86_64",
+    "runner": "GitHub-hosted ubuntu-latest",
+    "run_id": "45040686496",
+    "commit": "e294db759f55b729477880ea1dd2881af50fb4a3"
+  },
+  "disclaimer": "Availability only; no identifier values are included. One virtual runner is not representative of physical desktops.",
+  "access_levels": [
+    {
+      "access_level": "runner-user",
+      "signals": {
+        "board_serial": "permission_denied",
+        "chassis_serial": "permission_denied",
+        "disk_serial": "available",
+        "disk_wwn": "available",
+        "filesystem_uuid": "available",
+        "gpu_uuid_nvidia": "unavailable_or_unsupported",
+        "mac_address": "available",
+        "machine_id": "available",
+        "partition_uuid": "available",
+        "product_serial": "permission_denied",
+        "product_uuid": "permission_denied",
+        "timezone": "available",
+        "tpm_device": "absent"
+      },
+      "uid_is_root": false
+    },
+    {
+      "access_level": "isolated-user",
+      "signals": {
+        "board_serial": "permission_denied",
+        "chassis_serial": "permission_denied",
+        "disk_serial": "available",
+        "disk_wwn": "available",
+        "filesystem_uuid": "available",
+        "gpu_uuid_nvidia": "unavailable_or_unsupported",
+        "mac_address": "available",
+        "machine_id": "available",
+        "partition_uuid": "available",
+        "product_serial": "permission_denied",
+        "product_uuid": "permission_denied",
+        "timezone": "available",
+        "tpm_device": "absent"
+      },
+      "uid_is_root": false
+    },
+    {
+      "access_level": "root",
+      "signals": {
+        "board_serial": "empty_or_placeholder",
+        "chassis_serial": "empty_or_placeholder",
+        "disk_serial": "available",
+        "disk_wwn": "available",
+        "filesystem_uuid": "available",
+        "gpu_uuid_nvidia": "unavailable_or_unsupported",
+        "mac_address": "available",
+        "machine_id": "available",
+        "partition_uuid": "available",
+        "product_serial": "available",
+        "product_uuid": "available",
+        "timezone": "available",
+        "tpm_device": "absent"
+      },
+      "uid_is_root": true
+    }
+  ]
+}

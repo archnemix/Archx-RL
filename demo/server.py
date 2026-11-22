@@ -65,7 +65,12 @@ class Handler(BaseHTTPRequestHandler):
         if path=='/api/info':
             try: survey=json.loads(SURVEY.read_text())
             except (OSError, ValueError): survey=None
-            return self.json({'policy':self.server.engine.settings,'signals':SIGNALS,'survey':survey, 'notice':'Demo only. The server uses the TCP peer IP and does not trust forwarding headers.'})
+            history=[]
+            for file in SURVEY.parent.glob('survey-*.json'):
+                try: history.append(json.loads(file.read_text()))
+                except (OSError, ValueError): pass
+            history.sort(key=lambda item:item.get('tested_at_utc',''), reverse=True)
+            return self.json({'policy':self.server.engine.settings,'signals':SIGNALS,'survey':survey, 'survey_history':history, 'notice':'Demo only. The server uses the TCP peer IP and does not trust forwarding headers.'})
         files={'/':('index.html','text/html; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8')}
         if path not in files: return self.json({'error':'not_found'},404)
         name,typ=files[path]; data=(ROOT/'site'/name).read_bytes()

@@ -98,6 +98,10 @@ class HttpTests(unittest.TestCase):
     def test_malformed_and_duplicate_charged(self):
         for _ in range(3):self.assertEqual(self.request('/api/v1/check','{"account":"x", "account":"y"}')[0],400)
         self.assertEqual(self.request('/api/v1/check','{}')[0],429)
+    def test_survey_history_endpoint(self):
+        con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5); con.request('GET','/api/info')
+        res=con.getresponse(); payload=json.loads(res.read()); con.close()
+        self.assertEqual(res.status,200); self.assertIsInstance(payload['survey_history'],list)
     def test_demo_endpoint(self):
         status,data=self.request('/api/demo/run','{"preset":"basic"}');self.assertEqual(status,200);self.assertEqual(len(data['events']),8)
 
