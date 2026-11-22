@@ -32,12 +32,18 @@ jobs:
           printf '\nExit status: %s\n' "$status" >> "$log"
           echo "status=$status" >> "$GITHUB_OUTPUT"
       - name: Survey normal, isolated user and root access
+        id: survey
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
+          exec >> .github/archx-runner/runs/latest.log 2>&1
+          trap 'printf "Survey failed at line %s (exit %s)\n" "$LINENO" "$?"' ERR
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxsurvey
           python3 tools/permission_survey/survey.py runner-user > "$RUNNER_TEMP/runner.json"
-          sudo -u archxsurvey python3 tools/permission_survey/survey.py isolated-user > "$RUNNER_TEMP/isolated.json"
+          install -m 755 tools/permission_survey/survey.py /tmp/archx-survey.py
+          sudo -u archxsurvey python3 /tmp/archx-survey.py isolated-user > "$RUNNER_TEMP/isolated.json"
+          rm /tmp/archx-survey.py
           sudo python3 tools/permission_survey/survey.py root > "$RUNNER_TEMP/root.json"
           python3 tools/permission_survey/combine.py "$RUNNER_TEMP/runner.json" "$RUNNER_TEMP/isolated.json" "$RUNNER_TEMP/root.json" > .github/archx-runner/runs/linux-permissions.json
       - name: Save sanitized output to the same branch
@@ -45,11 +51,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/archx-runner/runs/latest.log .github/archx-runner/runs/linux-permissions.json
+          git add .github/archx-runner/runs/latest.log
+          if test -f .github/archx-runner/runs/linux-permissions.json; then git add .github/archx-runner/runs/linux-permissions.json; fi
           if ! git diff --cached --quiet; then
             git commit -m 'Record Linux test and permissions survey'
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
       - name: Report test failure
-        if: steps.tests.outputs.status != '0'
+        if: steps.tests.outputs.status != '0' || steps.survey.outcome == 'failure'
         run: exit 1
