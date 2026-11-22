@@ -1,5 +1,5 @@
-Commit: 7ad21f11b8560ab3b02ed07fc71b56bf539877ab
-Run: 45047894357
+Commit: 6f5d8ae1bd12b038bb5c506d5ff937de95e377a9
+Run: 45050360477
 Runner: Linux
 
 == libarchx.so ==
@@ -42,9 +42,10 @@ test_endpoint_restricts_transport (__main__.RawSignalTests.test_endpoint_restric
 test_fabrication_and_replay_remain_possible (__main__.RawSignalTests.test_fabrication_and_replay_remain_possible) ... ok
 test_formats_and_normalization (__main__.RawSignalTests.test_formats_and_normalization) ... ok
 test_missing_required_client_message (__main__.RawSignalTests.test_missing_required_client_message) ... ok
+test_storage_collects_only_requested_columns (__main__.RawSignalTests.test_storage_collects_only_requested_columns) ... ok
 
 ----------------------------------------------------------------------
-Ran 27 tests in 5.075s
+Ran 28 tests in 5.058s
 
 OK
 test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
@@ -64,7 +65,35 @@ test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_
 test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 15 tests in 1.564s
+Ran 15 tests in 1.620s
+
+OK
+test_replayed_victim_identifier_can_exhaust_unverified_signal_bucket (__main__.PoisonTests.test_replayed_victim_identifier_can_exhaust_unverified_signal_bucket) ... ok
+test_absent_required_and_timezone_do_not_activate (__main__.TrialTests.test_absent_required_and_timezone_do_not_activate) ... ok
+test_activation_retry_conflicts_and_account_uniqueness (__main__.TrialTests.test_activation_retry_conflicts_and_account_uniqueness) ... ok
+test_concurrent_activations_are_atomic (__main__.TrialTests.test_concurrent_activations_are_atomic) ... ok
+test_concurrent_processes_activate_once (__main__.TrialTests.test_concurrent_processes_activate_once) ... ok
+test_concurrent_related_accounts_reviewed (__main__.TrialTests.test_concurrent_related_accounts_reviewed) ... /usr/lib/python3.14/threading.py:1308: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73c682faaf20>
+  def _make_invoke_excepthook():
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/threading.py:1308: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73c682fab2e0>
+  def _make_invoke_excepthook():
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_device_related_only_actual_activations_and_only_same_offer (__main__.TrialTests.test_device_related_only_actual_activations_and_only_same_offer) ... ok
+test_entitlement_capacity_stops_new_activation (__main__.TrialTests.test_entitlement_capacity_stops_new_activation) ... ok
+test_expired_signal_does_not_block_new_activation (__main__.TrialTests.test_expired_signal_does_not_block_new_activation) ... ok
+test_fail_closed_capacity_and_database_removal (__main__.TrialTests.test_fail_closed_capacity_and_database_removal) ... ok
+test_failure_rolls_back_rate_and_entitlement (__main__.TrialTests.test_failure_rolls_back_rate_and_entitlement) ... ok
+test_idempotency_key_and_offer_validation (__main__.TrialTests.test_idempotency_key_and_offer_validation) ... ok
+test_missing_table_does_not_reinitialize_existing_ledger (__main__.TrialTests.test_missing_table_does_not_reinitialize_existing_ledger) ... ok
+test_no_raw_identifiers_in_database (__main__.TrialTests.test_no_raw_identifiers_in_database) ... ok
+test_observe_mode_allows_but_reports_match (__main__.TrialTests.test_observe_mode_allows_but_reports_match) ... ok
+test_restart_and_policy_compatibility (__main__.TrialTests.test_restart_and_policy_compatibility) ... ok
+test_status_tracks_authoritative_local_entitlement (__main__.TrialTests.test_status_tracks_authoritative_local_entitlement) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.570s
 
 OK
 test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
@@ -72,7 +101,7 @@ test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_va
 test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
 
 ----------------------------------------------------------------------
-Ran 3 tests in 0.027s
+Ran 3 tests in 0.020s
 
 OK
 {
@@ -111,6 +140,11 @@ OK
       "expected": "bucket limits repetition; the signal is not authenticated"
     },
     {
+      "scenario": "forged victim signal exhausts shared device bucket",
+      "victim": "rate_limited",
+      "expected": "known denial-of-service risk: client-reported signals are not authenticated"
+    },
+    {
       "scenario": "rotate account after persistent backend restart",
       "first": "allow",
       "after_restart": "rate_limited",
@@ -120,10 +154,11 @@ OK
   "limitations": [
     "Client identifiers are forgeable and replayable.",
     "Shared networks may cause false positives.",
+    "Forged victim signals can exhaust their rate bucket.",
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }
-{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.187, "median_ms": 0.09, "p95_ms": 0.148, "requests": 200}, "sqlite": {"max_ms": 3.692, "median_ms": 2.12, "p95_ms": 2.97, "requests": 200}}
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.113, "median_ms": 0.062, "p95_ms": 0.105, "requests": 200}, "sqlite": {"max_ms": 21.628, "median_ms": 1.84, "p95_ms": 6.499, "requests": 200}}
 core tests passed
 bounded JSON malformed-input stress passed
 probe tests passed
