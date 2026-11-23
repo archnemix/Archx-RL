@@ -1,5 +1,7 @@
 # Device intelligence and anti-abuse: research and Archx assessment
 
+> Historical research snapshot. Archx is an identification and rate-limiting layer, not an account, authentication, trial or entitlement system. References below to integrating business actions describe responsibilities of a host application and are outside Archx scope.
+
 **Research date:** 2026-11-22 UTC  
 **Scope:** Linux-native device recognition and account/trial abuse; browser and mobile products are context, not current Archx implementations.  
 **Repository examined:** Python demo and C core on branch `arena/328e63a8-archx-rl`; GitHub Linux test run 45047894357.  

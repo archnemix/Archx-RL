@@ -132,7 +132,7 @@ def endpoint(url):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--url',default='http://127.0.0.1:8000/api/v2/check')
-    parser.add_argument('--account',default='example')
+    parser.add_argument('--account',help=argparse.SUPPRESS) # deprecated and ignored
     parser.add_argument('--signals',help='comma-separated subset; required signals are always included')
     parser.add_argument('--confirm-send-raw',action='store_true',help='consent to sending the selected raw identifiers to this server')
     args=parser.parse_args()
@@ -148,18 +148,20 @@ def main():
         selected=set(filter(None,args.signals.split(','))) if args.signals is not None else available
         if not selected <= available: raise ValueError('Requested signal is not enabled by the service')
         selected.update(required)
+        missing_message=config.get('missing_required_message', 'Your device did not provide information required by this service. Contact the service provider for help.')
+        if not isinstance(missing_message,str) or not 1 <= len(missing_message) <= 500 or any(ord(c)<32 or ord(c)==127 for c in missing_message): raise ValueError('Invalid server message')
         signals=collect(selected)
         missing=[name for name in required if name not in signals]
         if missing:
             print(json.dumps({'decision':'invalid','reason':'missing_required','missing':missing,
-                  'message':'Your device did not provide information required by this service. Contact the service provider for help.'}))
+                  'message':missing_message}))
             return 2
         if not args.confirm_send_raw:
             print(json.dumps({'decision':'not_sent','reason':'confirmation_required',
                   'recipient':args.url,'requested':sorted(selected),'available':sorted(signals),
                   'message':'This service requests raw device identifiers. Review its privacy notice and use --confirm-send-raw to send them.'}))
             return 2
-        body={'account':args.account,'signals':signals, 'timestamp':time.time()}
+        body={'signals':signals, 'timestamp':time.time()}
         zone=system_zone()
         if zone: body['timezone']=zone
         req=urllib.request.Request(args.url, data=json.dumps(body).encode(), headers={'Content-Type':'application/json'})

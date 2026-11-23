@@ -1,11 +1,22 @@
 {
-  "required": ["machine_id"],
-  "conditional": ["product_uuid", "board_serial", "disk_serial", "filesystem_uuid"],
+  "required": [
+    "machine_id"
+  ],
+  "conditional": [
+    "product_uuid",
+    "board_serial",
+    "disk_serial",
+    "filesystem_uuid"
+  ],
   "min_matches": 1,
   "window_seconds": 60,
   "max_requests": 5,
   "history_seconds": 86400,
   "timezone_enforce": false,
   "timezone_tolerance_minutes": 30,
-  "max_clock_skew_seconds": 300
+  "max_clock_skew_seconds": 300,
+  "messages": {
+    "rate_limited": "Too many requests. Please wait and try again.",
+    "missing_required": "This service needs device information that your device could not provide. Contact support for help."
+  }
 }

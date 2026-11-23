@@ -11,3 +11,5 @@ Run persistent SQLite, sanitizer, JSON stress, HTTP, performance and Linux permi
 Run raw-v2 signal validation, privacy, client and SQLite compatibility tests.
 
 Run atomic trial example, spoofed victim bucket, privacy minimization and concurrency tests.
+
+Verify identification-only layer, configurable friendly responses and no-account frontend requests.

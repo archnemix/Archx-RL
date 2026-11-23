@@ -10,6 +10,16 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from signal_validation import SIGNALS, normalize_signal
 
+DEFAULT_MESSAGES = {
+    'rate_limited': 'Too many requests. Please wait and try again.',
+    'missing_required': 'This service requires device information that your device did not provide. Contact the service provider for help.',
+    'invalid_request': 'We could not process this request. Please check your information and try again.',
+    'timezone_mismatch': 'Check your timezone or network location, then retry.',
+    'clock_out_of_range': 'Check your device clock, then retry.',
+    'capacity_exceeded': 'The service is busy. Please try again later.',
+    'storage_error': 'The service is temporarily unavailable. Please try again later.',
+}
+
 PRESETS = {
     'basic': {'required':['machine_id'], 'conditional':['product_uuid', 'board_serial'], 'min_matches':1},
     'standard': {'required':['machine_id'], 'conditional':['product_uuid','board_serial','disk_serial','disk_wwn','filesystem_uuid','partition_uuid','installation_id'], 'min_matches':2},
@@ -23,7 +33,7 @@ def policy(preset='basic', override=None):
          'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False, 'history_seconds':86400}
     if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
-        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds'}
+        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')
         p.update(override)
     for key in ('required','conditional'):
@@ -33,6 +43,11 @@ def policy(preset='basic', override=None):
     for key, low, high in [('min_matches',1,1+len(p['required'])+len(p['conditional'])),('window_seconds',1,86400),('history_seconds',60,31536000),('max_requests',1,10000),('max_clock_skew_seconds',0,86400),('timezone_tolerance_minutes',0,180)]:
         if type(p[key]) is not int or not low <= p[key] <= high: raise ValueError('Invalid '+key)
     if not isinstance(p['timezone_enforce'], bool): raise ValueError('Invalid timezone enforcement')
+    if 'messages' in p:
+        messages=p['messages']
+        if not isinstance(messages,dict) or set(messages)-set(DEFAULT_MESSAGES): raise ValueError('Invalid messages')
+        if any(not isinstance(v,str) or not 1 <= len(v) <= 500 or any(ord(c) < 32 or ord(c) == 127 for c in v) for v in messages.values()): raise ValueError('Invalid messages')
+        p['messages']=dict(messages)
     return p
 
 class Engine:
@@ -45,6 +60,9 @@ class Engine:
         self.lock = threading.Lock()
         self.windows = {} # HMAC key -> [window_start, count]
         self.observations = [] # (expires, {signal name: HMAC})
+
+    def message(self, name):
+        return self.settings.get('messages', {}).get(name, DEFAULT_MESSAGES[name])
 
     def token(self, name, value):
         return hmac.new(self.secret, ('archx-raw-v2\0'+name+'\0'+value).encode(), hashlib.sha256).hexdigest()
@@ -75,10 +93,10 @@ class Engine:
         with self.lock:
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
             if key not in self.windows and len(self.windows) >= self.max_entries:
-                return {'decision':'capacity_exceeded','retry_after_seconds':window,'relation':'inconclusive'}
+                return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window,'relation':'inconclusive'}
             row = self.windows.setdefault(key,[now,0]); row[1] += 1
             if row[1] > self.settings['max_requests']:
-                return {'decision':'rate_limited','retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
+                return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
         return None
 
     def prepare(self, raw, peer):
@@ -88,8 +106,8 @@ class Engine:
         # Validate shape; IP always comes from server connection, never client input.
         if not isinstance(raw, dict) or set(raw) - {'account','signals','timezone','timestamp'}:
             raise ValueError('Invalid request fields')
-        account = raw.get('account')
-        if not isinstance(account,str) or not 1 <= len(account) <= 128 or any(ord(c)<32 for c in account): raise ValueError('Invalid account')
+        # Legacy clients may send account; it is ignored and never identifies a user.
+        if 'account' in raw and (not isinstance(raw['account'],str) or not 1 <= len(raw['account']) <= 128 or any(ord(c)<32 for c in raw['account'])): raise ValueError('Invalid legacy field')
         signals = raw.get('signals')
         if not isinstance(signals,dict) or len(signals)>len(SIGNALS): raise ValueError('Invalid signals')
         selected = set(self.settings['required'] + self.settings['conditional'])
@@ -103,11 +121,11 @@ class Engine:
 
     def decision_before_matching(self, missing, zone, clock_status):
         if missing:
-            return {'decision':'invalid','reason':'missing_required','missing':missing, 'message':'This service requires device information that your device did not provide. Contact the service provider for help.', 'relation':'inconclusive'}
+            return {'decision':'invalid','reason':'missing_required','missing':missing, 'message':self.message('missing_required'), 'relation':'inconclusive'}
         if self.settings['timezone_enforce'] and zone == 'mismatch':
-            return {'decision':'challenge','reason':'timezone_mismatch','message':'Check your timezone or network location, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
+            return {'decision':'challenge','reason':'timezone_mismatch','message':self.message('timezone_mismatch'), 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
         if self.settings['timezone_enforce'] and clock_status == 'clock_out_of_range':
-            return {'decision':'challenge','reason':'clock_out_of_range','message':'Check your device clock, then retry.', 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
+            return {'decision':'challenge','reason':'clock_out_of_range','message':self.message('clock_out_of_range'), 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
         return None
 
     def check(self, raw, peer):
@@ -120,7 +138,7 @@ class Engine:
             self.observations = [(expiry,v) for expiry,v in self.observations if expiry > now]
             missing_keys = sum(1 for key in keys if key not in self.windows)
             if len(self.windows) + missing_keys > self.max_entries:
-                return {'decision':'capacity_exceeded','retry_after_seconds':window, 'relation':'inconclusive'}
+                return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
             retry = 0
             for key in keys:
                 row = self.windows.setdefault(key, [now,0])
@@ -128,7 +146,7 @@ class Engine:
                 if row[1] > self.settings['max_requests']:
                     retry = max(retry, math.ceil(window - (now-row[0])))
             if retry:
-                return {'decision':'rate_limited','retry_after_seconds':retry, 'relation':'inconclusive'}
+                return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry, 'relation':'inconclusive'}
             failure = self.decision_before_matching(missing, zone, clock_status)
             if failure:
                 return failure

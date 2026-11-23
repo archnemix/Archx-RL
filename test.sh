@@ -10,7 +10,6 @@ $CC $FLAGS tests/test_core.c src/signals_linux.c src/sha256.c -Lbuild -larchx -l
 python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_sqlite_engine.py
-python3 tests/test_trial_service.py
 python3 tests/test_survey.py
 python3 tools/attack_lab.py
 python3 tools/benchmark.py

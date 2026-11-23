@@ -33,6 +33,25 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.e.check({'account':'a','signals':{}},'192.0.2.1')['reason'],'missing_required')
         self.assertEqual(self.e.check(req(),'192.0.2.2')['decision'],'allow')
         with self.assertRaises(ValueError): self.e.check(req(disk_serial=tok('d')),'192.0.2.3')
+    def test_account_not_required_and_legacy_account_is_ignored(self):
+        payload={'signals':{'machine_id':tok('m')}}
+        self.assertEqual(self.e.check(payload,'192.0.2.1')['decision'],'allow')
+        payload['account']='legacy-name'
+        self.assertEqual(self.e.check(payload,'198.51.100.1')['relation'],'related')
+    def test_configurable_messages(self):
+        opts={'max_requests':1,'messages':{'missing_required':'Ask the service for help.', 'rate_limited':'Please take a short break.', 'capacity_exceeded':'Busy now.'}}
+        e=Engine(policy(override=opts),secret=b'secret',clock=lambda:self.now[0])
+        self.assertEqual(e.check({'signals':{}},'192.0.2.1')['message'],'Ask the service for help.')
+        self.assertEqual(e.check({'signals':{}},'192.0.2.1')['message'],'Please take a short break.')
+        e=Engine(policy(override=opts),secret=b'secret',clock=lambda:self.now[0],max_entries=1)
+        self.assertEqual(e.check({'signals':{'machine_id':tok('m')}},'192.0.2.1')['message'],'Busy now.')
+        for bad in ({'messages':{'unknown':'x'}},{'messages':{'rate_limited':''}},{'messages':{'rate_limited':'x\ny'}},{'messages':'bad'}):
+            with self.assertRaises(ValueError): policy(override=bad)
+    def test_forged_signal_can_exhaust_victim_bucket(self):
+        e=Engine(policy(override={'max_requests':2}),secret=b'secret',clock=lambda:self.now[0])
+        data={'signals':{'machine_id':synthetic_signal('machine_id','victim')}}
+        for ip in ('192.0.2.1','192.0.2.2'): self.assertEqual(e.check(data,ip)['decision'],'allow')
+        self.assertEqual(e.check(data,'198.51.100.1')['decision'],'rate_limited')
     def test_optional_can_match(self):
         self.e.check(req(product_uuid=synthetic_signal('product_uuid','u')),'192.0.2.1')
         r=self.e.check({'account':'x','signals':{'machine_id':tok('other'),'product_uuid':synthetic_signal('product_uuid','u')}},'192.0.2.2')
@@ -120,14 +139,14 @@ class RawSignalTests(unittest.TestCase):
         class Response:
             def __enter__(self): return self
             def __exit__(self,*args): pass
-            def read(self,*args): return b'{"protocol":"raw-v2","required":["machine_id"],"conditional":[]}'
+            def read(self,*args): return b'{"protocol":"raw-v2","required":["machine_id"],"conditional":[],"missing_required_message":"Contact the service for required information."}'
         class Opener:
             def open(self,*args,**kwargs): return Response()
         output=StringIO()
         with patch('sys.argv',['client.py','--confirm-send-raw']), patch('client.collect',return_value={}), patch('client.urllib.request.build_opener',return_value=Opener()), patch('sys.stdout',output):
             self.assertEqual(main(),2)
         result=json.loads(output.getvalue())
-        self.assertEqual(result['missing'],['machine_id']); self.assertIn('required',result['message'])
+        self.assertEqual(result['missing'],['machine_id']); self.assertEqual(result['message'],'Contact the service for required information.')
 
 class HttpTests(unittest.TestCase):
     def setUp(self):
@@ -165,6 +184,12 @@ class HttpTests(unittest.TestCase):
     def test_invalid_raw_values_are_charged(self):
         for _ in range(3): self.assertEqual(self.request('/api/v2/check',json.dumps({'account':'a','signals':{'machine_id':'1'}}))[0],400)
         self.assertEqual(self.request('/api/v2/check',json.dumps(req()))[0],429)
+    def test_configurable_invalid_message_and_no_account(self):
+        self.httpd.engine=Engine(policy(override={'messages':{'invalid_request':'Please fix the request.'}}),secret=b'secret')
+        status,body=self.request('/api/v2/check',json.dumps({'signals':{'machine_id':'1'}}))
+        self.assertEqual(status,400);self.assertEqual(body['message'],'Please fix the request.')
+        status,body=self.request('/api/v2/check',json.dumps({'signals':{'machine_id':tok('m')}}))
+        self.assertEqual(status,200);self.assertEqual(body['decision'],'allow')
     def test_non_json_number_rejected_and_charged(self):
         status, _ = self.request('/api/v2/check', '{"account":"x","signals":{},"timestamp":NaN}')
         self.assertEqual(status,400)

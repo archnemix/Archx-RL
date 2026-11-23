@@ -71,7 +71,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path=urlsplit(self.path).path
         if path=='/api/v2/config':
-            return self.json({'protocol':'raw-v2','required':self.server.engine.settings['required'], 'conditional':self.server.engine.settings['conditional']})
+            return self.json({'protocol':'raw-v2','required':self.server.engine.settings['required'], 'conditional':self.server.engine.settings['conditional'], 'missing_required_message':self.server.engine.message('missing_required')})
         if path=='/api/info':
             try: survey=json.loads(SURVEY.read_text())
             except (OSError, ValueError): survey=None
@@ -104,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/v2/check':
                 limited=self.server.engine.reject_malformed(self.client_address[0])
                 if limited: return self.json(limited,429 if limited['decision']=='rate_limited' else 503)
-            return self.json({'error':str(e)},400)
+            return self.json({'error':str(e),'decision':'invalid','reason':'invalid_request','message':self.server.engine.message('invalid_request')},400)
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)

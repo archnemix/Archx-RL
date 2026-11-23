@@ -127,6 +127,16 @@ class PersistentTests(unittest.TestCase):
         e=self.engine(max_requests=1)
         self.assertIsNone(e.reject_malformed('192.0.2.1'))
         self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'rate_limited')
+    def test_messages_can_change_without_resetting_persisted_limits(self):
+        first=self.engine(max_requests=1)
+        self.assertEqual(first.check({'signals':{'machine_id':tok('m')}},'192.0.2.1')['decision'],'allow')
+        changed=self.engine(max_requests=1,messages={'rate_limited':'Custom wait message.'})
+        result=changed.check({'signals':{'machine_id':tok('m')}},'192.0.2.1')
+        self.assertEqual(result['decision'],'rate_limited'); self.assertEqual(result['message'],'Custom wait message.')
+    def test_forged_signal_can_exhaust_victim_bucket(self):
+        e=self.engine(max_requests=2); data={'signals':{'machine_id':synthetic_signal('machine_id','victim')}}
+        for ip in ('192.0.2.1','192.0.2.2'): self.assertEqual(e.check(data,ip)['decision'],'allow')
+        self.assertEqual(e.check(data,'198.51.100.1')['decision'],'rate_limited')
     def test_memory_and_database_agree(self):
         p=policy(override={'max_requests':100})
         memory=Engine(p,secret=SECRET,clock=lambda:self.now[0])
