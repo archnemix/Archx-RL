@@ -1,5 +1,5 @@
-Commit: 6f5d8ae1bd12b038bb5c506d5ff937de95e377a9
-Run: 45050360477
+Commit: b91aa2c463bd09a5689eb91d9711980f534de845
+Run: 45240045967
 Runner: Linux
 
 == libarchx.so ==
@@ -17,6 +17,7 @@ core tests passed
 matching policy tests passed
 test_client_confirmation_blocks_send (__main__.HttpTests.test_client_confirmation_blocks_send) ... ok
 test_client_real_http_with_synthetic_signal (__main__.HttpTests.test_client_real_http_with_synthetic_signal) ... ok
+test_configurable_invalid_message_and_no_account (__main__.HttpTests.test_configurable_invalid_message_and_no_account) ... ok
 test_demo_endpoint (__main__.HttpTests.test_demo_endpoint) ... ok
 test_duplicate_content_length_rejected (__main__.HttpTests.test_duplicate_content_length_rejected) ... ok
 test_endpoint_and_forward_header_ignored (__main__.HttpTests.test_endpoint_and_forward_header_ignored) ... ok
@@ -25,10 +26,13 @@ test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_dupl
 test_non_json_number_rejected_and_charged (__main__.HttpTests.test_non_json_number_rejected_and_charged) ... ok
 test_retry_after_header (__main__.HttpTests.test_retry_after_header) ... ok
 test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
+test_account_not_required_and_legacy_account_is_ignored (__main__.PolicyTests.test_account_not_required_and_legacy_account_is_ignored) ... ok
 test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
 test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
 test_capacity_closed (__main__.PolicyTests.test_capacity_closed) ... ok
 test_concurrency_atomic (__main__.PolicyTests.test_concurrency_atomic) ... ok
+test_configurable_messages (__main__.PolicyTests.test_configurable_messages) ... ok
+test_forged_signal_can_exhaust_victim_bucket (__main__.PolicyTests.test_forged_signal_can_exhaust_victim_bucket) ... ok
 test_min_matches_and_inconclusive (__main__.PolicyTests.test_min_matches_and_inconclusive) ... ok
 test_missing_required_and_optional (__main__.PolicyTests.test_missing_required_and_optional) ... ok
 test_native_collector (__main__.PolicyTests.test_native_collector) ... ok
@@ -45,16 +49,18 @@ test_missing_required_client_message (__main__.RawSignalTests.test_missing_requi
 test_storage_collects_only_requested_columns (__main__.RawSignalTests.test_storage_collects_only_requested_columns) ... ok
 
 ----------------------------------------------------------------------
-Ran 28 tests in 5.058s
+Ran 32 tests in 5.569s
 
 OK
 test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
 test_atomic_threads_across_instances (__main__.PersistentTests.test_atomic_threads_across_instances) ... ok
 test_capacity_fail_closed (__main__.PersistentTests.test_capacity_fail_closed) ... ok
 test_database_failure_rolls_back_partial_charges (__main__.PersistentTests.test_database_failure_rolls_back_partial_charges) ... ok
+test_forged_signal_can_exhaust_victim_bucket (__main__.PersistentTests.test_forged_signal_can_exhaust_victim_bucket) ... ok
 test_http_restart_preserves_limit (__main__.PersistentTests.test_http_restart_preserves_limit) ... ok
 test_malformed_requests_share_ip_bucket (__main__.PersistentTests.test_malformed_requests_share_ip_bucket) ... ok
 test_memory_and_database_agree (__main__.PersistentTests.test_memory_and_database_agree) ... ok
+test_messages_can_change_without_resetting_persisted_limits (__main__.PersistentTests.test_messages_can_change_without_resetting_persisted_limits) ... ok
 test_missing_database_returns_storage_error (__main__.PersistentTests.test_missing_database_returns_storage_error) ... ok
 test_missing_required_charged_and_not_enrolled (__main__.PersistentTests.test_missing_required_charged_and_not_enrolled) ... ok
 test_no_raw_request_data_stored (__main__.PersistentTests.test_no_raw_request_data_stored) ... ok
@@ -65,35 +71,7 @@ test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_
 test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 15 tests in 1.620s
-
-OK
-test_replayed_victim_identifier_can_exhaust_unverified_signal_bucket (__main__.PoisonTests.test_replayed_victim_identifier_can_exhaust_unverified_signal_bucket) ... ok
-test_absent_required_and_timezone_do_not_activate (__main__.TrialTests.test_absent_required_and_timezone_do_not_activate) ... ok
-test_activation_retry_conflicts_and_account_uniqueness (__main__.TrialTests.test_activation_retry_conflicts_and_account_uniqueness) ... ok
-test_concurrent_activations_are_atomic (__main__.TrialTests.test_concurrent_activations_are_atomic) ... ok
-test_concurrent_processes_activate_once (__main__.TrialTests.test_concurrent_processes_activate_once) ... ok
-test_concurrent_related_accounts_reviewed (__main__.TrialTests.test_concurrent_related_accounts_reviewed) ... /usr/lib/python3.14/threading.py:1308: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73c682faaf20>
-  def _make_invoke_excepthook():
-ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/usr/lib/python3.14/threading.py:1308: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73c682fab2e0>
-  def _make_invoke_excepthook():
-ResourceWarning: Enable tracemalloc to get the object allocation traceback
-ok
-test_device_related_only_actual_activations_and_only_same_offer (__main__.TrialTests.test_device_related_only_actual_activations_and_only_same_offer) ... ok
-test_entitlement_capacity_stops_new_activation (__main__.TrialTests.test_entitlement_capacity_stops_new_activation) ... ok
-test_expired_signal_does_not_block_new_activation (__main__.TrialTests.test_expired_signal_does_not_block_new_activation) ... ok
-test_fail_closed_capacity_and_database_removal (__main__.TrialTests.test_fail_closed_capacity_and_database_removal) ... ok
-test_failure_rolls_back_rate_and_entitlement (__main__.TrialTests.test_failure_rolls_back_rate_and_entitlement) ... ok
-test_idempotency_key_and_offer_validation (__main__.TrialTests.test_idempotency_key_and_offer_validation) ... ok
-test_missing_table_does_not_reinitialize_existing_ledger (__main__.TrialTests.test_missing_table_does_not_reinitialize_existing_ledger) ... ok
-test_no_raw_identifiers_in_database (__main__.TrialTests.test_no_raw_identifiers_in_database) ... ok
-test_observe_mode_allows_but_reports_match (__main__.TrialTests.test_observe_mode_allows_but_reports_match) ... ok
-test_restart_and_policy_compatibility (__main__.TrialTests.test_restart_and_policy_compatibility) ... ok
-test_status_tracks_authoritative_local_entitlement (__main__.TrialTests.test_status_tracks_authoritative_local_entitlement) ... ok
-
-----------------------------------------------------------------------
-Ran 17 tests in 0.570s
+Ran 17 tests in 1.938s
 
 OK
 test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
@@ -101,7 +79,7 @@ test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_va
 test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
 
 ----------------------------------------------------------------------
-Ran 3 tests in 0.020s
+Ran 3 tests in 0.016s
 
 OK
 {
@@ -158,7 +136,7 @@ OK
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }
-{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.113, "median_ms": 0.062, "p95_ms": 0.105, "requests": 200}, "sqlite": {"max_ms": 21.628, "median_ms": 1.84, "p95_ms": 6.499, "requests": 200}}
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.09, "median_ms": 0.047, "p95_ms": 0.08, "requests": 200}, "sqlite": {"max_ms": 257.897, "median_ms": 2.532, "p95_ms": 3.634, "requests": 200}}
 core tests passed
 bounded JSON malformed-input stress passed
 probe tests passed
