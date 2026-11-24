@@ -1,5 +1,5 @@
-Commit: 22b5945b12c928dda074368ced7705f5c28758f5
-Run: 45440653041
+Commit: ffe14ebef815928ff5bf5c44aef4e1ab4b326a8e
+Run: 45445859276
 Runner: Linux
 
 == libarchx.so ==
@@ -50,7 +50,7 @@ test_missing_required_client_message (__main__.RawSignalTests.test_missing_requi
 test_storage_collects_only_requested_columns (__main__.RawSignalTests.test_storage_collects_only_requested_columns) ... ok
 
 ----------------------------------------------------------------------
-Ran 33 tests in 6.053s
+Ran 33 tests in 6.074s
 
 OK
 test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
@@ -72,7 +72,7 @@ test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_
 test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 2.362s
+Ran 17 tests in 1.594s
 
 OK
 test_sealed_transport_and_plaintext_rejected (__main__.HttpSecurityTests.test_sealed_transport_and_plaintext_rejected) ... ok
@@ -85,7 +85,14 @@ test_ip_is_charged_once_per_request_under_concurrency (__main__.ServiceIntegrati
 test_unverified_or_blocked_request_cannot_poison_device_buckets (__main__.ServiceIntegrationTests.test_unverified_or_blocked_request_cannot_poison_device_buckets) ... ok
 
 ----------------------------------------------------------------------
-Ran 8 tests in 2.399s
+Ran 8 tests in 2.305s
+
+OK
+test_node_javascript_interoperability_with_backend (__main__.BrowserClientTests.test_node_javascript_interoperability_with_backend) ... ok
+test_real_browser_synthetic_widget_and_encrypted_request (__main__.BrowserClientTests.test_real_browser_synthetic_widget_and_encrypted_request) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 13.513s
 
 OK
 test_concurrent_processes_share_replay_state (__main__.ReplayTests.test_concurrent_processes_share_replay_state) ... ok
@@ -94,14 +101,14 @@ test_sqlite_restart_and_concurrent_consumption (__main__.ReplayTests.test_sqlite
 test_storage_failure_closed (__main__.ReplayTests.test_storage_failure_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 0.174s
+Ran 4 tests in 0.241s
 
 OK
 test_http_trusted_proxy_uses_overwritten_single_header (__main__.ProxyTests.test_http_trusted_proxy_uses_overwritten_single_header) ... ok
 test_trust_boundary_and_header_validation (__main__.ProxyTests.test_trust_boundary_and_header_validation) ... ok
 
 ----------------------------------------------------------------------
-Ran 2 tests in 0.505s
+Ran 2 tests in 0.506s
 
 OK
 test_host_only_runs_operation_for_allowed_request (__main__.HostIntegrationTests.test_host_only_runs_operation_for_allowed_request) ... ok
@@ -110,7 +117,7 @@ test_malformed_input_is_denied_and_charged (__main__.HostIntegrationTests.test_m
 test_sealed_host_request_is_single_use (__main__.HostIntegrationTests.test_sealed_host_request_is_single_use) ... ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 0.008s
+Ran 4 tests in 0.513s
 
 OK
 test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
@@ -118,7 +125,7 @@ test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_va
 test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
 
 ----------------------------------------------------------------------
-Ran 3 tests in 0.016s
+Ran 3 tests in 0.023s
 
 OK
 {
@@ -175,7 +182,7 @@ OK
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }
-{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.097, "median_ms": 0.042, "p95_ms": 0.071, "requests": 200}, "sqlite": {"max_ms": 24.915, "median_ms": 1.684, "p95_ms": 15.008, "requests": 200}}
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.16, "median_ms": 0.087, "p95_ms": 0.147, "requests": 200}, "sqlite": {"max_ms": 9.509, "median_ms": 2.047, "p95_ms": 2.59, "requests": 200}}
 core tests passed
 bounded JSON malformed-input stress passed
 probe tests passed
