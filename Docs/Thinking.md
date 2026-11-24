@@ -3,6 +3,7 @@
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
 ## 2026-11-22 — API hardening
+- The first Linux CI run passed but warned that checkout v4 uses a deprecated Node runtime. Updated to pinned checkout v7.0.1 for the next workflow run.
 - Added a framework-independent Python request gate and a local WSGI example that enforces decisions before its synthetic protected operation.
 - IP precharging now precedes decryption and Siteverify; failed verification and blocked reputation no longer charge device buckets or enroll observations. A client that passes verification can still forge signals.
 - Added peer-bound, time-limited single-use challenges for `sealed-v2`, with bounded memory or single-host SQLite replay state. This blocks a second use, not first-use races, fabricated signals or cross-host replay without shared state.

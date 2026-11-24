@@ -58,5 +58,12 @@
     "urls": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For"
     ]
+  },
+  "github_checkout": {
+    "summary": "Checkout v7.0.1 uses the Node 24 runtime; checkout v6 and later retain credentials in RUNNER_TEMP and support subsequent host git operations. This workflow runs on GitHub-hosted Linux.",
+    "urls": [
+      "https://github.com/actions/checkout/releases/tag/v7.0.1",
+      "https://github.com/actions/checkout/blob/v7.0.1/README.md"
+    ]
   }
 }

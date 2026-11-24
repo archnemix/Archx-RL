@@ -15,3 +15,5 @@ Run atomic trial example, spoofed victim bucket, privacy minimization and concur
 Verify identification-only layer, configurable friendly responses and no-account frontend requests.
 
 Run Python request-gate, sealed-v2 replay, trusted proxy and host-integration regression tests with PyNaCl.
+
+Re-run Linux verification using pinned checkout v7.0.1 and Node 24.
