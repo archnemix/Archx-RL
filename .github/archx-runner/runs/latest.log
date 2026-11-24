@@ -1,5 +1,5 @@
-Commit: b91aa2c463bd09a5689eb91d9711980f534de845
-Run: 45240045967
+Commit: efd2c619ef7bda0e60db0ae395f954bfe8402b4d
+Run: 45440265640
 Runner: Linux
 
 == libarchx.so ==
@@ -26,6 +26,7 @@ test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_dupl
 test_non_json_number_rejected_and_charged (__main__.HttpTests.test_non_json_number_rejected_and_charged) ... ok
 test_retry_after_header (__main__.HttpTests.test_retry_after_header) ... ok
 test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
+test_truncated_valid_json_is_rejected (__main__.HttpTests.test_truncated_valid_json_is_rejected) ... ok
 test_account_not_required_and_legacy_account_is_ignored (__main__.PolicyTests.test_account_not_required_and_legacy_account_is_ignored) ... ok
 test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
 test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
@@ -49,7 +50,7 @@ test_missing_required_client_message (__main__.RawSignalTests.test_missing_requi
 test_storage_collects_only_requested_columns (__main__.RawSignalTests.test_storage_collects_only_requested_columns) ... ok
 
 ----------------------------------------------------------------------
-Ran 32 tests in 5.569s
+Ran 33 tests in 6.058s
 
 OK
 test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
@@ -71,7 +72,45 @@ test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_
 test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 1.938s
+Ran 17 tests in 1.436s
+
+OK
+test_sealed_transport_and_plaintext_rejected (__main__.HttpSecurityTests.test_sealed_transport_and_plaintext_rejected) ... ok
+test_turnstile_required_and_reputation_modes (__main__.HttpSecurityTests.test_turnstile_required_and_reputation_modes) ... ok
+test_key_creation_and_permissions (__main__.KeyTests.test_key_creation_and_permissions) ... ok
+test_feed_refresh_cache_staleness_and_failed_update (__main__.SecurityTests.test_feed_refresh_cache_staleness_and_failed_update) ... ok
+test_ip_storage_modes_persist_only_device_hashes (__main__.SecurityTests.test_ip_storage_modes_persist_only_device_hashes) ... ok
+test_turnstile_verification (__main__.SecurityTests.test_turnstile_verification) ... ok
+test_ip_is_charged_once_per_request_under_concurrency (__main__.ServiceIntegrationTests.test_ip_is_charged_once_per_request_under_concurrency) ... ok
+test_unverified_or_blocked_request_cannot_poison_device_buckets (__main__.ServiceIntegrationTests.test_unverified_or_blocked_request_cannot_poison_device_buckets) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.300s
+
+OK
+test_concurrent_processes_share_replay_state (__main__.ReplayTests.test_concurrent_processes_share_replay_state) ... ok
+test_single_use_expiry_peer_and_capacity (__main__.ReplayTests.test_single_use_expiry_peer_and_capacity) ... ok
+test_sqlite_restart_and_concurrent_consumption (__main__.ReplayTests.test_sqlite_restart_and_concurrent_consumption) ... ok
+test_storage_failure_closed (__main__.ReplayTests.test_storage_failure_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.247s
+
+OK
+test_http_trusted_proxy_uses_overwritten_single_header (__main__.ProxyTests.test_http_trusted_proxy_uses_overwritten_single_header) ... ok
+test_trust_boundary_and_header_validation (__main__.ProxyTests.test_trust_boundary_and_header_validation) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.505s
+
+OK
+test_host_only_runs_operation_for_allowed_request (__main__.HostIntegrationTests.test_host_only_runs_operation_for_allowed_request) ... ok
+test_loopback_wsgi_http_enforces_gate (__main__.HostIntegrationTests.test_loopback_wsgi_http_enforces_gate) ... ok
+test_malformed_input_is_denied_and_charged (__main__.HostIntegrationTests.test_malformed_input_is_denied_and_charged) ... ok
+test_sealed_host_request_is_single_use (__main__.HostIntegrationTests.test_sealed_host_request_is_single_use) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.009s
 
 OK
 test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
@@ -79,7 +118,7 @@ test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_va
 test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
 
 ----------------------------------------------------------------------
-Ran 3 tests in 0.016s
+Ran 3 tests in 0.017s
 
 OK
 {
@@ -136,7 +175,7 @@ OK
     "Rotating all observed identifiers avoids these per-key limits."
   ]
 }
-{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.09, "median_ms": 0.047, "p95_ms": 0.08, "requests": 200}, "sqlite": {"max_ms": 257.897, "median_ms": 2.532, "p95_ms": 3.634, "requests": 200}}
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.12, "median_ms": 0.063, "p95_ms": 0.107, "requests": 200}, "sqlite": {"max_ms": 103.882, "median_ms": 1.692, "p95_ms": 3.071, "requests": 200}}
 core tests passed
 bounded JSON malformed-input stress passed
 probe tests passed

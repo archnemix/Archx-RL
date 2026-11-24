@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "tested_at_utc": "2026-11-23T18:36:08.273852+00:00",
+  "tested_at_utc": "2026-11-24T16:43:01.677383+00:00",
   "environment": {
     "platform": "linux",
     "kernel": "7.0.0-1020-azure",
     "arch": "x86_64",
     "runner": "GitHub-hosted ubuntu-latest",
-    "run_id": "45240045967",
-    "commit": "b91aa2c463bd09a5689eb91d9711980f534de845"
+    "run_id": "45440265640",
+    "commit": "efd2c619ef7bda0e60db0ae395f954bfe8402b4d"
   },
   "disclaimer": "Availability only; no identifier values are included. One virtual runner is not representative of physical desktops.",
   "classification": {
