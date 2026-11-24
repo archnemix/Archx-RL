@@ -1,4 +1,5 @@
 #!/bin/sh
+# Build and run focused Linux regression, integration, and sanitizer tests.
 set -eu
 ./build.sh
 CC="${CC:-cc}"
@@ -10,6 +11,10 @@ $CC $FLAGS tests/test_core.c src/signals_linux.c src/sha256.c -Lbuild -larchx -l
 python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_sqlite_engine.py
+python3 tests/test_security.py
+python3 tests/test_replay.py
+python3 tests/test_proxy.py
+python3 tests/test_host_integration.py
 python3 tests/test_survey.py
 python3 tools/attack_lab.py
 python3 tools/benchmark.py

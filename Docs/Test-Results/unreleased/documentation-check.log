@@ -1,0 +1,6 @@
+$ python3 -m json.tool Docs/Files_Info.json >/dev/null
+exit: 0
+$ python3 -m json.tool Docs/Research.json >/dev/null
+exit: 0
+$ git diff --check
+exit: 0

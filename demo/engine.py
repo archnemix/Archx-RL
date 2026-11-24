@@ -18,6 +18,12 @@ DEFAULT_MESSAGES = {
     'clock_out_of_range': 'Check your device clock, then retry.',
     'capacity_exceeded': 'The service is busy. Please try again later.',
     'storage_error': 'The service is temporarily unavailable. Please try again later.',
+    'reputation_blocked': 'This network cannot be accepted right now. Please contact support.',
+    'reputation_unavailable': 'Network checks are temporarily unavailable. Please try again later.',
+    'turnstile_invalid': 'Please complete the security check and try again.',
+    'turnstile_unavailable': 'The security check is temporarily unavailable. Please try again later.',
+    'replay_rejected': 'This security check has expired or was already used. Please try again.',
+    'replay_unavailable': 'The security check is temporarily unavailable. Please try again later.',
 }
 
 PRESETS = {
@@ -33,7 +39,7 @@ def policy(preset='basic', override=None):
          'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False, 'history_seconds':86400}
     if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
-        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages'}
+        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages','ip_storage'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')
         p.update(override)
     for key in ('required','conditional'):
@@ -43,6 +49,7 @@ def policy(preset='basic', override=None):
     for key, low, high in [('min_matches',1,1+len(p['required'])+len(p['conditional'])),('window_seconds',1,86400),('history_seconds',60,31536000),('max_requests',1,10000),('max_clock_skew_seconds',0,86400),('timezone_tolerance_minutes',0,180)]:
         if type(p[key]) is not int or not low <= p[key] <= high: raise ValueError('Invalid '+key)
     if not isinstance(p['timezone_enforce'], bool): raise ValueError('Invalid timezone enforcement')
+    if p.get('ip_storage','hash') not in ('hash','raw'): raise ValueError('IP storage must be hash or raw; device signals are always hashed')
     if 'messages' in p:
         messages=p['messages']
         if not isinstance(messages,dict) or set(messages)-set(DEFAULT_MESSAGES): raise ValueError('Invalid messages')
@@ -67,6 +74,9 @@ class Engine:
     def token(self, name, value):
         return hmac.new(self.secret, ('archx-raw-v2\0'+name+'\0'+value).encode(), hashlib.sha256).hexdigest()
 
+    def ip_key(self, ip):
+        return 'raw-ip:' + str(ip) if self.settings.get('ip_storage','hash') == 'raw' else self.token('ip',str(ip))
+
     def timezone_status(self, ip, zone, stamp, now):
         if stamp is not None:
             if type(stamp) not in (int,float) or not math.isfinite(stamp): raise ValueError('Invalid timestamp')
@@ -89,7 +99,7 @@ class Engine:
         now = self.clock()
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
-        key = self.token('ip', str(ip)); window = self.settings['window_seconds']
+        key = self.ip_key(ip); window = self.settings['window_seconds']
         with self.lock:
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
             if key not in self.windows and len(self.windows) >= self.max_entries:
@@ -116,7 +126,7 @@ class Engine:
         missing = [s for s in self.settings['required'] if s not in signals]
         zone, clock_status = self.timezone_status(ip, raw.get('timezone'), raw.get('timestamp'), now)
         tokens = {s:self.token(s,v) for s,v in signals.items()}
-        tokens['ip'] = self.token('ip', str(ip))
+        tokens['ip'] = self.ip_key(ip)
         return now, tokens, missing, zone, clock_status
 
     def decision_before_matching(self, missing, zone, clock_status):
@@ -128,10 +138,11 @@ class Engine:
             return {'decision':'challenge','reason':'clock_out_of_range','message':self.message('clock_out_of_range'), 'timezone':zone, 'clock':clock_status, 'relation':'inconclusive'}
         return None
 
-    def check(self, raw, peer):
+    def check(self, raw, peer, *, _ip_precharged=False):
         now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
-        # Limit independently by IP and each selected observation. A shared IP is a shared bucket.
-        keys = list(tokens.values())
+        # The service precharges the IP before expensive verification. Direct callers
+        # use the default and charge all buckets together under one lock.
+        keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
         window = self.settings['window_seconds']
         with self.lock:
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}

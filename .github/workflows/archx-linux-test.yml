@@ -1,3 +1,4 @@
+# Run Linux regression tests and record a sanitized permission survey.
 name: Archx Linux tests and permissions survey
 
 on:
@@ -22,6 +23,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+      - name: Install optional security test dependency
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/archx-test-venv"
+          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt
+          echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
       - name: Run tests and capture output
         id: tests
         shell: bash

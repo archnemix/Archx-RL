@@ -13,3 +13,5 @@ Run raw-v2 signal validation, privacy, client and SQLite compatibility tests.
 Run atomic trial example, spoofed victim bucket, privacy minimization and concurrency tests.
 
 Verify identification-only layer, configurable friendly responses and no-account frontend requests.
+
+Run Python request-gate, sealed-v2 replay, trusted proxy and host-integration regression tests with PyNaCl.

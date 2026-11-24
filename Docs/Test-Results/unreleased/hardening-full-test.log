@@ -1,0 +1,177 @@
+== libarchx.so ==
+== libarchx.a ==
+== archx-probe ==
+built: build/libarchx.so  build/libarchx.a  build/archx-probe
+PASS sha256 empty
+PASS sha256 abc
+PASS sha256 56-byte
+PASS hmac rfc4231 case1
+PASS hmac rfc4231 case2
+PASS hmac rfc4231 case6
+all vectors passed
+core tests passed
+matching policy tests passed
+test_client_confirmation_blocks_send (__main__.HttpTests.test_client_confirmation_blocks_send) ... ok
+test_client_real_http_with_synthetic_signal (__main__.HttpTests.test_client_real_http_with_synthetic_signal) ... ok
+test_configurable_invalid_message_and_no_account (__main__.HttpTests.test_configurable_invalid_message_and_no_account) ... ok
+test_demo_endpoint (__main__.HttpTests.test_demo_endpoint) ... ok
+test_duplicate_content_length_rejected (__main__.HttpTests.test_duplicate_content_length_rejected) ... ok
+test_endpoint_and_forward_header_ignored (__main__.HttpTests.test_endpoint_and_forward_header_ignored) ... ok
+test_invalid_raw_values_are_charged (__main__.HttpTests.test_invalid_raw_values_are_charged) ... ok
+test_malformed_and_duplicate_charged (__main__.HttpTests.test_malformed_and_duplicate_charged) ... ok
+test_non_json_number_rejected_and_charged (__main__.HttpTests.test_non_json_number_rejected_and_charged) ... ok
+test_retry_after_header (__main__.HttpTests.test_retry_after_header) ... ok
+test_survey_history_endpoint (__main__.HttpTests.test_survey_history_endpoint) ... ok
+test_truncated_valid_json_is_rejected (__main__.HttpTests.test_truncated_valid_json_is_rejected) ... ok
+test_account_not_required_and_legacy_account_is_ignored (__main__.PolicyTests.test_account_not_required_and_legacy_account_is_ignored) ... ok
+test_any_match_with_rotated_ip_and_shared_ip (__main__.PolicyTests.test_any_match_with_rotated_ip_and_shared_ip) ... ok
+test_bad_config_and_schema (__main__.PolicyTests.test_bad_config_and_schema) ... ok
+test_capacity_closed (__main__.PolicyTests.test_capacity_closed) ... ok
+test_concurrency_atomic (__main__.PolicyTests.test_concurrency_atomic) ... ok
+test_configurable_messages (__main__.PolicyTests.test_configurable_messages) ... ok
+test_forged_signal_can_exhaust_victim_bucket (__main__.PolicyTests.test_forged_signal_can_exhaust_victim_bucket) ... ok
+test_min_matches_and_inconclusive (__main__.PolicyTests.test_min_matches_and_inconclusive) ... ok
+test_missing_required_and_optional (__main__.PolicyTests.test_missing_required_and_optional) ... ok
+test_native_collector (__main__.PolicyTests.test_native_collector) ... ok
+test_no_raw_values_stored (__main__.PolicyTests.test_no_raw_values_stored) ... ok
+test_optional_can_match (__main__.PolicyTests.test_optional_can_match) ... ok
+test_rate_limit_ip_and_machine_independent (__main__.PolicyTests.test_rate_limit_ip_and_machine_independent) ... ok
+test_shared_ip_warning (__main__.PolicyTests.test_shared_ip_warning) ... ok
+test_simulation_isolated (__main__.PolicyTests.test_simulation_isolated) ... ok
+test_timezone_and_clock (__main__.PolicyTests.test_timezone_and_clock) ... ok
+test_endpoint_restricts_transport (__main__.RawSignalTests.test_endpoint_restricts_transport) ... ok
+test_fabrication_and_replay_remain_possible (__main__.RawSignalTests.test_fabrication_and_replay_remain_possible) ... ok
+test_formats_and_normalization (__main__.RawSignalTests.test_formats_and_normalization) ... ok
+test_missing_required_client_message (__main__.RawSignalTests.test_missing_required_client_message) ... ok
+test_storage_collects_only_requested_columns (__main__.RawSignalTests.test_storage_collects_only_requested_columns) ... ok
+
+----------------------------------------------------------------------
+Ran 33 tests in 6.087s
+
+OK
+test_atomic_processes (__main__.PersistentTests.test_atomic_processes) ... ok
+test_atomic_threads_across_instances (__main__.PersistentTests.test_atomic_threads_across_instances) ... ok
+test_capacity_fail_closed (__main__.PersistentTests.test_capacity_fail_closed) ... ok
+test_database_failure_rolls_back_partial_charges (__main__.PersistentTests.test_database_failure_rolls_back_partial_charges) ... ok
+test_forged_signal_can_exhaust_victim_bucket (__main__.PersistentTests.test_forged_signal_can_exhaust_victim_bucket) ... ok
+test_http_restart_preserves_limit (__main__.PersistentTests.test_http_restart_preserves_limit) ... ok
+test_malformed_requests_share_ip_bucket (__main__.PersistentTests.test_malformed_requests_share_ip_bucket) ... ok
+test_memory_and_database_agree (__main__.PersistentTests.test_memory_and_database_agree) ... ok
+test_messages_can_change_without_resetting_persisted_limits (__main__.PersistentTests.test_messages_can_change_without_resetting_persisted_limits) ... ok
+test_missing_database_returns_storage_error (__main__.PersistentTests.test_missing_database_returns_storage_error) ... ok
+test_missing_required_charged_and_not_enrolled (__main__.PersistentTests.test_missing_required_charged_and_not_enrolled) ... ok
+test_no_raw_request_data_stored (__main__.PersistentTests.test_no_raw_request_data_stored) ... ok
+test_old_schema_rejected (__main__.PersistentTests.test_old_schema_rejected) ... ok
+test_private_permissions_and_symlink (__main__.PersistentTests.test_private_permissions_and_symlink) ... ok
+test_repeat_snapshot_does_not_grow_history (__main__.PersistentTests.test_repeat_snapshot_does_not_grow_history) ... ok
+test_restarts_and_history_retention (__main__.PersistentTests.test_restarts_and_history_retention) ... ok
+test_wrong_secret_and_policy_fail_closed (__main__.PersistentTests.test_wrong_secret_and_policy_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 1.643s
+
+OK
+test_sealed_transport_and_plaintext_rejected (__main__.HttpSecurityTests.test_sealed_transport_and_plaintext_rejected) ... ok
+test_turnstile_required_and_reputation_modes (__main__.HttpSecurityTests.test_turnstile_required_and_reputation_modes) ... ok
+test_key_creation_and_permissions (__main__.KeyTests.test_key_creation_and_permissions) ... ok
+test_feed_refresh_cache_staleness_and_failed_update (__main__.SecurityTests.test_feed_refresh_cache_staleness_and_failed_update) ... ok
+test_ip_storage_modes_persist_only_device_hashes (__main__.SecurityTests.test_ip_storage_modes_persist_only_device_hashes) ... ok
+test_turnstile_verification (__main__.SecurityTests.test_turnstile_verification) ... ok
+test_ip_is_charged_once_per_request_under_concurrency (__main__.ServiceIntegrationTests.test_ip_is_charged_once_per_request_under_concurrency) ... ok
+test_unverified_or_blocked_request_cannot_poison_device_buckets (__main__.ServiceIntegrationTests.test_unverified_or_blocked_request_cannot_poison_device_buckets) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.174s
+
+OK
+test_concurrent_processes_share_replay_state (__main__.ReplayTests.test_concurrent_processes_share_replay_state) ... ok
+test_single_use_expiry_peer_and_capacity (__main__.ReplayTests.test_single_use_expiry_peer_and_capacity) ... ok
+test_sqlite_restart_and_concurrent_consumption (__main__.ReplayTests.test_sqlite_restart_and_concurrent_consumption) ... ok
+test_storage_failure_closed (__main__.ReplayTests.test_storage_failure_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.255s
+
+OK
+test_http_trusted_proxy_uses_overwritten_single_header (__main__.ProxyTests.test_http_trusted_proxy_uses_overwritten_single_header) ... ok
+test_trust_boundary_and_header_validation (__main__.ProxyTests.test_trust_boundary_and_header_validation) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.508s
+
+OK
+test_host_only_runs_operation_for_allowed_request (__main__.HostIntegrationTests.test_host_only_runs_operation_for_allowed_request) ... ok
+test_loopback_wsgi_http_enforces_gate (__main__.HostIntegrationTests.test_loopback_wsgi_http_enforces_gate) ... ok
+test_malformed_input_is_denied_and_charged (__main__.HostIntegrationTests.test_malformed_input_is_denied_and_charged) ... ok
+test_sealed_host_request_is_single_use (__main__.HostIntegrationTests.test_sealed_host_request_is_single_use) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.513s
+
+OK
+test_combined_classification (__main__.SurveyTests.test_combined_classification) ... ok
+test_lsblk_never_returns_value (__main__.SurveyTests.test_lsblk_never_returns_value) ... ok
+test_placeholders (__main__.SurveyTests.test_placeholders) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.022s
+
+OK
+{
+  "schema_version": 1,
+  "environment": "local in-process synthetic traffic; no external network requests",
+  "policy": "basic, 5 requests / 60 seconds unless noted",
+  "results": [
+    {
+      "scenario": "same device, rotating IP and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared machine bucket limits requests"
+    },
+    {
+      "scenario": "same IP, rotating device and accounts",
+      "allowed": 5,
+      "rate_limited": 35,
+      "expected": "shared IP bucket limits requests"
+    },
+    {
+      "scenario": "rotating both device signals and IP",
+      "allowed": 40,
+      "rate_limited": 0,
+      "expected": "known bypass: no stable common key"
+    },
+    {
+      "scenario": "two unrelated users behind one IP",
+      "first": "allow",
+      "second": "rate_limited",
+      "expected": "known false positive from shared IP bucket"
+    },
+    {
+      "scenario": "replay of the same self-reported signal",
+      "allowed": 5,
+      "rate_limited": 5,
+      "expected": "bucket limits repetition; the signal is not authenticated"
+    },
+    {
+      "scenario": "forged victim signal exhausts shared device bucket",
+      "victim": "rate_limited",
+      "expected": "known denial-of-service risk: client-reported signals are not authenticated"
+    },
+    {
+      "scenario": "rotate account after persistent backend restart",
+      "first": "allow",
+      "after_restart": "rate_limited",
+      "expected": "SQLite preserves the active IP and machine buckets across restart"
+    }
+  ],
+  "limitations": [
+    "Client identifiers are forgeable and replayable.",
+    "Shared networks may cause false positives.",
+    "Forged victim signals can exhaust their rate bucket.",
+    "Rotating all observed identifiers avoids these per-key limits."
+  ]
+}
+{"description": "synthetic single-process sequential microbenchmark; runner-specific, not a capacity target", "memory": {"max_ms": 0.737, "median_ms": 0.062, "p95_ms": 0.107, "requests": 200}, "sqlite": {"max_ms": 5.007, "median_ms": 2.138, "p95_ms": 2.831, "requests": 200}}
+core tests passed
+bounded JSON malformed-input stress passed
+probe tests passed

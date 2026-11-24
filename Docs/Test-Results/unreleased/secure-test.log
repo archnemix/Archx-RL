@@ -1,0 +1,11 @@
+test_sealed_transport_and_plaintext_rejected (__main__.HttpSecurityTests.test_sealed_transport_and_plaintext_rejected) ... ok
+test_turnstile_required_and_reputation_modes (__main__.HttpSecurityTests.test_turnstile_required_and_reputation_modes) ... ok
+test_key_creation_and_permissions (__main__.KeyTests.test_key_creation_and_permissions) ... ok
+test_feed_refresh_cache_staleness_and_failed_update (__main__.SecurityTests.test_feed_refresh_cache_staleness_and_failed_update) ... ok
+test_ip_storage_modes_persist_only_device_hashes (__main__.SecurityTests.test_ip_storage_modes_persist_only_device_hashes) ... ok
+test_turnstile_verification (__main__.SecurityTests.test_turnstile_verification) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.203s
+
+OK

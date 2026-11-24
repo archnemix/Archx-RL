@@ -1,0 +1,475 @@
+{
+  "purpose": "Index of maintained implementation and configuration files. Paths are repository-root relative; generated artifacts and historical runner results are described in directory READMEs.",
+  "files": {
+    "build.sh": {
+      "purpose": "Build C libraries and probe",
+      "inputs": "C sources and compiler environment",
+      "outputs": "build artifacts"
+    },
+    "test.sh": {
+      "purpose": "Run Linux regression and sanitizer suite",
+      "inputs": "C/Python sources and synthetic fixtures",
+      "outputs": "test output and ignored build artifacts"
+    },
+    "include/archx.h": {
+      "purpose": "Define public C ABI",
+      "inputs": "API calls and configuration",
+      "outputs": "status codes, profiles and limit decisions"
+    },
+    "src/archx.c": {
+      "purpose": "Implement C identification and limiting API",
+      "inputs": "configuration and profiles",
+      "outputs": "HMAC identity and token-bucket decisions"
+    },
+    "src/json.c": {
+      "purpose": "Implement bounded JSON parser for C core",
+      "inputs": "JSON bytes",
+      "outputs": "parsed values or errors"
+    },
+    "src/json.h": {
+      "purpose": "Declare bounded JSON parser",
+      "inputs": "parser calls",
+      "outputs": "parsed values or errors"
+    },
+    "src/sha256.c": {
+      "purpose": "Implement SHA-256 and HMAC primitives for C core",
+      "inputs": "byte strings and keys",
+      "outputs": "digests"
+    },
+    "src/sha256.h": {
+      "purpose": "Declare SHA-256 and HMAC interfaces",
+      "inputs": "digest calls",
+      "outputs": "digests"
+    },
+    "src/signals_linux.c": {
+      "purpose": "Collect and normalize Linux signals for C core",
+      "inputs": "local Linux sources",
+      "outputs": "signal profile and availability"
+    },
+    "src/signals_linux.h": {
+      "purpose": "Declare Linux signal interfaces",
+      "inputs": "collector calls",
+      "outputs": "signal profiles"
+    },
+    "src/store.c": {
+      "purpose": "Implement in-process C token-bucket store",
+      "inputs": "keys and timing",
+      "outputs": "limit decisions"
+    },
+    "src/store.h": {
+      "purpose": "Declare C token-bucket interfaces",
+      "inputs": "store calls",
+      "outputs": "limit decisions"
+    },
+    "demo/engine.py": {
+      "purpose": "Implement Python policy and in-memory decisions",
+      "inputs": "policy, request, TCP peer and clock",
+      "outputs": "decision and keyed observations"
+    },
+    "demo/sqlite_engine.py": {
+      "purpose": "Persist Python policy state transactionally on one host",
+      "inputs": "database, secret, policy and checks",
+      "outputs": "decisions and SQLite state"
+    },
+    "demo/signal_validation.py": {
+      "purpose": "Validate and synthesize supported signal values",
+      "inputs": "signal name and value or seed",
+      "outputs": "normalized or synthetic value"
+    },
+    "demo/server.py": {
+      "purpose": "Serve prototype HTTP API and synthetic dashboard",
+      "inputs": "HTTP requests and CLI configuration",
+      "outputs": "JSON decisions and static files"
+    },
+    "demo/client.py": {
+      "purpose": "Collect selected Linux signals and submit with consent",
+      "inputs": "server configuration, CLI and local sources",
+      "outputs": "check request and decision"
+    },
+    "demo/security.py": {
+      "purpose": "Implement optional IPsum reputation and Turnstile adapter",
+      "inputs": "feed data, peer IP, token and settings",
+      "outputs": "atomic cache, reputation status or verification result"
+    },
+    "demo/sealed_payload.py": {
+      "purpose": "Implement optional sealed request envelope and key file handling",
+      "inputs": "JSON payload or sealed envelope and keys",
+      "outputs": "ciphertext, plaintext or new keypair"
+    },
+    "demo/create_sealed_keys.py": {
+      "purpose": "Generate a new sealed-box key pair",
+      "inputs": "private and public output paths",
+      "outputs": "new key files"
+    },
+    "demo/refresh_reputation.py": {
+      "purpose": "Refresh IPsum cache on demand",
+      "inputs": "cache path and IPsum level",
+      "outputs": "atomic cache and entry count"
+    },
+    "demo/requirements-secure.txt": {
+      "purpose": "Pin optional Python cryptography dependency",
+      "inputs": "pip requirements install",
+      "outputs": "PyNaCl dependency"
+    },
+    "demo/policy.example.json": {
+      "purpose": "Provide example Python policy override",
+      "inputs": "operator configuration",
+      "outputs": "policy values"
+    },
+    "demo/geo.example.json": {
+      "purpose": "Provide example timezone mapping",
+      "inputs": "operator configuration",
+      "outputs": "documentation-only CIDR mapping"
+    },
+    "demo/site/index.html": {
+      "purpose": "Define synthetic explorer page",
+      "inputs": "browser page request",
+      "outputs": "dashboard markup"
+    },
+    "demo/site/app.js": {
+      "purpose": "Drive explorer and simulation",
+      "inputs": "demo API responses and user interaction",
+      "outputs": "rendered synthetic results"
+    },
+    "demo/site/style.css": {
+      "purpose": "Style demo pages",
+      "inputs": "browser markup",
+      "outputs": "visual styles"
+    },
+    "demo/site/turnstile.html": {
+      "purpose": "Define synthetic Turnstile test page",
+      "inputs": "browser request",
+      "outputs": "widget markup"
+    },
+    "demo/site/turnstile.js": {
+      "purpose": "Render Turnstile and submit synthetic raw-mode check",
+      "inputs": "public config, widget token and user interaction",
+      "outputs": "HTTP check and result"
+    },
+    "examples/python/demo.py": {
+      "purpose": "Demonstrate C ABI via Python",
+      "inputs": "C shared library and example configuration",
+      "outputs": "example output"
+    },
+    "examples/python/match.py": {
+      "purpose": "Demonstrate C profile matching via Python",
+      "inputs": "C shared library and synthetic profiles",
+      "outputs": "matching output"
+    },
+    "examples/node/demo.js": {
+      "purpose": "Demonstrate C ABI from Node",
+      "inputs": "Node dependencies and C library",
+      "outputs": "example output"
+    },
+    "examples/node/package.json": {
+      "purpose": "Describe Node example dependencies",
+      "inputs": "npm install",
+      "outputs": "dependency configuration"
+    },
+    "examples/node/package-lock.json": {
+      "purpose": "Lock Node example dependencies",
+      "inputs": "npm install",
+      "outputs": "dependency versions"
+    },
+    "tests/test_vectors.c": {
+      "purpose": "Test C cryptographic vectors",
+      "inputs": "fixed SHA/HMAC test cases",
+      "outputs": "pass/fail"
+    },
+    "tests/test_core.c": {
+      "purpose": "Test C core behavior",
+      "inputs": "synthetic inputs",
+      "outputs": "pass/fail"
+    },
+    "tests/test_json_fuzz.c": {
+      "purpose": "Stress bounded C JSON parser",
+      "inputs": "deterministic malformed input",
+      "outputs": "pass/fail"
+    },
+    "tests/test_matching.py": {
+      "purpose": "Test C matching through Python",
+      "inputs": "synthetic profiles and C library",
+      "outputs": "pass/fail"
+    },
+    "tests/test_demo.py": {
+      "purpose": "Test Python engine, client and HTTP demo",
+      "inputs": "synthetic inputs and loopback",
+      "outputs": "unittest results"
+    },
+    "tests/test_sqlite_engine.py": {
+      "purpose": "Test persistence and concurrency",
+      "inputs": "temporary databases and synthetic requests",
+      "outputs": "unittest results"
+    },
+    "tests/test_security.py": {
+      "purpose": "Test optional security controls",
+      "inputs": "temporary files, mocks and synthetic HTTP",
+      "outputs": "unittest results; crypto tests may skip"
+    },
+    "tests/test_survey.py": {
+      "purpose": "Test Linux survey sanitization and combination",
+      "inputs": "synthetic survey data",
+      "outputs": "unittest results"
+    },
+    "tools/archx-probe.c": {
+      "purpose": "Provide C core command-line probe",
+      "inputs": "CLI arguments and local signals",
+      "outputs": "JSON output"
+    },
+    "tools/attack_lab.py": {
+      "purpose": "Demonstrate synthetic abuse and failure modes",
+      "inputs": "synthetic requests",
+      "outputs": "scenario results"
+    },
+    "tools/benchmark.py": {
+      "purpose": "Measure a small synthetic sequential workload",
+      "inputs": "local engines",
+      "outputs": "environment-specific timings"
+    },
+    "tools/permission_survey/survey.py": {
+      "purpose": "Survey Linux signal availability",
+      "inputs": "local permissions and operating system",
+      "outputs": "sanitized availability JSON"
+    },
+    "tools/permission_survey/combine.py": {
+      "purpose": "Combine survey records",
+      "inputs": "several sanitized survey JSON files",
+      "outputs": "combined JSON"
+    },
+    ".github/workflows/archx-linux-test.yml": {
+      "purpose": "Run Linux tests and survey on the current branch",
+      "inputs": "manual dispatch or request-file push",
+      "outputs": "sanitized repository-backed logs"
+    },
+    ".github/archx-runner/request.txt": {
+      "purpose": "Trigger repository-backed runner",
+      "inputs": "commit updating file",
+      "outputs": "workflow invocation"
+    },
+    "reports/attack-lab.json": {
+      "purpose": "Record synthetic attack-lab results",
+      "inputs": "generated synthetic lab output",
+      "outputs": "documented scenarios"
+    },
+    "reports/device-intelligence-research-2026-11-22.md": {
+      "purpose": "Record device-intelligence research",
+      "inputs": "source-linked research",
+      "outputs": "findings and limitations"
+    },
+    "Docs/Change.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Changelog.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Files_Info.json": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Logic.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Plan/Architecture.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Plan/README.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/README.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Research.json": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Roadmap.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Rules.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Secrets.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Technical.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Test-Results/README.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Test-Results/unreleased/README.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Test-Results/unreleased/full-test.log": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Test-Results/unreleased/secure-test.log": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Thinking.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    "Docs/Workaround.md": {
+      "purpose": "Maintain project documentation or sanitized test evidence",
+      "inputs": "project work and validated results",
+      "outputs": "readable guidance or test record"
+    },
+    ".github/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    ".github/archx-runner/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    ".github/workflows/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "demo/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "demo/site/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "examples/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "examples/node/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "examples/python/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "include/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "reports/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "src/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "tests/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "tools/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "tools/permission_survey/README.md": {
+      "purpose": "Explain directory responsibilities",
+      "inputs": "maintained files in directory",
+      "outputs": "directory overview"
+    },
+    "README.md": {
+      "purpose": "Document project setup, scope, operation and limitations",
+      "inputs": "implementation and user-facing configuration",
+      "outputs": "usage guidance"
+    },
+    ".gitignore": {
+      "purpose": "Keep build outputs, caches and local databases out of version control",
+      "inputs": "Git working-tree paths",
+      "outputs": "ignore rules"
+    },
+    "Docs/Test-Results/unreleased/documentation-check.log": {
+      "purpose": "Record documentation validation output",
+      "inputs": "JSON validation and git diff check",
+      "outputs": "sanitized test log"
+    },
+    "demo/replay.py": {
+      "purpose": "Single-use challenge stores in memory or SQLite",
+      "inputs": "peer IP, challenge, secret, clock",
+      "outputs": "bounded challenge issuance and atomic consumption"
+    },
+    "demo/service.py": {
+      "purpose": "Framework-independent Python request gate",
+      "inputs": "engine, trusted peer, request envelope and optional security adapters",
+      "outputs": "allow or deny result and configuration/challenge"
+    },
+    "demo/proxy.py": {
+      "purpose": "Resolve a peer through an opt-in sanitizing proxy",
+      "inputs": "TCP peer, configured networks and one forwarding header",
+      "outputs": "resolved client IP or error"
+    },
+    "examples/python/gated_wsgi.py": {
+      "purpose": "Demonstrate host enforcement before a synthetic action",
+      "inputs": "bounded JSON request and Python request service",
+      "outputs": "protected response or denial"
+    },
+    "tests/test_replay.py": {
+      "purpose": "Test replay challenge properties",
+      "inputs": "synthetic tokens, clock and temporary SQLite database",
+      "outputs": "pass/fail"
+    },
+    "tests/test_proxy.py": {
+      "purpose": "Test trusted proxy handling",
+      "inputs": "synthetic peer and forwarding headers",
+      "outputs": "pass/fail"
+    },
+    "tests/test_host_integration.py": {
+      "purpose": "Test host enforcement",
+      "inputs": "synthetic gate requests",
+      "outputs": "pass/fail"
+    },
+    "Docs/Test-Results/unreleased/hardening-full-test.log": {
+      "purpose": "Record local complete hardening test output",
+      "inputs": "full test suite with optional PyNaCl installed",
+      "outputs": "sanitized test log"
+    }
+  }
+}

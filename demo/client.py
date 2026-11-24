@@ -2,6 +2,7 @@
 """Native Linux demo: optionally sends selected raw IDs after user confirmation."""
 import argparse
 import fcntl
+import hashlib
 import ipaddress
 import stat
 import json
@@ -9,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -43,7 +45,9 @@ def installation():
             import secrets
             value = secrets.token_hex(32)
             os.ftruncate(fd, 0); os.lseek(fd,0,os.SEEK_SET); os.write(fd,value.encode()); os.fsync(fd)
-        return value
+        # The private random seed is not sent; derive the installation identifier.
+        # Existing installation-id files become seeds, changing the transmitted ID.
+        return hashlib.sha256(b'archx-demo-installation-v2\0'+bytes.fromhex(value)).hexdigest()
     finally: os.close(fd)
 
 def storage(selected):
@@ -135,13 +139,17 @@ def main():
     parser.add_argument('--account',help=argparse.SUPPRESS) # deprecated and ignored
     parser.add_argument('--signals',help='comma-separated subset; required signals are always included')
     parser.add_argument('--confirm-send-raw',action='store_true',help='consent to sending the selected raw identifiers to this server')
+    parser.add_argument('--server-public-key',help='independently authenticated server public key file (hex)')
+    parser.add_argument('--turnstile-token-stdin',action='store_true',help='read one Turnstile token from stdin')
     args=parser.parse_args()
     try:
         config_url=endpoint(args.url)
         opener=urllib.request.build_opener(NoRedirect())
         with opener.open(config_url,timeout=10) as response:
             config=json.loads(response.read(8193))
-        if not isinstance(config,dict) or config.get('protocol') != 'raw-v2': raise ValueError('Server protocol is not supported')
+        if not isinstance(config,dict) or config.get('protocol') not in ('raw-v2','sealed-v2'): raise ValueError('Server protocol is not supported')
+        if args.server_public_key and config['protocol'] != 'sealed-v2': raise ValueError('Refusing encryption downgrade')
+        if config['protocol']=='sealed-v2' and not args.server_public_key: raise ValueError('Encrypted mode requires an independently authenticated public key')
         required=config.get('required'); conditional=config.get('conditional')
         if not isinstance(required,list) or not isinstance(conditional,list) or any(not isinstance(x,str) or x not in SIGNALS for x in required+conditional): raise ValueError('Invalid server signal policy')
         available=set(required+conditional)
@@ -164,13 +172,27 @@ def main():
         body={'signals':signals, 'timestamp':time.time()}
         zone=system_zone()
         if zone: body['timezone']=zone
+        if config.get('turnstile'):
+            if not args.turnstile_token_stdin: raise ValueError('This service requires a Turnstile token; use --turnstile-token-stdin')
+            token=sys.stdin.readline(2050).strip()
+            if not 1<=len(token)<=2048: raise ValueError('Invalid Turnstile token')
+            body['turnstile_token']=token
+        if args.server_public_key:
+            challenge_url=config_url.removesuffix('/config')+'/challenge'
+            with opener.open(challenge_url,timeout=10) as response:
+                challenge=json.loads(response.read(8193))
+            nonce=challenge.get('nonce') if isinstance(challenge,dict) else None
+            if not isinstance(nonce,str) or not re.fullmatch(r'[A-Za-z0-9_-]{43}',nonce): raise ValueError('Invalid server challenge')
+            body['nonce']=nonce
+            from sealed_payload import read_key, seal
+            body=seal(body,read_key(args.server_public_key))
         req=urllib.request.Request(args.url, data=json.dumps(body).encode(), headers={'Content-Type':'application/json'})
         with opener.open(req,timeout=10) as response: print(response.read(8193).decode())
         return 0
     except urllib.error.HTTPError as exc:
         # Server error responses contain status/reason, not submitted identifiers.
         print(exc.read(8193).decode(errors='replace')); return 1
-    except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, TypeError, ImportError) as exc:
         print(json.dumps({'decision':'error','message':str(exc)})); return 1
 
 if __name__=='__main__': raise SystemExit(main())

@@ -1,0 +1,62 @@
+{
+  "purpose": "Search and reference index for decisions; verify provider details again when changing an integration.",
+  "ipsum": {
+    "summary": "Daily aggregated suspicious IP feed; level N includes IPs appearing in at least N source lists. A listing is not proof of abuse. The repository declares the Unlicense; review upstream terms and freshness.",
+    "urls": [
+      "https://github.com/stamparm/ipsum",
+      "https://api.github.com/repos/stamparm/ipsum/contents/levels/3.txt"
+    ]
+  },
+  "cloudflare_ip_lists": {
+    "summary": "Managed threat lists have account/plan restrictions. Public Cloudflare proxy ranges identify infrastructure, not malicious visitors.",
+    "urls": [
+      "https://developers.cloudflare.com/waf/tools/lists/managed-lists/",
+      "https://developers.cloudflare.com/waf/tools/lists/",
+      "https://www.cloudflare.com/ips/"
+    ]
+  },
+  "turnstile": {
+    "summary": "The frontend uses a public site key; backend Siteverify is mandatory and uses a secret. Tokens expire and are single-use; check expected hostname/action and handle outages.",
+    "urls": [
+      "https://developers.cloudflare.com/turnstile/get-started/",
+      "https://developers.cloudflare.com/turnstile/get-started/server-side-validation/",
+      "https://developers.cloudflare.com/turnstile/troubleshooting/testing/"
+    ]
+  },
+  "sealed_boxes": {
+    "summary": "Libsodium sealed boxes encrypt to a recipient key but do not authenticate the sender or prevent replay; code/key distribution must be independently trusted.",
+    "urls": [
+      "https://doc.libsodium.org/public-key_cryptography/sealed_boxes",
+      "https://pynacl.readthedocs.io/en/latest/public/",
+      "https://www.rfc-editor.org/rfc/rfc9180"
+    ]
+  },
+  "machine_id": {
+    "summary": "Raw machine IDs are confidential; application-specific derivation is preferable to exposure, though identifiers remain forgeable and linkable.",
+    "urls": [
+      "https://www.freedesktop.org/software/systemd/man/latest/machine-id.html",
+      "https://www.freedesktop.org/software/systemd/man/latest/sd_id128_get_machine.html"
+    ]
+  },
+  "device_intelligence": {
+    "summary": "See the existing source-linked research report for attestation, fingerprinting, privacy and false-positive limitations.",
+    "urls": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Bot_Management_and_Anti-Automation_Cheat_Sheet.html",
+      "https://pages.nist.gov/800-63-4/sp800-63b.html"
+    ],
+    "local_report": "reports/device-intelligence-research-2026-11-22.md"
+  },
+  "request_replay": {
+    "summary": "A single-use verifier nonce and bounded validity can help reject repeated proofs, but do not prevent a first-use race or authenticate the sender. This prototype does not implement HTTP message signatures.",
+    "urls": [
+      "https://www.rfc-editor.org/rfc/rfc9421.html#section-7.2.2",
+      "https://sqlite.org/lang_transaction.html"
+    ]
+  },
+  "trusted_proxy": {
+    "summary": "Only trust security-relevant client IP headers at a deliberately configured, protected proxy boundary; untrusted forwarding values can be spoofed.",
+    "urls": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For"
+    ]
+  }
+}

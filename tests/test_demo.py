@@ -1,7 +1,9 @@
+"""Test the Python policy engine, Linux client, and HTTP demo."""
 import hashlib
 import http.client
 import json
 import os
+import socket
 import sys
 import threading
 import unittest
@@ -193,6 +195,15 @@ class HttpTests(unittest.TestCase):
     def test_non_json_number_rejected_and_charged(self):
         status, _ = self.request('/api/v2/check', '{"account":"x","signals":{},"timestamp":NaN}')
         self.assertEqual(status,400)
+    def test_truncated_valid_json_is_rejected(self):
+        body=json.dumps(req()).encode()
+        sock=socket.create_connection(('127.0.0.1',self.port),timeout=5)
+        try:
+            headers=f'POST /api/v2/check HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {len(body)+10}\r\n\r\n'.encode()
+            sock.sendall(headers+body);sock.shutdown(socket.SHUT_WR)
+            response=http.client.HTTPResponse(sock);response.begin();response.read()
+            self.assertEqual(response.status,400)
+        finally: sock.close()
     def test_duplicate_content_length_rejected(self):
         con=http.client.HTTPConnection('127.0.0.1',self.port,timeout=5)
         con.putrequest('POST','/api/v2/check')

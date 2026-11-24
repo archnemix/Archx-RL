@@ -1,0 +1,9 @@
+# Technical overview
+
+Purpose: locate components, their contracts and runtime dependencies. The root [README](../README.md) contains command-line options, policy and wire-format details; [Files_Info.json](Files_Info.json) indexes maintained source files.
+
+- **C11/POSIX:** public C ABI in `include/`; Linux collection, JSON, HMAC, request identification and in-process token bucket in `src/`. `build.sh` builds static/shared libraries and a probe in ignored `build/`.
+- **Python 3:** `demo/engine.py` takes a validated policy, request and TCP peer IP, returning a decision and retaining keyed tokens; `sqlite_engine.py` persists equivalent state on one host. `service.py` implements the host request gate, `replay.py` stores short-lived single-use challenges, `proxy.py` resolves an explicitly trusted single proxy, and `server.py` exposes the HTTP demo. `client.py` collects supported Linux signals with consent. `signal_validation.py` validates values.
+- **Optional services:** `security.py` retrieves/reads IPsum cache data and verifies Turnstile tokens. `sealed_payload.py` uses optional PyNaCl for libsodium sealed boxes; its small CLIs refresh intelligence or create key files. Neither replaces HTTPS or authenticates a client.
+- **Frontend and examples:** `demo/site/` contains a synthetic dashboard and raw-mode Turnstile test page. `examples/` demonstrates the C ABI and a local synthetic WSGI host gate; no browser hardware collector exists.
+- **Testing:** `tests/`, `test.sh`, `tools/attack_lab.py`, and `tools/benchmark.py` exercise meaningful functionality with synthetic data. `./test.sh` needs Linux C tools; PyNaCl-specific tests skip when the optional library is absent. See [test records](Test-Results/README.md).

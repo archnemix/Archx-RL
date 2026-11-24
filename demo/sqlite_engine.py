@@ -58,7 +58,7 @@ class SQLiteEngine(Engine):
             con.execute('BEGIN IMMEDIATE')
             for sql in SCHEMA: con.execute(sql)
             key_check = hmac.new(self.secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
-            policy_check = hashlib.sha256(json.dumps({k:v for k,v in self.settings.items() if k != 'messages'}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            policy_check = hashlib.sha256(json.dumps({k:v for k,v in self.settings.items() if k != 'messages' and not (k == 'ip_storage' and v == 'hash')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             for key, expected in [('schema','3'), ('key_check',key_check), ('policy_check',policy_check)]:
                 row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
                 if row is None:
@@ -78,6 +78,7 @@ class SQLiteEngine(Engine):
     def _charge(self, con, keys, now):
         self._prune_windows(con, now)
         keys = list(dict.fromkeys(keys))
+        if not keys: return None
         marks = ','.join('?' for _ in keys)
         rows = {key:(start,count) for key,start,count in con.execute(f'SELECT key,start,count FROM windows WHERE key IN ({marks})', keys)}
         count = con.execute('SELECT count(*) FROM windows').fetchone()[0]
@@ -102,7 +103,7 @@ class SQLiteEngine(Engine):
             con = self.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
-                result = self._charge(con, [self.token('ip', str(ip))], now)
+                result = self._charge(con, [self.ip_key(ip)], now)
                 con.commit()
                 return result
             except Exception:
@@ -113,13 +114,14 @@ class SQLiteEngine(Engine):
         except sqlite3.Error:
             return self._storage_error()
 
-    def check(self, raw, peer):
+    def check(self, raw, peer, *, _ip_precharged=False):
         now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
         try:
             con = self.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
-                failure = self._charge(con, tokens.values(), now)
+                keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
+                failure = self._charge(con, keys, now)
                 if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
                 if failure:
                     con.commit()

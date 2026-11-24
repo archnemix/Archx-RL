@@ -8,6 +8,7 @@
     "disk_serial",
     "filesystem_uuid"
   ],
+  "ip_storage": "hash",
   "min_matches": 1,
   "window_seconds": 60,
   "max_requests": 5,
