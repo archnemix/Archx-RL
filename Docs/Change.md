@@ -7,3 +7,5 @@ Purpose: track current user-requested changes and their status, not hypothetical
 - Apply relevant general working rules: documented in [Rules](Rules.md), with concise project documentation and sanitized test records. Native Windows/macOS support and live Cloudflare testing are not implied.
 
 - API hardening: a host gate/example, peer-bound sealed-v2 challenges, optional strict trusted-proxy resolution, and verification before device enrollment; tested with synthetic traffic, with production limitations retained.
+
+- Browser sealed-v2 client and synthetic test page: implemented and tested against the Python prototype without collecting real identifiers.

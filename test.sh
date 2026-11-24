@@ -12,6 +12,7 @@ python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_sqlite_engine.py
 python3 tests/test_security.py
+python3 tests/test_browser.py
 python3 tests/test_replay.py
 python3 tests/test_proxy.py
 python3 tests/test_host_integration.py

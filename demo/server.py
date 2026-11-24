@@ -99,10 +99,15 @@ class Handler(BaseHTTPRequestHandler):
                 except (OSError, ValueError): pass
             history.sort(key=lambda item:item.get('tested_at_utc',''), reverse=True)
             return self.json({'policy':self.server.engine.settings,'signals':SIGNALS,'survey':survey, 'survey_history':history, 'storage_mode':'sqlite' if isinstance(self.server.engine,SQLiteEngine) else 'memory', 'notice':'Demo only. TCP peer IP is used unless a trusted sanitizing proxy was explicitly configured.'})
-        files={'/':('index.html','text/html; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/turnstile':('turnstile.html','text/html; charset=utf-8'),'/turnstile.js':('turnstile.js','text/javascript; charset=utf-8')}
+        files={'/':('index.html','text/html; charset=utf-8'),'/style.css':('style.css','text/css; charset=utf-8'),'/app.js':('app.js','text/javascript; charset=utf-8'),'/turnstile':('turnstile.html','text/html; charset=utf-8'),'/turnstile.js':('turnstile.js','text/javascript; charset=utf-8'),'/browser-test':('browser-test.html','text/html; charset=utf-8'),'/browser-test.js':('browser-test.js','text/javascript; charset=utf-8')}
+        if path == '/browser-client.mjs':
+            try: data=(ROOT.parent/'build/browser/archx-client.mjs').read_bytes()
+            except OSError: return self.json({'error':'browser_client_not_built'},404)
+            self.send_response(200); self.send_header('Content-Type','text/javascript; charset=utf-8'); self.send_header('Cache-Control','no-store'); self.send_header('X-Content-Type-Options','nosniff'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
+            return
         if path not in files: return self.json({'error':'not_found'},404)
         name,typ=files[path]; data=(ROOT/'site'/name).read_bytes()
-        self.send_response(200); self.send_header('Content-Type',typ); self.send_header('Content-Length',str(len(data))); self.send_header('X-Content-Type-Options','nosniff'); self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; img-src 'self' data:; base-uri 'none'; frame-ancestors *"); self.end_headers(); self.wfile.write(data)
+        self.send_response(200); self.send_header('Content-Type',typ); self.send_header('Content-Length',str(len(data))); self.send_header('X-Content-Type-Options','nosniff'); self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self' "+("'wasm-unsafe-eval' " if path=='/browser-test' else '')+"https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; img-src 'self' data:; base-uri 'none'; frame-ancestors *"); self.end_headers(); self.wfile.write(data)
     def do_POST(self):
         path=urlsplit(self.path).path
         peer=self.client_address[0]

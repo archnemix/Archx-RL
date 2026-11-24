@@ -2,6 +2,10 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## 2026-11-22 — Browser encrypted client
+- Added a browser-side sealed-v2 client using libsodium, an independently supplied public key and single-use challenges. It collects/stores no signals and has no plaintext fallback.
+- Tested the same JavaScript against Python and exercised the synthetic UI in headless Chromium, with and without a mocked Turnstile widget. The page cannot access Linux machine IDs; sender-side code and all third-party scripts remain part of the trust boundary.
+
 ## 2026-11-22 — API hardening
 - The first Linux CI run passed but warned that checkout v4 uses a deprecated Node runtime. Updated to pinned checkout v7.0.1 for the next workflow run.
 - Added a framework-independent Python request gate and a local WSGI example that enforces decisions before its synthetic protected operation.

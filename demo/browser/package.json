@@ -1,0 +1,15 @@
+{
+  "name": "archx-browser-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild client.js --bundle --format=esm --platform=browser --target=es2022 --outfile=../../build/browser/archx-client.mjs"
+  },
+  "dependencies": {
+    "libsodium-wrappers": "0.8.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.65.1"
+  }
+}

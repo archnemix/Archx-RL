@@ -470,6 +470,61 @@
       "purpose": "Record local complete hardening test output",
       "inputs": "full test suite with optional PyNaCl installed",
       "outputs": "sanitized test log"
+    },
+    "Docs/Plan/Scope.md": {
+      "purpose": "Record product scope and exclusions",
+      "inputs": "user requirements and implementation status",
+      "outputs": "scope guidance"
+    },
+    "demo/browser/README.md": {
+      "purpose": "Explain the optional browser client",
+      "inputs": "browser implementation and setup",
+      "outputs": "usage guidance"
+    },
+    "demo/browser/package.json": {
+      "purpose": "Define locked browser build and test dependencies",
+      "inputs": "npm install/build",
+      "outputs": "browser bundle configuration"
+    },
+    "demo/browser/package-lock.json": {
+      "purpose": "Pin browser dependency tree",
+      "inputs": "npm ci",
+      "outputs": "reproducible dependency resolution"
+    },
+    "demo/browser/client.js": {
+      "purpose": "Encrypt caller-supplied browser signals for the sealed-v2 API",
+      "inputs": "trusted public key, signals and optional token",
+      "outputs": "sealed request and server decision"
+    },
+    "demo/browser/test-ui.mjs": {
+      "purpose": "Exercise the synthetic page in headless Chromium",
+      "inputs": "loopback server, synthetic public key and mocked widget",
+      "outputs": "pass/fail"
+    },
+    "demo/site/browser-test.html": {
+      "purpose": "Define synthetic encrypted browser test page",
+      "inputs": "browser request",
+      "outputs": "test page markup"
+    },
+    "demo/site/browser-test.js": {
+      "purpose": "Run optional widget and sealed synthetic browser check",
+      "inputs": "public key, server configuration and widget token",
+      "outputs": "synthetic decision"
+    },
+    "tests/test_browser.py": {
+      "purpose": "Run browser interoperability and headless UI tests",
+      "inputs": "temporary loopback backend and synthetic key",
+      "outputs": "unittest results"
+    },
+    "tests/browser_client_node.mjs": {
+      "purpose": "Check browser JavaScript and Python protocol interoperability",
+      "inputs": "synthetic loopback backend and public key",
+      "outputs": "pass/fail"
+    },
+    "Docs/Test-Results/unreleased/browser-full-test.log": {
+      "purpose": "Record local full suite including browser tests",
+      "inputs": "synthetic tests with PyNaCl, Node and headless Chromium",
+      "outputs": "sanitized test log"
     }
   }
 }

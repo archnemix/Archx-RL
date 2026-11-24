@@ -29,6 +29,17 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/archx-test-venv"
           "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt
           echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
+      - name: Build browser client and prepare Chromium
+        shell: bash
+        run: |
+          npm ci --prefix demo/browser
+          npm run build --prefix demo/browser
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "ARCHX_TEST_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          else
+            (cd demo/browser && npx playwright install --with-deps chromium)
+          fi
+          echo 'ARCHX_REQUIRE_BROWSER=1' >> "$GITHUB_ENV"
       - name: Run tests and capture output
         id: tests
         shell: bash

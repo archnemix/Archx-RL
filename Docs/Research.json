@@ -65,5 +65,14 @@
       "https://github.com/actions/checkout/releases/tag/v7.0.1",
       "https://github.com/actions/checkout/blob/v7.0.1/README.md"
     ]
+  },
+  "browser_crypto": {
+    "summary": "libsodium-wrappers 0.8.4 supplies crypto_box_seal after ready; esbuild bundles for browsers. A CSP must allow WebAssembly compilation when needed; sender code and same-page third-party scripts remain trusted.",
+    "urls": [
+      "https://github.com/jedisct1/libsodium.js/blob/master/README.md",
+      "https://github.com/github/tweetsodium",
+      "https://esbuild.github.io/api/#bundle",
+      "https://playwright.dev/docs/browsers"
+    ]
   }
 }

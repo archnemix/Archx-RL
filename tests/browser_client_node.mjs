@@ -1,0 +1,50 @@
+/* Cross-language sealed-v2 client tests using synthetic loopback HTTP. */
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+
+const origin=process.env.ARCHX_TEST_ORIGIN;
+const publicKey=process.env.ARCHX_TEST_PUBLIC_KEY;
+if (!origin || !publicKey) throw new Error('Missing synthetic test configuration.');
+globalThis.location=new URL(origin);
+const nativeFetch=globalThis.fetch;
+let lastEnvelope; let networkRequests=0;
+globalThis.fetch=async (path, options={}) => {
+  networkRequests++;
+  assert.equal(options.mode,'same-origin');
+  assert.equal(options.credentials,'omit');
+  assert.equal(options.redirect,'error');
+  if (path==='/api/v2/check') lastEnvelope=options.body;
+  return nativeFetch(new URL(path,origin),options);
+};
+const {checkEncrypted}=await import(pathToFileURL(resolve('build/browser/archx-client.mjs')).href);
+const signal='123456789abcdef0123456789abcdef0'; // synthetic fixture
+const result=await checkEncrypted({publicKey,signals:{machine_id:signal},turnstileToken:'synthetic-token'});
+assert.equal(result.status,200);
+assert.equal(result.data.decision,'allow');
+assert.ok(lastEnvelope);
+assert.equal(lastEnvelope.includes(signal),false);
+assert.equal(lastEnvelope.includes('synthetic-token'),false);
+assert.equal(JSON.parse(lastEnvelope).version,'sealed-v2');
+const replay=await nativeFetch(new URL('/api/v2/check',origin),{method:'POST',headers:{'Content-Type':'application/json'},body:lastEnvelope});
+assert.equal(replay.status,400);
+assert.equal((await replay.json()).reason,'replay_rejected');
+const wrong=await checkEncrypted({publicKey:'01'.repeat(32),signals:{machine_id:signal},turnstileToken:'synthetic-token'});
+assert.equal(wrong.status,400);
+const withoutToken=await checkEncrypted({publicKey,signals:{machine_id:signal}});
+assert.equal(withoutToken.status,403);
+assert.equal(withoutToken.data.reason,'turnstile_invalid');
+const before=networkRequests;
+await assert.rejects(()=>checkEncrypted({publicKey:'bad',signals:{machine_id:signal}}));
+await assert.rejects(()=>checkEncrypted({publicKey,signals:{machine_id:'x'.repeat(7000)}}));
+assert.equal(networkRequests,before);
+globalThis.location=new URL('http://not-loopback.example/');
+await assert.rejects(()=>checkEncrypted({publicKey,signals:{machine_id:signal}}),/HTTPS/);
+globalThis.location=new URL(origin);
+const savedFetch=globalThis.fetch;
+globalThis.fetch=async()=>new Response(JSON.stringify({protocol:'raw-v2'}),{status:200});
+await assert.rejects(()=>checkEncrypted({publicKey,signals:{machine_id:signal}}),/refusing downgrade/);
+globalThis.fetch=async()=>new Response('x'.repeat(9000),{status:200});
+await assert.rejects(()=>checkEncrypted({publicKey,signals:{machine_id:signal}}),/too large/);
+globalThis.fetch=savedFetch;
+console.log('Browser JavaScript sealed-v2 cross-language tests passed');

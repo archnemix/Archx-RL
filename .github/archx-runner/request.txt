@@ -17,3 +17,5 @@ Verify identification-only layer, configurable friendly responses and no-account
 Run Python request-gate, sealed-v2 replay, trusted proxy and host-integration regression tests with PyNaCl.
 
 Re-run Linux verification using pinned checkout v7.0.1 and Node 24.
+
+Build and run sealed-v2 browser interoperability and Chromium UI tests with a mocked widget.
