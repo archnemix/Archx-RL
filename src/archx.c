@@ -216,6 +216,7 @@ void ax_core_free(ax_core *core) {
 
 /* Append s (JSON-escaped) to buf at *pos. Returns 0 on success. */
 static int json_escape_append(char *buf, size_t buf_len, size_t *pos, const char *s) {
+  if (*pos >= buf_len) return -1;
   for (const char *p = s; *p; p++) {
     char tmp[8];
     const char *esc = NULL;
@@ -234,7 +235,7 @@ static int json_escape_append(char *buf, size_t buf_len, size_t *pos, const char
     }
     const char *piece = esc ? esc : p;
     size_t n = esc ? strlen(esc) : 1;
-    if (*pos + n >= buf_len) return -1;
+    if (n >= buf_len - *pos) return -1;
     memcpy(buf + *pos, piece, n);
     *pos += n;
   }
@@ -244,7 +245,7 @@ static int json_escape_append(char *buf, size_t buf_len, size_t *pos, const char
 
 static int append_str(char *buf, size_t buf_len, size_t *pos, const char *s) {
   size_t n = strlen(s);
-  if (*pos + n >= buf_len) return -1;
+  if (*pos >= buf_len || n >= buf_len - *pos) return -1;
   memcpy(buf + *pos, s, n);
   *pos += n;
   buf[*pos] = '\0';
@@ -254,7 +255,12 @@ static int append_str(char *buf, size_t buf_len, size_t *pos, const char *s) {
 /* Hand the stack buffer to the caller as a heap allocation. */
 static ax_result emit_json(char *stack_buf, size_t stack_len,
                            char **out_json, size_t *out_len) {
-  size_t n = strlen(stack_buf);
+  const char *end = (const char *)memchr(stack_buf, '\0', stack_len);
+  if (!end) {
+    set_error("result JSON is not terminated within its buffer");
+    return AX_ERR_INTERNAL;
+  }
+  size_t n = (size_t)(end - stack_buf);
   char *heap = (char *)malloc(n + 1);
   if (!heap) {
     set_error("out of memory building result JSON");
@@ -263,7 +269,6 @@ static ax_result emit_json(char *stack_buf, size_t stack_len,
   memcpy(heap, stack_buf, n + 1);
   *out_json = heap;
   if (out_len) *out_len = n;
-  (void)stack_len;
   return AX_OK;
 }
 
@@ -288,20 +293,25 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
   char buf[2048];
   size_t pos = 0;
   buf[0] = '\0';
-  append_str(buf, sizeof buf, &pos, "{\"platform\":\"");
-  json_escape_append(buf, sizeof buf, &pos, set.os);
-  append_str(buf, sizeof buf, &pos, "\",\"arch\":\"");
-  json_escape_append(buf, sizeof buf, &pos, set.arch);
-  append_str(buf, sizeof buf, &pos, "\",\"signals\":[");
+  if (append_str(buf, sizeof buf, &pos, "{\"platform\":\"") ||
+      json_escape_append(buf, sizeof buf, &pos, set.os) ||
+      append_str(buf, sizeof buf, &pos, "\",\"arch\":\"") ||
+      json_escape_append(buf, sizeof buf, &pos, set.arch) ||
+      append_str(buf, sizeof buf, &pos, "\",\"signals\":[")) {
+    set_error("ax_collect: output too long"); return AX_ERR_INTERNAL;
+  }
   for (size_t i = 0; i < set.signal_count; i++) {
     char piece[256];
-    snprintf(piece, sizeof piece, "%s{\"name\":\"%s\",\"weight\":%d,\"readable\":%s}",
-             i == 0 ? "" : ",",
-             set.signals[i].name, set.signals[i].weight,
-             set.signals[i].readable ? "true" : "false");
-    append_str(buf, sizeof buf, &pos, piece);
+    int n = snprintf(piece, sizeof piece, "%s{\"name\":\"%s\",\"weight\":%d,\"readable\":%s}",
+                     i == 0 ? "" : ",", set.signals[i].name, set.signals[i].weight,
+                     set.signals[i].readable ? "true" : "false");
+    if (n < 0 || (size_t)n >= sizeof piece || append_str(buf, sizeof buf, &pos, piece)) {
+      set_error("ax_collect: output too long"); return AX_ERR_INTERNAL;
+    }
   }
-  append_str(buf, sizeof buf, &pos, "]}");
+  if (append_str(buf, sizeof buf, &pos, "]}")) {
+    set_error("ax_collect: output too long"); return AX_ERR_INTERNAL;
+  }
   return emit_json(buf, sizeof buf, out_json, out_len);
 }
 
@@ -375,14 +385,17 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
   char buf[1024];
   size_t pos = 0;
   buf[0] = '\0';
-  append_str(buf, sizeof buf, &pos, "{\"device_hash\":\"");
-  append_str(buf, sizeof buf, &pos, device_hash);
   char piece[256];
-  snprintf(piece, sizeof piece, "\",\"signals_used\":%zu,\"confidence\":%d,\"tier\":\"%s\",\"app_id\":\"",
-           signals_used, confidence, tier);
-  append_str(buf, sizeof buf, &pos, piece);
-  json_escape_append(buf, sizeof buf, &pos, core->app_id);
-  append_str(buf, sizeof buf, &pos, "\"}");
+  int n = snprintf(piece, sizeof piece, "\",\"signals_used\":%zu,\"confidence\":%d,\"tier\":\"%s\",\"app_id\":\"",
+                   signals_used, confidence, tier);
+  if (n < 0 || (size_t)n >= sizeof piece ||
+      append_str(buf, sizeof buf, &pos, "{\"device_hash\":\"") ||
+      append_str(buf, sizeof buf, &pos, device_hash) ||
+      append_str(buf, sizeof buf, &pos, piece) ||
+      json_escape_append(buf, sizeof buf, &pos, core->app_id) ||
+      append_str(buf, sizeof buf, &pos, "\"}")) {
+    set_error("ax_identify: output too long"); return AX_ERR_INTERNAL;
+  }
   return emit_json(buf, sizeof buf, out_json, out_len);
 }
 
@@ -415,6 +428,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   char scope[65], buf[1024]; size_t pos = 0;
   match_digest(core, "scope", "linux", scope);
   int n = snprintf(buf, sizeof buf, "{\"version\":1,\"scope\":\"%s\",\"signals\":{", scope);
+  if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
   pos = (size_t)n;
   int first = 1;
   for (size_t i = 0; i < AX_MATCH_SIGNALS; i++) if (core->match_roles[i]) {
@@ -481,15 +495,20 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
       state = "unavailable"; unavailable++; if (core->match_strict || core->match_roles[i] == 2) required_missing++;
     } else if (!strcmp(x->str, y->str)) { state = "match"; matches++; }
     else { state = "changed"; changed++; if (core->match_strict || core->match_roles[i] == 2) required_changed++; }
-    char piece[96]; snprintf(piece, sizeof piece, "%s\"%s\":\"%s\"", first ? "" : ",", match_names[i], state);
-    append_str(details, sizeof details, &pos, piece); first = 0;
+    char piece[96];
+    int n = snprintf(piece, sizeof piece, "%s\"%s\":\"%s\"", first ? "" : ",", match_names[i], state);
+    if (n < 0 || (size_t)n >= sizeof piece || append_str(details, sizeof details, &pos, piece)) {
+      ax_json_free(a); ax_json_free(b); set_error("ax_compare: output too long"); return AX_ERR_INTERNAL;
+    }
+    first = 0;
   }
   const char *result = required_changed || matches + unavailable < core->min_matches ? "no_match" :
                        required_missing || matches < core->min_matches ? "inconclusive" : "match";
   char buf[1024];
-  snprintf(buf, sizeof buf, "{\"result\":\"%s\",\"matched\":%d,\"changed\":%d,\"unavailable\":%d,\"signals\":{%s}}",
-           result, matches, changed, unavailable, details);
+  int n = snprintf(buf, sizeof buf, "{\"result\":\"%s\",\"matched\":%d,\"changed\":%d,\"unavailable\":%d,\"signals\":{%s}}",
+                   result, matches, changed, unavailable, details);
   ax_json_free(a); ax_json_free(b);
+  if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_compare: output too long"); return AX_ERR_INTERNAL; }
   return emit_json(buf, sizeof buf, out_json, out_len);
 }
 

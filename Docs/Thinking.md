@@ -3,7 +3,7 @@
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
 ## C analyzer triage
-- GCC 12 at -O0 reports schedule uses despite the first 16 words being initialized and each later word depending only on earlier indices; classify only these as likely false positives, not proof of algorithm security. The original JSON warning is not reproduced, while unchecked serialization errors remain a separate concern.
+- GCC 12 at -O0 reports schedule uses despite the first 16 words being initialized and each later word depending only on earlier indices; classify only these as likely false positives, not proof of algorithm security. The original JSON warning is not reproduced. A follow-up bounds JSON terminator search and checks serialization errors; targeted synthetic allocation faults pass, while comprehensive B05 fault injection remains open.
 
 ## In-memory observation indexing
 - Index token pairs to candidate observation IDs, count each observation independently, preserve oldest-snapshot tie ordering, and track signal-name shapes for comparability. Refresh duplicates; reject new history when full without evicting live observations. SQLite and memory share these tested cases but full parity remains open.

@@ -154,5 +154,11 @@
       "https://www.rfc-editor.org/rfc/rfc6234.html"
     ],
     "local_report": "Docs/Research/Analyzer-Triage.md"
+  },
+  "bounded_json_output": {
+    "summary": "Accessed 2026-11-22: snprintf returns a negative value on error and the would-have-written byte count on success, excluding the terminator; compare against buffer capacity to detect truncation.",
+    "urls": [
+      "https://pubs.opengroup.org/onlinepubs/9699919799/functions/snprintf.html"
+    ]
   }
 }

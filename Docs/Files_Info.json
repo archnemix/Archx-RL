@@ -800,6 +800,16 @@
       "purpose": "Sanitized Linux full regression with crypto differential cases",
       "inputs": "synthetic messages and compiler diagnostics",
       "outputs": "sanitized regression or triage report"
+    },
+    "tests/test_output_faults.c": {
+      "purpose": "Synthetic JSON serialization boundaries and output allocator fault injection",
+      "inputs": "synthetic output buffers and fake collector",
+      "outputs": "sanitized error and regression results"
+    },
+    "Docs/Test-Results/unreleased/output-full-test.log": {
+      "purpose": "Sanitized Linux regression for JSON output hardening",
+      "inputs": "synthetic output buffers and fake collector",
+      "outputs": "sanitized error and regression results"
     }
   }
 }
