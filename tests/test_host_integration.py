@@ -60,7 +60,7 @@ class HostIntegrationTests(unittest.TestCase):
         self.assertEqual(send('victim')[0], '403 Forbidden')
         self.assertEqual(send('other')[0], '403 Forbidden')
         self.assertEqual(send('victim', 'different-principal')[0], '403 Forbidden')
-        self.assertEqual(engine.observations, [])  # rejected before signal enrollment
+        self.assertEqual(len(engine.observations), 0)  # rejected before signal enrollment
         self.assertEqual(send('victim', 'trusted-principal')[0], '200 OK')
         self.assertEqual(actions, ['called'])
         self.assertEqual(authorizations, [('different-principal', 'synthetic.read'), ('trusted-principal', 'synthetic.read')])
@@ -112,7 +112,7 @@ class HostIntegrationTests(unittest.TestCase):
             self.assertEqual(status, '503 Service Unavailable')
             self.assertNotIn(b'synthetic-private-marker', payload)
         self.assertEqual(actions, [])
-        self.assertEqual(engine.observations, [])
+        self.assertEqual(len(engine.observations), 0)
         with self.assertRaises(ValueError):
             create_application(RequestService(engine), resolve_principal=lambda e:'principal')
 

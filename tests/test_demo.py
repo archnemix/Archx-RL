@@ -108,7 +108,7 @@ class PolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError):self.e.check(data,'192.0.2.1')
     def test_no_raw_values_stored(self):
         x=req();self.e.check(x,'192.0.2.1')
-        self.assertNotIn(x['signals']['machine_id'],str(self.e.observations));self.assertNotIn('192.0.2.1',str(self.e.observations))
+        self.assertNotIn(x['signals']['machine_id'],str((self.e.observations.records, self.e.observations.snapshots, self.e.observations.postings)));self.assertNotIn('192.0.2.1',str((self.e.observations.records, self.e.observations.snapshots, self.e.observations.postings)))
     def test_simulation_isolated(self):
         out=scenario('basic');self.assertEqual(out['events'][2]['matched_signals'],['ip']);self.assertTrue(any(e['decision']=='rate_limited' for e in out['events']))
     def test_native_collector(self):
@@ -178,7 +178,7 @@ class HttpTests(unittest.TestCase):
         with patch('sys.argv',argv), patch('client.collect',return_value={'machine_id':value}), patch('sys.stdout',output):
             self.assertEqual(main(),0)
         self.assertEqual(json.loads(output.getvalue())['decision'],'allow')
-        self.assertNotIn(value,str(self.httpd.engine.observations))
+        self.assertNotIn(value,str((self.httpd.engine.observations.records, self.httpd.engine.observations.snapshots, self.httpd.engine.observations.postings)))
     def test_client_confirmation_blocks_send(self):
         output=StringIO()
         argv=['client.py','--url',f'http://127.0.0.1:{self.port}/api/v2/check']
@@ -188,7 +188,7 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(info['reason'],'confirmation_required')
         self.assertIn('machine_id',info['requested']); self.assertEqual(info['available'],['machine_id'])
         self.assertEqual(info['recipient'],f'http://127.0.0.1:{self.port}/api/v2/check')
-        self.assertEqual(self.httpd.engine.observations,[])
+        self.assertEqual(len(self.httpd.engine.observations),0)
     def test_malformed_and_duplicate_charged(self):
         for _ in range(3):self.assertEqual(self.request('/api/v2/check','{"account":"x", "account":"y"}')[0],400)
         self.assertEqual(self.request('/api/v2/check','{}')[0],429)

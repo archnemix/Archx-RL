@@ -46,7 +46,7 @@ class BrowserClientTests(unittest.TestCase):
                                   stderr=subprocess.PIPE,text=True,timeout=60)
             self.assertEqual(result.returncode,0,result.stderr+'\n'+result.stdout)
             self.assertIn(success_marker,result.stdout)
-            self.assertNotIn('123456789abcdef0123456789abcdef0',str(server.engine.observations))
+            self.assertNotIn('123456789abcdef0123456789abcdef0',str((server.engine.observations.records, server.engine.observations.snapshots, server.engine.observations.postings)))
         finally:
             server.shutdown();server.server_close();thread.join()
 

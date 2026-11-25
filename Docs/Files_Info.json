@@ -760,6 +760,21 @@
       "purpose": "Sanitized Linux regression with synthetic UUID tests",
       "inputs": "synthetic fixtures and policy research",
       "outputs": "sanitized test result or documentation"
+    },
+    "demo/observation_index.py": {
+      "purpose": "Bounded in-memory token postings, snapshot deduplication and fail-closed history admission",
+      "inputs": "synthetic observation tokens and deterministic fixtures",
+      "outputs": "bounded prototype state or sanitized test result"
+    },
+    "tests/test_observation_index.py": {
+      "purpose": "Deterministic linear-oracle, capacity and race fixtures for observation index",
+      "inputs": "synthetic observation tokens and deterministic fixtures",
+      "outputs": "bounded prototype state or sanitized test result"
+    },
+    "Docs/Test-Results/unreleased/index-full-test.log": {
+      "purpose": "Sanitized full Linux regression for memory observation index",
+      "inputs": "synthetic observation tokens and deterministic fixtures",
+      "outputs": "bounded prototype state or sanitized test result"
     }
   }
 }

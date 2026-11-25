@@ -5,6 +5,7 @@ import threading
 from http.server import ThreadingHTTPServer
 import multiprocessing
 import os
+import random
 import sqlite3
 import sys
 import tempfile
@@ -137,6 +138,25 @@ class PersistentTests(unittest.TestCase):
         e=self.engine(max_requests=2); data={'signals':{'machine_id':synthetic_signal('machine_id','victim')}}
         for ip in ('192.0.2.1','192.0.2.2'): self.assertEqual(e.check(data,ip)['decision'],'allow')
         self.assertEqual(e.check(data,'198.51.100.1')['decision'],'rate_limited')
+    def test_memory_and_database_modelled_history_and_capacity_agree(self):
+        rng = random.Random(223711)
+        p = policy('standard', override={'max_requests':10000, 'history_seconds':60, 'window_seconds':3})
+        memory = Engine(p, secret=SECRET, clock=lambda:self.now[0], max_entries=12)
+        db = SQLiteEngine(self.path, p, SECRET, clock=lambda:self.now[0], max_entries=12)
+        payloads = []
+        for step in range(450):
+            self.now[0] += rng.choice((0, 1, 2, 10))
+            if payloads and rng.random() < .3:
+                payload, ip = rng.choice(payloads)
+            else:
+                signals = {'machine_id':synthetic_signal('machine_id', str(rng.randrange(10)))}
+                if rng.random() < .6: signals['product_uuid'] = synthetic_signal('product_uuid', str(rng.randrange(6)))
+                if rng.random() < .3: signals['board_serial'] = synthetic_signal('board_serial', str(rng.randrange(5)))
+                payload, ip = {'signals':signals}, '192.0.2.' + str(rng.randrange(1, 9))
+                payloads.append((payload, ip))
+            a, b = memory.check(payload, ip), db.check(payload, ip)
+            self.assertEqual(a, b, 'divergence at synthetic step ' + str(step))
+
     def test_memory_and_database_agree(self):
         p=policy(override={'max_requests':100})
         memory=Engine(p,secret=SECRET,clock=lambda:self.now[0])

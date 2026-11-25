@@ -2,6 +2,10 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## In-memory observation indexing
+- Index token pairs to candidate observation IDs, count each observation independently, preserve oldest-snapshot tie ordering, and track signal-name shapes for comparability. Refresh duplicates; reject new history when full without evicting live observations. SQLite and memory share these tested cases but full parity remains open.
+- Popular tokens can still visit every record; both expiration and window cleanup scan under a lock. These are bounded by configured capacity but not measured against a service budget; D03–D06 remain open.
+
 ## macOS policy gate and synthetic CF validation
 - Separate data validation from collection: bounded ASCII UUID validation and CoreFoundation type checking can be tested without reading a machine identifier. Apple's developer-program fingerprinting restrictions require a distribution-specific review; accessible APIs do not establish permitted use.
 

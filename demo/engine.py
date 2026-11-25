@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from signal_validation import SIGNALS, normalize_signal
+from observation_index import ObservationIndex
 
 DEFAULT_MESSAGES = {
     'rate_limited': 'Too many requests. Please wait and try again.',
@@ -66,7 +67,7 @@ class Engine:
         self.max_entries = max_entries
         self.lock = threading.Lock()
         self.windows = {} # HMAC key -> [window_start, count]
-        self.observations = [] # (expires, {signal name: HMAC})
+        self.observations = ObservationIndex(max_entries) # bounded token snapshots
 
     def message(self, name):
         return self.settings.get('messages', {}).get(name, DEFAULT_MESSAGES[name])
@@ -146,7 +147,7 @@ class Engine:
         window = self.settings['window_seconds']
         with self.lock:
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
-            self.observations = [(expiry,v) for expiry,v in self.observations if expiry > now]
+            self.observations.prune(now)
             missing_keys = sum(1 for key in keys if key not in self.windows)
             if len(self.windows) + missing_keys > self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
@@ -161,15 +162,11 @@ class Engine:
             failure = self.decision_before_matching(missing, zone, clock_status)
             if failure:
                 return failure
-            best = []
-            possible = False
-            for _, prior in self.observations:
-                matching = [s for s, v in tokens.items() if prior.get(s) == v]
-                if len(matching) > len(best): best = matching
-                possible |= len(set(tokens) & set(prior)) >= self.settings['min_matches']
-            relation = 'related' if len(best) >= self.settings['min_matches'] else ('below_threshold' if self.observations and possible else 'inconclusive' if self.observations else 'new')
-            if len(self.observations) >= self.max_entries: self.observations.pop(0)
-            self.observations.append((now + self.settings['history_seconds'], tokens))
+            relation, best = self.observations.match(tokens, self.settings['min_matches'])
+            earliest = self.observations.enroll(tokens, now + self.settings['history_seconds'])
+            if earliest is not None:
+                return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),
+                        'retry_after_seconds':max(1, math.ceil(earliest-now)), 'relation':'inconclusive'}
             return {'decision':'allow','relation':relation,'matched_signals':best,
                     'timezone':zone, 'clock':clock_status, 'retry_after_seconds':0,
                     'warning':'A relation is not proof of the same person; shared IPs can link unrelated users.'}

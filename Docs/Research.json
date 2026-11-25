@@ -133,5 +133,12 @@
       "https://developer.apple.com/documentation/iokit/1514293-ioregistryentrycreatecfproperty/"
     ],
     "local_report": "Docs/Research/MacOS.md"
+  },
+  "observation_index": {
+    "summary": "Accessed 2026-11-22: Python dictionary insertion ordering is defined, set order is not. Explicit monotonically assigned IDs preserve tie ordering. SQLite explains indexed OR-term rowid union. Worst-case candidate/cleanup cost remains capacity-sized.",
+    "urls": [
+      "https://docs.python.org/3.11/library/stdtypes.html",
+      "https://www.sqlite.org/queryplanner.html"
+    ]
   }
 }
