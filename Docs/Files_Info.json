@@ -640,6 +640,36 @@
       "purpose": "Record local entropy abstraction regression",
       "inputs": "synthetic entropy faults and Linux full regression suite",
       "outputs": "sanitized test log"
+    },
+    "CMakeLists.txt": {
+      "purpose": "Build and install Linux C core and probe",
+      "inputs": "Linux C source and synthetic consumer fixtures",
+      "outputs": "build targets or install conformance"
+    },
+    "cmake/ArchxConfig.cmake.in": {
+      "purpose": "Relocatable CMake consumer package configuration",
+      "inputs": "Linux C source and synthetic consumer fixtures",
+      "outputs": "build targets or install conformance"
+    },
+    "tests/cmake_consumer/CMakeLists.txt": {
+      "purpose": "Test imported shared and static CMake targets",
+      "inputs": "Linux C source and synthetic consumer fixtures",
+      "outputs": "build targets or install conformance"
+    },
+    "tests/cmake_consumer/consumer.c": {
+      "purpose": "Synthetic installed ABI and limiter consumer",
+      "inputs": "Linux C source and synthetic consumer fixtures",
+      "outputs": "build targets or install conformance"
+    },
+    "tests/test_cmake_install.sh": {
+      "purpose": "Verify Linux CMake installation and relocation",
+      "inputs": "Linux C source and synthetic consumer fixtures",
+      "outputs": "build targets or install conformance"
+    },
+    "Docs/Test-Results/unreleased/cmake-install-test.log": {
+      "purpose": "Record local Linux CMake installation and relocation tests",
+      "inputs": "Linux GCC and CMake synthetic installed package",
+      "outputs": "sanitized test log"
     }
   }
 }

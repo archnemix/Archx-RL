@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+# ABI, not a release version; the project has not declared one yet.
+set(Archx_ABI_VERSION "@ARCHX_ABI_VERSION@")
+include("${CMAKE_CURRENT_LIST_DIR}/ArchxTargets.cmake")
+check_required_components(Archx)

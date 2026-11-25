@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Linux CMake packaging
+- Added a Linux-only package and installation path with relative runtime paths and separate static/shared exports; synthetic consumers test both after relocation. The public header is the source of ABI metadata. No release version is invented, and Windows/macOS full builds are explicitly rejected until implemented.
+
 ## Platform entropy
 - Use bounded OS randomness and propagate failure. Linux `getrandom` with GRND_NONBLOCK fails closed rather than using a potentially uninitialized early-boot fallback; this requires a compatible kernel, libc and seccomp policy. The Windows/macOS APIs are experimental and do not implement private persistence. Synthetic failures verify that no fallback ID is fabricated.
 

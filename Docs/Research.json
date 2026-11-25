@@ -106,5 +106,12 @@
       "https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptgenrandom",
       "https://developer.apple.com/forums/thread/694129"
     ]
+  },
+  "cmake_packaging": {
+    "summary": "Accessed 2026-11-22. Use install/export targets, a generated relocatable package config and explicit dependencies; use relative build/install RPATH where supported. An ABI identifier is not a declared release version.",
+    "urls": [
+      "https://cmake.org/cmake/help/latest/guide/importing-exporting/",
+      "https://cmake.org/cmake/help/latest/prop_tgt/BUILD_RPATH_USE_ORIGIN.html"
+    ]
   }
 }

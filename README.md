@@ -22,6 +22,18 @@ node examples/node/demo.js
 
 Build outputs are in `build/`. The probe and examples default to a **public demo pepper**; do not use that default for real identities. Prefer a randomly generated secret kept outside source code. `--pepper` exposes its value in the process command line, so the environment is preferable for this demo. CLI `check` starts a new store each time: repeat calls in the **same process** to observe depletion (as the examples do).
 
+## Optional CMake build (Linux only)
+
+The unreleased CMake build installs a shared library, static library, probe, header and relocatable package exports. It deliberately rejects non-Linux full-core builds while the native ports remain unfinished. `build.sh` remains available and does not require CMake.
+
+```sh
+cmake -S . -B build/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/build/archx-install"
+cmake --build build/cmake
+cmake --install build/cmake
+```
+
+Consumers use `find_package(Archx CONFIG REQUIRED)` and link `Archx::core` (shared) or `Archx::static`. `Archx_ABI_VERSION` and `AX_ABI_VERSION` expose the C ABI version; **no release/package version has been declared**. For a custom library directory outside CMake's default search paths, set `Archx_DIR` to its `cmake/Archx` folder. Install directories must be relative to the prefix. `tests/test_cmake_install.sh` tests relocation, both linkage modes and the installed probe; see its dependencies before running it.
+
 ## What Linux information is available?
 
 `collect` returns the OS, CPU architecture from `uname`, and signal metadata only: name, weight and whether a usable value was read. It does **not** return raw identifiers. Availability depends on the machine, permissions and container setup.
