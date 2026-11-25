@@ -2,6 +2,10 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Next-version foundation
+- To preserve the existing C decision ABI, saturation returns denial plus a thread-local capacity error rather than silently evicting buckets. No automatic reclamation is implemented; authorized resets have quota consequences.
+- Demo exposure requires an explicit host override; it is not a supported deployment entrypoint. Read-only CI and write-enabled survey workflows are separate. Required branch protection and native Windows/macOS evidence remain open.
+
 ## 2026-11-22 — Browser encrypted client
 - Added a browser-side sealed-v2 client using libsodium, an independently supplied public key and single-use challenges. It collects/stores no signals and has no plaintext fallback.
 - Tested the same JavaScript against Python and exercised the synthetic UI in headless Chromium, with and without a mocked Turnstile widget. The page cannot access Linux machine IDs; sender-side code and all third-party scripts remain part of the trust boundary.

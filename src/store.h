@@ -2,11 +2,11 @@
  *
  * - Open-addressing table, power-of-two size, 32-byte keys (already
  *   HMAC'd by the caller — raw user keys never land here).
- * - Shard-free but globally mutex-guarded: the hot path is a few dozen
- *   instructions; contention only matters at very high concurrency, at
- *   which point per-shard locking can be added without ABI changes.
- * - Capacity is hard-capped: when full, the stalest entry (by last_refill)
- *   is evicted. Memory stays flat no matter how hostile the key churn is. */
+ * - Shard-free and globally mutex-guarded. Lookup and deletion can scan up
+ *   to the table capacity, particularly near saturation; no latency bound
+ *   or contention profile has been established.
+ * - Capacity is hard-capped. A new key is refused at capacity; an existing
+ *   bucket is never silently evicted, including when it has refilled. */
 #ifndef AX_STORE_H
 #define AX_STORE_H
 
@@ -24,7 +24,7 @@ void      ax_store_free(ax_store *s);
  * *remaining (optional) gets the post-operation balance.
  * *retry_after_ms (optional) gets ms until at least `cost` tokens are
  *   available when denied (0 when allowed).
- * Returns 1 = allowed, 0 = denied.
+ * Returns 1 = allowed, 0 = rate limited, -1 = store saturated.
  */
 int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
                           double capacity, double refill_per_sec, double cost,

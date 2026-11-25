@@ -1,0 +1,39 @@
+# Untrusted PR code runs with read-only repository access and no project secrets.
+name: Linux regression
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-regression-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Linux full regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/archx-test-venv"
+          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt
+          echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
+          npm ci --prefix demo/browser
+          npm run build --prefix demo/browser
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "ARCHX_TEST_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          else
+            (cd demo/browser && npx playwright install --with-deps chromium)
+          fi
+          echo 'ARCHX_REQUIRE_BROWSER=1' >> "$GITHUB_ENV"
+      - name: Build and test
+        run: ./test.sh

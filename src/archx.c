@@ -525,9 +525,10 @@ ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
   int allowed = ax_store_token_bucket(core->store, bk, core->capacity,
                                       core->refill_per_sec, (double)cost,
                                       &rem, &retry);
+  if (allowed < 0) set_error("ax_check: bucket store capacity exceeded");
   if (remaining) *remaining = (int64_t)rem; /* floor for positive values */
   if (retry_after_ms) *retry_after_ms = retry;
-  return allowed ? AX_ALLOW : AX_DENY_RATE_LIMIT;
+  return allowed > 0 ? AX_ALLOW : AX_DENY_RATE_LIMIT;
 }
 
 ax_result ax_reset(ax_core *core, const char *key) {

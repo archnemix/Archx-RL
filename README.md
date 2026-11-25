@@ -2,7 +2,7 @@
 
 Working guidance and component indexes are in [Docs/](Docs/README.md).
 
-Milestone 1 is a **Linux-only prototype** of a shared C core for device-signal inspection, app-scoped pseudonymous identification, and an in-process token bucket. The C ABI is in [`include/archx.h`](include/archx.h); the Python and Node examples call the same library. No daemon, browser/mobile support, cross-machine rate-limit store, or other OS implementation is included yet.
+Milestone 1 is a **Linux-only prototype** of a shared C core for device-signal inspection, app-scoped pseudonymous identification, and an in-process token bucket. The C ABI is in [`include/archx.h`](include/archx.h); the Python and Node examples call the same library. A separate browser client encrypts caller-supplied signals; it does not collect native hardware IDs. No mobile collector, cross-machine rate-limit store, or other native OS implementation is included yet.
 
 ## Build and try
 
@@ -53,11 +53,11 @@ Example core configuration:
 
 Alternatively, pass `pepper` as a string. An even-length all-hex pepper of at least 32 characters is decoded as hex; other strings are treated as raw bytes. Maximum decoded length is 64 bytes. `app_id` is required, limited to 127 bytes, and cannot contain `|`. The small config parser supports objects, strings, numbers, booleans and null, not arrays; Unicode surrogate escapes are not supported. It rejects duplicate keys. The `key_scope` field is currently informational and does not choose a key automatically: **the caller chooses and supplies the rate-limit key**.
 
-The token bucket is mutex-protected and lives only in the core handle. It is not shared across processes and is lost when the handle is freed. At capacity the oldest bucket is evicted, which can reset limits under high key churn; it is not a distributed or adversarially robust rate limiter. `retry_after_ms` is `-1` when the requested cost cannot ever be reached (including cost greater than capacity). Keys are limited to 800 bytes. Handle errors via `ax_last_error()` on the same thread, and free JSON buffers with `ax_buffer_free()`. Do not free a core while other threads are using it.
+The token bucket is mutex-protected and lives only in the core handle. It is not shared across processes and is lost when the handle is freed. At capacity new keys fail closed with `AX_DENY_RATE_LIMIT` and a nonempty `ax_last_error()`; existing buckets are never evicted. Because entries are not automatically reclaimed even after refill, saturation persists until an operator explicitly resets a bucket or destroys the store (which resets all quotas). A restart also loses all limits; this is not a distributed or production-ready rate limiter. `retry_after_ms` is `-1` when the requested cost cannot ever be reached (including cost greater than capacity). Keys are limited to 800 bytes. Handle errors via `ax_last_error()` on the same thread, and free JSON buffers with `ax_buffer_free()`. Do not free a core while other threads are using it.
 
 ## Status
 
-This is early, unaudited software, including its self-contained cryptography and parser. Tests cover standard SHA-256/HMAC vectors, Linux probe output, configuration failures, token-bucket exhaustion and eviction, thread contention, and concurrent fallback creation. The implementation is not a production security boundary; additional platform testing, security review, and an appropriate deployment architecture are required.
+This is early, unaudited software, including its self-contained cryptography and parser. Tests cover standard SHA-256/HMAC vectors, Linux probe output, configuration failures, token-bucket exhaustion and fail-closed saturation, thread contention, and concurrent fallback creation. The implementation is not a production security boundary; additional platform testing, security review, and an appropriate deployment architecture are required.
 
 ## Matching profiles across changes
 
@@ -105,7 +105,7 @@ The demo exposes a JSON check interface independent of frontend type. For exampl
 
 Operators may set `messages` for `rate_limited`, `missing_required`, `invalid_request`, `timezone_mismatch`, `clock_out_of_range`, `capacity_exceeded` and `storage_error` in their policy JSON; omitted messages use friendly defaults. Message strings are plain text, 1–500 characters, and contain no control characters. Frontends should render them as text, never HTML. A rate-limited response carries HTTP 429, a `message`, `retry_after_seconds` and `Retry-After`; the client obtains the configured missing-required message from the policy endpoint. Message changes do not reset SQLite limits or require a new database.
 
-**Demo security limitations:** the server has no authentication, TLS, multi-host distributed store, automatic IP geolocation, or production-grade resource protection. It binds to all interfaces by default for the Arena preview; do not expose it publicly or deploy it as a protection boundary. In the preview, the peer IP may be the preview proxy rather than the browser. Forwarding headers are ignored by default. A narrow opt-in single-proxy configuration is documented below; operators must establish and verify their own trusted proxy boundary before any real deployment. By default the in-memory state and random secret reset on restart. An optional SQLite mode is described below; it is still a prototype, not a distributed store. The C core's separate API and policies remain unchanged.
+**Demo security limitations:** the server has no authentication, TLS, multi-host distributed store, automatic IP geolocation, or production-grade resource protection. It binds to loopback by default; `--host 0.0.0.0` explicitly opts into exposure for the Arena preview. Even with that opt-in, do not expose it publicly or deploy it as a protection boundary. In the preview, the peer IP may be the preview proxy rather than the browser. Forwarding headers are ignored by default. A narrow opt-in single-proxy configuration is documented below; operators must establish and verify their own trusted proxy boundary before any real deployment. By default the in-memory state and random secret reset on restart. An optional SQLite mode is described below; it is still a prototype, not a distributed store. The C core's separate API and policies remain unchanged.
 
 ### Signal and policy behavior
 

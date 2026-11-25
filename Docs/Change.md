@@ -2,6 +2,7 @@
 
 Purpose: track current user-requested changes and their status, not hypothetical product requirements.
 
+- Next-version foundation: document threats and backlog, fail closed on C saturation, default the demo to loopback, and add read-only ordinary CI. Native Windows/macOS and bounded production integration remain outstanding.
 - Identification/rate-limiting scope and configurable responses: implemented in the Python demo; no account/trial enforcement.
 - Optional refreshable IP reputation and Turnstile, IP raw/hash selection, keyed device-signal storage and additional request encryption: implemented locally in the Python prototype; see [Roadmap](Roadmap.md) for limitations.
 - Apply relevant general working rules: documented in [Rules](Rules.md), with concise project documentation and sanitized test records. Native Windows/macOS support and live Cloudflare testing are not implied.

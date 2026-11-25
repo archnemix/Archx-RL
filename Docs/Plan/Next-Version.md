@@ -1,0 +1,59 @@
+# Next-version release backlog
+
+This tracks the requested next version; issues contain the implementation and acceptance requirements. @archnemix is the initial owner on each issue and may delegate; no unperformed work is implied. All remain open pending evidence.
+
+## Release gate
+
+- Native Linux, Windows and macOS builds, collectors, private fallback, bindings and tests. Windows 11 x64 is a proposed starting point, and macOS arm64/x86_64 each require native execution evidence. No other native support is claimed.
+- Deliver one bounded single-host service profile; distributed enforcement is a later, separately specified milestone. Self-reported signals are not authentication or attestation.
+- Complete privacy and distribution review, platform ADRs, installation artifacts, no silent quota reset, operational recovery, and test evidence. No mandatory elevation, kernel drivers, stealth collection or private-API scraping.
+- Required release testing includes fuzzing, model/property, fault injection, privacy, end-to-end TLS/proxy, credentialed provider staging, separate language coverage, advertised browser tests, and agreed soak/load tests.
+
+## Tracked work
+
+| ID | Priority | Item | Issue |
+| --- | --- | --- | --- |
+| A01 | P0 | Security policy and threat model | [#2](https://github.com/archnemix/Archx-RL/issues/2) |
+| A02 | P0 | Read-only PR and push CI | [#3](https://github.com/archnemix/Archx-RL/issues/3) |
+| A03 | P1 | Windows native implementation and artifacts | [#4](https://github.com/archnemix/Archx-RL/issues/4) |
+| A04 | P1 | macOS native implementation and artifacts | [#5](https://github.com/archnemix/Archx-RL/issues/5) |
+| A05 | P1 | Portable platform abstraction | [#6](https://github.com/archnemix/Archx-RL/issues/6) |
+| A06 | P1 | Cross-platform build and install | [#7](https://github.com/archnemix/Archx-RL/issues/7) |
+| A07 | P1 | Versioned signal and capability schema | [#8](https://github.com/archnemix/Archx-RL/issues/8) |
+| A08 | P1 | Native operating-system CI matrix | [#9](https://github.com/archnemix/Archx-RL/issues/9) |
+| A09 | P1 | Single-host integration package | [#10](https://github.com/archnemix/Archx-RL/issues/10) |
+| A10 | P1 | Low-cardinality operational metrics | [#11](https://github.com/archnemix/Archx-RL/issues/11) |
+| A11 | P1 | Secret and transport key versioning | [#12](https://github.com/archnemix/Archx-RL/issues/12) |
+| A12 | P1 | Schema migrations and backup restore | [#13](https://github.com/archnemix/Archx-RL/issues/13) |
+| A13 | P1 | Retention and deletion operations | [#14](https://github.com/archnemix/Archx-RL/issues/14) |
+| A14 | P1 | False-positive and stability evaluation | [#15](https://github.com/archnemix/Archx-RL/issues/15) |
+| A15 | P1 | License and release governance | [#16](https://github.com/archnemix/Archx-RL/issues/16) |
+| A16 | P2 | Distributed quota and replay backend | [#17](https://github.com/archnemix/Archx-RL/issues/17) |
+| B01 | P0 | Prevent active C quota eviction on saturation | [#1](https://github.com/archnemix/Archx-RL/issues/1) |
+| B02 | P0 | Separate abuse evidence from authenticated enforcement | [#18](https://github.com/archnemix/Archx-RL/issues/18) |
+| B03 | P0 | Bound deployment boundary overload | [#19](https://github.com/archnemix/Archx-RL/issues/19) |
+| B04 | P1 | Memory and SQLite behavioral contracts | [#20](https://github.com/archnemix/Archx-RL/issues/20) |
+| B05 | P1 | C error propagation and fault injection | [#21](https://github.com/archnemix/Archx-RL/issues/21) |
+| B06 | P1 | Triage GCC analyzer warnings | [#22](https://github.com/archnemix/Archx-RL/issues/22) |
+| B07 | P1 | Platform signal validation | [#23](https://github.com/archnemix/Archx-RL/issues/23) |
+| B08 | P1 | Shared-IP recovery and separate quotas | [#24](https://github.com/archnemix/Archx-RL/issues/24) |
+| B09 | P1 | Real TLS reverse proxy topology | [#25](https://github.com/archnemix/Archx-RL/issues/25) |
+| B10 | P1 | Credentialed Turnstile staging | [#26](https://github.com/archnemix/Archx-RL/issues/26) |
+| B11 | P1 | Shutdown health and readiness | [#27](https://github.com/archnemix/Archx-RL/issues/27) |
+| B12 | P1 | Coverage terminology compatibility | [#28](https://github.com/archnemix/Archx-RL/issues/28) |
+| C01 | P0 | Private demo and bounded supported entrypoint | [#29](https://github.com/archnemix/Archx-RL/issues/29) |
+| C02 | P1 | Remove Linux dependencies from common C | [#30](https://github.com/archnemix/Archx-RL/issues/30) |
+| C03 | P1 | Maintained bindings and shared fixtures | [#31](https://github.com/archnemix/Archx-RL/issues/31) |
+| C04 | P1 | Crypto and parser provider ADR | [#32](https://github.com/archnemix/Archx-RL/issues/32) |
+| C05 | P1 | Architecture and deployment documentation split | [#33](https://github.com/archnemix/Archx-RL/issues/33) |
+| D01 | P1 | Bounded inverted observation index | [#34](https://github.com/archnemix/Archx-RL/issues/34) |
+| D02 | P1 | Deduplicate memory observations | [#35](https://github.com/archnemix/Archx-RL/issues/35) |
+| D03 | P1 | Amortized bounded expiry cleanup | [#36](https://github.com/archnemix/Archx-RL/issues/36) |
+| D04 | P1 | Measure and reduce contention | [#37](https://github.com/archnemix/Archx-RL/issues/37) |
+| D05 | P1 | Representative state and traffic benchmark | [#38](https://github.com/archnemix/Archx-RL/issues/38) |
+| D06 | P1 | Profile SQLite performance and faults | [#39](https://github.com/archnemix/Archx-RL/issues/39) |
+| D07 | P2 | Optimize near-full C store | [#40](https://github.com/archnemix/Archx-RL/issues/40) |
+
+Additional release-wide tracks: [test matrix #41](https://github.com/archnemix/Archx-RL/issues/41) and [platform research/ADRs #42](https://github.com/archnemix/Archx-RL/issues/42).
+
+Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A08/C02 and native A03/A04; performance/parity D01–D06/B04–B07; operational release A09–A15/B08–B12/C03–C05 and release tests. A16/D07 are later. Completion requires linked evidence, not just a closed issue.

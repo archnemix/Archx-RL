@@ -14,6 +14,7 @@ from http.server import ThreadingHTTPServer
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'demo'))
 from engine import Engine, policy, load_geo
 from signal_validation import normalize_signal, synthetic_signal
+import server
 from server import Handler, scenario
 from client import collect, endpoint, main, storage
 from unittest.mock import patch
@@ -21,6 +22,14 @@ from io import StringIO
 
 def tok(n): return hashlib.sha256(n.encode()).hexdigest()[:32]
 def req(account='a', **values): return {'account':account, 'signals':{'machine_id':tok('m'),**values}}
+
+class DemoDefaultsTests(unittest.TestCase):
+    def test_default_bind_is_loopback_and_explicit_override_works(self):
+        for args, expected in [([], '127.0.0.1'), (['--host', '0.0.0.0'], '0.0.0.0')]:
+            with self.subTest(args=args), patch.object(sys, 'argv', ['server.py'] + args), \
+                 patch('server.ThreadingHTTPServer') as constructor, patch('sys.stdout', new_callable=StringIO):
+                server.main()
+                self.assertEqual(constructor.call_args.args[0][0], expected)
 
 class PolicyTests(unittest.TestCase):
     def setUp(self):

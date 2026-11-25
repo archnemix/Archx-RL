@@ -87,16 +87,9 @@ static void delete_entry(ax_store *s, size_t hole) {
   }
 }
 
-static void evict_stalest(ax_store *s) {
-  size_t victim = 0;
-  for (size_t i = 1; i < s->capacity; i++)
-    if (s->entries[i].last_refill_ms < s->entries[victim].last_refill_ms) victim = i;
-  delete_entry(s, victim);
-}
-
 /* Insert a fresh full bucket. Caller holds the lock; key not present. */
 static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacity) {
-  if (s->size >= s->capacity) evict_stalest(s);
+  if (s->size >= s->capacity) return NULL;
   size_t mask = s->capacity - 1;
   size_t i = hash_key(key) & mask;
   while (s->entries[i].occupied) i = (i + 1) & mask;
@@ -120,6 +113,12 @@ int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
   pthread_mutex_lock(&s->lock);
   ax_entry *e = find_entry(s, key);
   if (!e) e = insert_entry(s, key, capacity);
+  if (!e) {
+    if (remaining) *remaining = 0;
+    if (retry_after_ms) *retry_after_ms = -1;
+    pthread_mutex_unlock(&s->lock);
+    return -1; /* saturated: no bucket was changed */
+  }
 
   int64_t now = now_ms();
   double elapsed = (double)(now - e->last_refill_ms) / 1000.0;

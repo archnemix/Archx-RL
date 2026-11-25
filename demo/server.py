@@ -136,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--host',default='0.0.0.0'); parser.add_argument('--port',type=int,default=8000)
+    parser.add_argument('--host',default='127.0.0.1'); parser.add_argument('--port',type=int,default=8000)
     parser.add_argument('--preset',choices=list(PRESETS),default='basic'); parser.add_argument('--config',help='JSON policy override file'); parser.add_argument('--geo',help='JSON list of trusted CIDR timezone mappings'); parser.add_argument('--db',help='private SQLite database file (requires ARCHX_DEMO_SECRET of at least 32 bytes)')
     parser.add_argument('--trusted-proxy',action='append',default=[],help='trusted proxy CIDR; must overwrite X-Forwarded-For with one client address')
     parser.add_argument('--sealed-private-key',help='private 32-byte hex key file; requires encrypted check requests')

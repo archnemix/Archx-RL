@@ -15,6 +15,15 @@ static void *spend(void *arg) {
   for (int i = 0; i < 50; i++) *count += ax_check(arg, "concurrent", 1, NULL, NULL) == AX_ALLOW;
   return count;
 }
+typedef struct { ax_core *core; int id; int allowed; } insert_arg;
+static void *insert_unique(void *data) {
+  insert_arg *arg = data;
+  char key[32]; snprintf(key, sizeof key, "parallel-%d", arg->id);
+  ax_decision result = ax_check(arg->core, key, 1, NULL, NULL);
+  arg->allowed = result == AX_ALLOW;
+  if (!arg->allowed) assert(strstr(ax_last_error(), "capacity exceeded"));
+  return NULL;
+}
 int main(void) {
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"store_capacity\":-1}");
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"store_capacity\":1e999}");
@@ -38,9 +47,30 @@ int main(void) {
   assert(ax_check(c, "user", 1, &rem, &retry) == AX_DENY_RATE_LIMIT && retry == -1);
   assert(ax_reset(c, "user") == AX_OK);
   assert(ax_check(c, "user", 3, &rem, &retry) == AX_DENY_RATE_LIMIT && retry == -1);
-  for (int i = 0; i < 200; i++) { char key[32]; snprintf(key, sizeof key, "key-%d", i); assert(ax_check(c, key, 1, NULL, NULL) == AX_ALLOW); }
-  assert(ax_reset(c, "key-199") == AX_OK);
-  assert(ax_check(c, "key-199", 1, &rem, NULL) == AX_ALLOW && rem == 1);
+  /* Fill the table, then churn new keys: the exhausted victim must survive. */
+  assert(ax_check(c, "user", 2, &rem, &retry) == AX_ALLOW && rem == 0);
+  for (int i = 0; i < 15; i++) { char key[32]; snprintf(key, sizeof key, "key-%d", i); assert(ax_check(c, key, 1, NULL, NULL) == AX_ALLOW); }
+  for (int i = 0; i < 200; i++) {
+    char key[32]; snprintf(key, sizeof key, "churn-%d", i);
+    rem = 9; retry = 9;
+    assert(ax_check(c, key, 1, &rem, &retry) == AX_DENY_RATE_LIMIT);
+    assert(rem == 0 && retry == -1 && strstr(ax_last_error(), "capacity exceeded"));
+    assert(ax_check(c, "user", 1, &rem, &retry) == AX_DENY_RATE_LIMIT && retry == -1);
+    assert(!*ax_last_error()); /* real quota denial, not saturation */
+  }
+  assert(ax_check(c, "key-14", 1, &rem, NULL) == AX_ALLOW && rem == 0);
+  assert(ax_reset(c, "key-14") == AX_OK);
+  assert(ax_check(c, "new-key", 1, &rem, NULL) == AX_ALLOW && rem == 1);
+  assert(ax_check(c, "user", 1, &rem, &retry) == AX_DENY_RATE_LIMIT);
+  ax_core_free(c);
+  c = new_core(config); assert(c);
+  assert(ax_check(c, "victim", 2, NULL, NULL) == AX_ALLOW);
+  pthread_t inserts[32]; insert_arg args[32];
+  for (int i=0; i<32; i++) { args[i] = (insert_arg){c, i, 0}; assert(!pthread_create(&inserts[i], NULL, insert_unique, &args[i])); }
+  int admitted = 0;
+  for (int i=0; i<32; i++) { assert(!pthread_join(inserts[i], NULL)); admitted += args[i].allowed; }
+  assert(admitted == 15);
+  assert(ax_check(c, "victim", 1, &rem, &retry) == AX_DENY_RATE_LIMIT && !*ax_last_error());
   ax_core_free(c);
   c = new_core("{\"app_id\":\"test\",\"pepper\":\"secret\",\"rate_limit\":{\"capacity\":100,\"refill_per_sec\":0}}"); assert(c);
   pthread_t threads[8]; for (int i=0; i<8; i++) assert(!pthread_create(&threads[i], NULL, spend, c));

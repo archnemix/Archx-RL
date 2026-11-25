@@ -525,6 +525,31 @@
       "purpose": "Record local full suite including browser tests",
       "inputs": "synthetic tests with PyNaCl, Node and headless Chromium",
       "outputs": "sanitized test log"
+    },
+    "SECURITY.md": {
+      "purpose": "Security reporting and prototype limitations",
+      "inputs": "maintainer requirements and implementation",
+      "outputs": "documented controls or test execution"
+    },
+    "Docs/Threat-Model.md": {
+      "purpose": "Threats, evidence, assumptions and recovery",
+      "inputs": "maintainer requirements and implementation",
+      "outputs": "documented controls or test execution"
+    },
+    "Docs/Plan/Next-Version.md": {
+      "purpose": "Tracked next-version work and release gate",
+      "inputs": "maintainer requirements and implementation",
+      "outputs": "documented controls or test execution"
+    },
+    ".github/workflows/ci.yml": {
+      "purpose": "Read-only Linux pull request and push regression",
+      "inputs": "maintainer requirements and implementation",
+      "outputs": "documented controls or test execution"
+    },
+    "Docs/Test-Results/unreleased/foundation-full-test.log": {
+      "purpose": "Record foundation full Linux regression",
+      "inputs": "synthetic test suite with PyNaCl and headless Chromium",
+      "outputs": "sanitized test log"
     }
   }
 }

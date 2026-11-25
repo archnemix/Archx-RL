@@ -1,0 +1,26 @@
+# Threat model: current prototype
+
+## Scope and trust boundaries
+
+Archx supplies request signals and rate-limit decisions; a host, not Archx, must authenticate users and authorize operations separately and must enforce the decision before executing a protected action. The C core and Python policy service are distinct implementations. The browser encrypts caller-provided signals; it cannot collect Linux hardware IDs. Supported deployment is not yet established; the demo HTTP server and WSGI development example are private experiments, not production entrypoints. Native Windows/macOS and distributed enforcement are **not implemented**.
+
+Assets include service availability, rate-limit state, host operations, pseudonymous device/IP records, raw identifiers during processing, and the HMAC and sealed-transport private keys. Attackers may control their client, browser, submitted identifiers, IPs/proxies and traffic timing; may replay an observed encrypted request; and may try to exhaust stores or workers. Trusted boundaries are the host's authentication/authorization and decision enforcement, the configured trusted proxy and restricted origin, secure storage, independent trusted client code and server public key delivery, and TLS. A compromised host, key, proxy or same-page script is outside prototype protection.
+
+## Threats, evidence and accepted limitations
+
+| Threat | Evidence or current limitation | Recovery / mitigation |
+| --- | --- | --- |
+| Signal forgery, cloning, or rotation of all signals and IP | `tests/test_demo.py` fabrication/rotation and `tools/attack_lab.py`; **accepted limitation:** no source authenticity or guaranteed uniqueness. | Host authentication and authorization are independent; use other abuse controls and human recovery, not fingerprints as credentials. |
+| Victim poisoning with forged identifiers | `test_forged_signal_can_exhaust_victim_bucket`; verification does not prove device ownership. | Host-controlled remediation; avoid sole reliance on self-reported signals. |
+| Shared NAT causes collateral denial | `test_shared_ip_warning` and attack lab; IP is not a person. | Review thresholds and supply host recovery. Independently configurable IP/device quotas are backlog work. |
+| C bucket churn evicts active quota | `tests/test_core.c` fills the store, churns keys and checks an exhausted bucket, including parallel admission. Strict saturation fails closed; no automatic reclamation. | Authorized targeted `ax_reset` changes that key's enforcement; full restart loses all state. Capacity attacks can deny new keys indefinitely. |
+| Exhaustion of Python state | `test_capacity_closed` and SQLite tests; memory/SQLite semantics differ. | Capacity monitoring and safe operational recovery are not complete. Restarting memory resets quotas; preserve and review SQLite backups. |
+| CPU, worker, socket or challenge flooding | **Accepted limitation:** demo `ThreadingHTTPServer` has no bounded worker pool/global admission. Per-IP charging does not cover every route. | Do not expose demo; bounded host integration and overload controls are release blockers. |
+| Replay or intercepted first submission | `tests/test_replay.py`, browser tests and host tests cover single-use challenges. First arrival wins; sealed boxes do not authenticate sender, so fabricated fresh payloads remain possible. Replay scope is process or single-host SQLite only. | TLS and trusted code/key delivery; isolate origin. Shared multi-host replay is not implemented. |
+| Spoofed forwarded client IP | `tests/test_proxy.py` covers trusted single-value parsing; real TLS/proxy topology is not tested. | Restrict direct origin, trust only explicitly configured sanitizing proxy; otherwise use peer address. |
+| Secret or database disclosure / tracking | `test_no_raw_values_stored` checks synthetic in-memory observations. **Accepted limitation:** HMACs are linkable, optional raw IP persists; transient values, logs, WAL, backups, seed files and external infrastructure need separate controls. | Restrict access, minimize retention; rotate/recover only via an explicit planned migration, not currently implemented. |
+| Provider failure or reputation false positives | Fake-provider tests in `tests/test_security.py`; live Turnstile and feed accuracy not validated. | Configure failure and stale policies, monitor and provide recovery; retain deterministic offline tests. |
+| Restart, configuration, migration or time failures | Mismatched SQLite configuration fails closed in tests; memory resets on restart. **Accepted limitation:** backup/restore, migration, key rotation and comprehensive fault injection are incomplete. | Do not silently replace state; back up and restore only with an operator-reviewed procedure. |
+| Compromised browser scripts or replaced key | **Accepted limitation:** encryption trusts supplied key and executing code; TLS and sealed payloads do not secure a malicious client. | Independently authenticate public key and client delivery; protect build and third-party scripts. |
+
+No test establishes protection against every attack, a real person's uniqueness, or production fitness. The [next-version tracker](Plan/Next-Version.md) contains remaining required mitigations and evidence gates.

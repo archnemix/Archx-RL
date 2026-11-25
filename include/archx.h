@@ -108,6 +108,9 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
  * (both optional, may be NULL). A retry delay of -1 means impossible.
  * Keys are limited to 800 bytes. Invalid arguments return a denial and set
  * the thread-local error; check ax_last_error() to distinguish failures.
+ * Store saturation returns AX_DENY_RATE_LIMIT with a nonempty error, remaining
+ * 0 and retry -1; no existing bucket is evicted. Callers must fail closed on
+ * errors and should inspect ax_last_error() on the calling thread.
  */
 ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
                      int64_t *remaining, int64_t *retry_after_ms);
