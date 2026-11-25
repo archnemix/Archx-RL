@@ -97,11 +97,11 @@ class Engine:
 
     def reject_malformed(self, peer):
         """Charge malformed requests to the peer bucket too; never trust forwarded IP."""
-        now = self.clock()
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
         key = self.ip_key(ip); window = self.settings['window_seconds']
         with self.lock:
+            now = self.clock()
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
             if key not in self.windows and len(self.windows) >= self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window,'relation':'inconclusive'}
@@ -140,12 +140,15 @@ class Engine:
         return None
 
     def check(self, raw, peer, *, _ip_precharged=False):
-        now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
         # The service precharges the IP before expensive verification. Direct callers
         # use the default and charge all buckets together under one lock.
         keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
         window = self.settings['window_seconds']
         with self.lock:
+            # State time must be sampled after waiting for the lock: an earlier
+            # timestamp can expire a newly charged window or history too soon.
+            now = self.clock()
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
             cleanup_pending = self.observations.prune(now)
             missing_keys = sum(1 for key in keys if key not in self.windows)

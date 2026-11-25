@@ -875,6 +875,16 @@
       "purpose": "Sanitized Linux regression including SQLite setup and writer-lock faults",
       "inputs": "synthetic requests, injected setup faults and a local writer lock",
       "outputs": "test results; not production storage durability evidence"
+    },
+    "tests/test_state_clock.py": {
+      "purpose": "Deterministic clock advancement under memory-lock and SQLite-writer contention",
+      "inputs": "synthetic clocks and requests",
+      "outputs": "test results; not clock rollback or recovery evidence"
+    },
+    "Docs/Test-Results/unreleased/state-clock-full-test.log": {
+      "purpose": "Sanitized Linux full regression including state-time contention tests",
+      "inputs": "synthetic clocks and requests",
+      "outputs": "test results; not clock rollback or recovery evidence"
     }
   }
 }

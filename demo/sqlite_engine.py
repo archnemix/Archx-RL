@@ -103,13 +103,13 @@ class SQLiteEngine(Engine):
         return {'decision':'storage_error','message':self.message('storage_error'),'retry_after_seconds':1,'relation':'inconclusive'}
 
     def reject_malformed(self, peer):
-        now = self.clock()
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
         try:
             con = self.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
+                now = self.clock()
                 result = self._charge(con, [self.ip_key(ip)], now)
                 con.commit()
                 return result
@@ -122,11 +122,13 @@ class SQLiteEngine(Engine):
             return self._storage_error()
 
     def check(self, raw, peer, *, _ip_precharged=False):
-        now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
         try:
             con = self.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
+                # A waiting writer must not use a stale pre-transaction time.
+                now = self.clock()
                 keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
                 failure = self._charge(con, keys, now)
                 if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)

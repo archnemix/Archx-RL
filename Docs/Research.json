@@ -182,5 +182,12 @@
       "https://www.sqlite.org/c3ref/busy_timeout.html",
       "https://www.sqlite.org/lang_transaction.html"
     ]
+  },
+  "state_time_serialization": {
+    "summary": "Accessed 2026-11-22. SQLite BEGIN IMMEDIATE starts a write transaction and can wait or fail when another writer is active. Python time.time is wall-clock epoch time; clock adjustment and persistent-state rollback require separate analysis and testing.",
+    "urls": [
+      "https://www.sqlite.org/lang_transaction.html",
+      "https://docs.python.org/3/library/time.html#time.time"
+    ]
   }
 }

@@ -30,6 +30,7 @@ python3 tests/test_metrics.py
 python3 tests/test_gate_benchmark.py
 python3 tests/test_boundaries.py
 python3 tests/test_sqlite_engine.py
+python3 tests/test_state_clock.py
 python3 tests/test_security.py
 python3 tests/test_browser.py
 python3 tests/test_replay.py

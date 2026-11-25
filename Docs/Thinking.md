@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Request state time under contention
+- Input validation retains its own time; bucket/window and history decisions instead sample time after acquiring the memory lock or SQLite writer. Deterministic tests expose that a timestamp captured before waiting could cause a newly charged quota or observation to expire prematurely. The separate precharge remains an earlier operation, and wall-clock discontinuities and recovery from older state remain unresolved.
+
 ## SQLite busy and connection setup faults
 - Connection setup closes the connection even if a pragma fails. A held writer lock causes fail-closed storage errors; a short timeout is injected only in the test, then release and no-charge recovery are checked. Default busy timeout is 5 seconds, not an overall request deadline, and ambiguous commit, disk and crash faults need separate evaluation.
 
