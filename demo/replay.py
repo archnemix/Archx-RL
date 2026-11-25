@@ -47,8 +47,10 @@ class MemoryReplay:
         self.pending = {key:value for key,value in self.pending.items() if value[1] > now}
 
     def issue(self, peer):
-        peer_key, now = self._peer(peer), self.clock()
+        peer_key = self._peer(peer)
         with self.lock:
+            # Expiry must be checked after waiting for the lock.
+            now = self.clock()
             self._prune(now)
             if len(self.pending) >= self.capacity or sum(value[0] == peer_key for value in self.pending.values()) >= self.per_peer:
                 raise ReplayUnavailable('Challenge capacity exceeded')
@@ -60,8 +62,10 @@ class MemoryReplay:
         key = self._token(token)
         if key is None:
             return False
-        peer_key, now = self._peer(peer), self.clock()
+        peer_key = self._peer(peer)
         with self.lock:
+            # Expiry must be checked after waiting for the lock.
+            now = self.clock()
             self._prune(now)
             if key not in self.pending or self.pending[key][0] != peer_key:
                 return False
@@ -82,11 +86,12 @@ class SQLiteReplay(MemoryReplay):
             raise ReplayUnavailable('Challenge storage unavailable') from exc
 
     def issue(self, peer):
-        peer_key, now = self._peer(peer), self.clock()
+        peer_key = self._peer(peer)
         try:
             con = self.engine.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
+                now = self.clock()
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
                 total = con.execute('SELECT count(*) FROM replay_challenges_v1').fetchone()[0]
                 count = con.execute('SELECT count(*) FROM replay_challenges_v1 WHERE peer = ?', (peer_key,)).fetchone()[0]
@@ -108,11 +113,12 @@ class SQLiteReplay(MemoryReplay):
         key = self._token(token)
         if key is None:
             return False
-        peer_key, now = self._peer(peer), self.clock()
+        peer_key = self._peer(peer)
         try:
             con = self.engine.connect()
             try:
                 con.execute('BEGIN IMMEDIATE')
+                now = self.clock()
                 count = con.execute('DELETE FROM replay_challenges_v1 WHERE token=? AND peer=? AND expires>?', (key, peer_key, now)).rowcount
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
                 con.commit()

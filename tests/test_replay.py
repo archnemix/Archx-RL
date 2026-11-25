@@ -3,8 +3,10 @@ import os
 import multiprocessing
 import sqlite3
 import sys
+import threading
 import tempfile
 import unittest
+from unittest import mock
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -76,6 +78,64 @@ class ReplayTests(unittest.TestCase):
             proc.join(30); self.assertEqual(proc.exitcode,0)
         queue.close()
         self.assertEqual(results.count(True),1)
+
+    def assert_delayed_replay(self, mode, operation):
+        peer = '192.0.2.1'
+        if mode == 'memory':
+            store = MemoryReplay(self.secret, lambda: self.now[0], ttl=10)
+        else:
+            engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+            store = SQLiteReplay(engine, ttl=10)
+        token = store.issue(peer) if operation == 'consume' else None
+        started = threading.Event()
+        if mode == 'memory':
+            class ObservedLock:
+                def __init__(self): self.lock = threading.Lock()
+                def __enter__(self):
+                    started.set()
+                    self.lock.acquire()
+                def __exit__(self, *args): self.lock.release()
+            lock = ObservedLock()
+            lock.lock.acquire()
+            store.lock = lock
+            patch = mock.patch.object(store, 'lock', lock)
+            release = lock.lock.release
+        else:
+            holder = sqlite3.connect(self.path, isolation_level=None)
+            holder.execute('BEGIN IMMEDIATE')
+            connect = engine.connect
+            class ObservedConnection:
+                def __init__(self, con): self.con = con
+                def execute(self, sql, *args):
+                    if sql == 'BEGIN IMMEDIATE': started.set()
+                    return self.con.execute(sql, *args)
+                def __getattr__(self, name): return getattr(self.con, name)
+            patch = mock.patch.object(engine, 'connect', side_effect=lambda: ObservedConnection(connect()))
+            def release():
+                holder.rollback()
+                holder.close()
+        def request():
+            return store.issue(peer) if operation == 'issue' else store.consume(token, peer)
+        with patch, ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(request)
+            try:
+                self.assertTrue(started.wait(3), 'request did not reach the lock')
+                self.now[0] += 10
+            finally:
+                release()
+            result = future.result(timeout=6)
+        if operation == 'consume':
+            self.assertFalse(result, 'expired challenge must not be accepted after waiting')
+            self.assertFalse(store.consume(token, peer))
+        else:
+            self.now[0] += 9
+            self.assertTrue(store.consume(result, peer), 'new challenge must not expire during its pre-issuance wait')
+            self.assertFalse(store.consume(result, peer))
+
+    def test_memory_challenge_issue_wait(self): self.assert_delayed_replay('memory', 'issue')
+    def test_memory_challenge_consume_wait(self): self.assert_delayed_replay('memory', 'consume')
+    def test_sqlite_challenge_issue_wait(self): self.assert_delayed_replay('sqlite', 'issue')
+    def test_sqlite_challenge_consume_wait(self): self.assert_delayed_replay('sqlite', 'consume')
 
     def test_storage_failure_closed(self):
         engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])

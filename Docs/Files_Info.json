@@ -885,6 +885,11 @@
       "purpose": "Sanitized Linux full regression including state-time contention tests",
       "inputs": "synthetic clocks and requests",
       "outputs": "test results; not clock rollback or recovery evidence"
+    },
+    "Docs/Test-Results/unreleased/replay-clock-full-test.log": {
+      "purpose": "Sanitized Linux full regression including replay expiration under lock contention",
+      "inputs": "synthetic clocks, challenges and requests",
+      "outputs": "test results; not clock rollback or restore safety evidence"
     }
   }
 }

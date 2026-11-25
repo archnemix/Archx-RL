@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Replay expiry under contention
+- Sample replay issuance and consumption time inside the memory lock or SQLite writer. Tests hold the serialization boundary and advance a synthetic clock: previously an expired challenge could be consumed and a newly issued challenge could already be expired. The fix does not address wall-clock or restored-state rollback.
+
 ## Request state time under contention
 - Input validation retains its own time; bucket/window and history decisions instead sample time after acquiring the memory lock or SQLite writer. Deterministic tests expose that a timestamp captured before waiting could cause a newly charged quota or observation to expire prematurely. The separate precharge remains an earlier operation, and wall-clock discontinuities and recovery from older state remain unresolved.
 
