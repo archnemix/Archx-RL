@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -90,6 +91,38 @@ class PersistentTests(unittest.TestCase):
         for i in range(30): self.assertEqual(e.check(req(str(i)),'192.0.2.1')['decision'],'allow')
         with sqlite3.connect(self.path) as db: count=db.execute('SELECT count(*) FROM observations').fetchone()[0]
         self.assertEqual(count,1)
+    def test_connection_setup_failure_closes_connection_and_denies(self):
+        e=self.engine()
+        broken=mock.Mock()
+        broken.execute.side_effect=sqlite3.OperationalError('synthetic pragma failure')
+        broken.close.side_effect=sqlite3.OperationalError('synthetic close failure')
+        with mock.patch('sqlite_engine.sqlite3.connect', return_value=broken):
+            self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'storage_error')
+            self.assertEqual(e.reject_malformed('192.0.2.1')['decision'],'storage_error')
+        self.assertEqual(broken.close.call_count,2)
+        self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'allow')
+
+    def test_busy_writer_denies_without_charge_then_recovers(self):
+        e=self.engine(max_requests=1)
+        actual_connect=e.connect
+        def short_timeout():
+            con=actual_connect()
+            con.execute('PRAGMA busy_timeout=50')
+            return con
+        holder=sqlite3.connect(self.path, isolation_level=None)
+        try:
+            holder.execute('BEGIN IMMEDIATE')
+            with mock.patch.object(e, 'connect', side_effect=short_timeout):
+                self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'storage_error')
+                self.assertEqual(e.reject_malformed('192.0.2.1')['decision'],'storage_error')
+            holder.rollback()
+        finally:
+            holder.close()
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM windows').fetchone()[0],0)
+        self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'allow')
+        self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'rate_limited')
+
     def test_missing_database_returns_storage_error(self):
         e=self.engine();os.unlink(self.path)
         self.assertEqual(e.check(req(),'192.0.2.1')['decision'],'storage_error')

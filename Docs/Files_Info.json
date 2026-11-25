@@ -870,6 +870,11 @@
       "purpose": "Sanitized Linux regression for gate benchmark",
       "inputs": "bounded synthetic requests and workloads",
       "outputs": "aggregate host-specific measurement or sanitized test results"
+    },
+    "Docs/Test-Results/unreleased/sqlite-fault-full-test.log": {
+      "purpose": "Sanitized Linux regression including SQLite setup and writer-lock faults",
+      "inputs": "synthetic requests, injected setup faults and a local writer lock",
+      "outputs": "test results; not production storage durability evidence"
     }
   }
 }

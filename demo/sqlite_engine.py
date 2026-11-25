@@ -11,6 +11,7 @@ import math
 import os
 import sqlite3
 import stat
+from contextlib import suppress
 from pathlib import Path
 
 from engine import Engine
@@ -46,10 +47,16 @@ class SQLiteEngine(Engine):
 
     def connect(self):
         con = sqlite3.connect(Path(self.db_path).as_uri() + '?mode=rw', uri=True, timeout=5, isolation_level=None)
-        con.execute('PRAGMA foreign_keys=ON')
-        con.execute('PRAGMA secure_delete=ON')
-        con.execute('PRAGMA busy_timeout=5000')
-        return con
+        try:
+            con.execute('PRAGMA foreign_keys=ON')
+            con.execute('PRAGMA secure_delete=ON')
+            con.execute('PRAGMA busy_timeout=5000')
+            return con
+        except BaseException:
+            # Even initialization errors must not leak a live connection.
+            with suppress(Exception):
+                con.close()
+            raise
 
     def _initialize(self):
         con = self.connect()

@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## SQLite busy and connection setup faults
+- Connection setup closes the connection even if a pragma fails. A held writer lock causes fail-closed storage errors; a short timeout is injected only in the test, then release and no-charge recovery are checked. Default busy timeout is 5 seconds, not an overall request deadline, and ambiguous commit, disk and crash faults need separate evaluation.
+
 ## Synthetic gate benchmark
 - Use a bounded submitted/uncollected workload and report latency percentiles, aggregate outcomes, process CPU and Linux peak RSS with a separate synthetic capacity/expiry recovery probe. Avoid storing identifiers or inventing latency budgets. This is closed-loop and in-process, not representative of network overload or production capacity.
 

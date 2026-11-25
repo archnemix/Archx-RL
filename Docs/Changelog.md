@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Close SQLite connections on setup failures; add synthetic busy-lock denial and recovery coverage.
 - Added a bounded synthetic closed-loop gate benchmark with latency percentiles, CPU/RSS, outcomes and a clock-driven capacity recovery check; it is not a deployment capacity test.
 - Added optional, process-local fixed-cardinality metrics for Python request-service checks; metrics have no endpoint and do not cover all traffic.
 - Fail closed on invalid or truncated native signal canonicalization rather than hashing a partial representation; added boundary and injected-failure tests.
