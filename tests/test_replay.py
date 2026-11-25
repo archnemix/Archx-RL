@@ -137,6 +137,95 @@ class ReplayTests(unittest.TestCase):
     def test_sqlite_challenge_issue_wait(self): self.assert_delayed_replay('sqlite', 'issue')
     def test_sqlite_challenge_consume_wait(self): self.assert_delayed_replay('sqlite', 'consume')
 
+    def test_replay_table_loss_fails_closed_on_restart(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        store = SQLiteReplay(engine)
+        store.issue('192.0.2.1')
+        with sqlite3.connect(self.path) as db:
+            db.execute('DROP TABLE replay_challenges_v1')
+        with self.assertRaises(ReplayUnavailable): SQLiteReplay(engine)
+        with sqlite3.connect(self.path) as db:
+            self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='replay_challenges_v1'").fetchone())
+        with self.assertRaises(ReplayUnavailable): store.issue('192.0.2.1')
+
+    def test_replay_missing_index_or_changed_schema_fails_closed(self):
+        for damage in ('index', 'table'):
+            with self.subTest(damage=damage):
+                path = str(Path(self.tmp.name) / (damage + '.sqlite'))
+                engine = SQLiteEngine(path, policy(), self.secret, clock=lambda: self.now[0])
+                store = SQLiteReplay(engine)
+                token = store.issue('192.0.2.1')
+                with sqlite3.connect(path) as db:
+                    if damage == 'index': db.execute('DROP INDEX replay_challenges_peer')
+                    else: db.execute('ALTER TABLE replay_challenges_v1 ADD COLUMN unexpected TEXT')
+                with self.assertRaises(ReplayUnavailable): SQLiteReplay(engine)
+                # No startup repair or challenge deletion occurred.
+                with sqlite3.connect(path) as db:
+                    self.assertEqual(db.execute('SELECT count(*) FROM replay_challenges_v1').fetchone()[0], 1)
+                self.assertTrue(store.consume(token, '192.0.2.1'))
+
+    def test_legacy_replay_schema_adopted_without_reset(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        store = SQLiteReplay(engine)
+        token = store.issue('192.0.2.1')
+        with sqlite3.connect(self.path) as db:
+            db.execute("DELETE FROM meta WHERE name='replay_schema_v1'")
+        adopted = SQLiteReplay(engine)
+        self.assertTrue(adopted.consume(token, '192.0.2.1'))
+        self.assertFalse(adopted.consume(token, '192.0.2.1'))
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute("SELECT value FROM meta WHERE name='replay_schema_v1'").fetchone(), ('1',))
+
+    def test_invalid_replay_marker_fails_closed(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        SQLiteReplay(engine)
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE meta SET value='unknown' WHERE name='replay_schema_v1'")
+        with self.assertRaises(ReplayUnavailable): SQLiteReplay(engine)
+
+    def test_partial_legacy_schema_is_not_adopted_or_repaired(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        store = SQLiteReplay(engine)
+        token = store.issue('192.0.2.1')
+        with sqlite3.connect(self.path) as db:
+            db.execute("DELETE FROM meta WHERE name='replay_schema_v1'")
+            db.execute('DROP INDEX replay_challenges_peer')
+        with self.assertRaises(ReplayUnavailable): SQLiteReplay(engine)
+        with sqlite3.connect(self.path) as db:
+            self.assertIsNone(db.execute("SELECT value FROM meta WHERE name='replay_schema_v1'").fetchone())
+            self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='replay_challenges_peer'").fetchone())
+        self.assertTrue(store.consume(token, '192.0.2.1'))
+
+    def test_schema_setup_failure_rolls_back_and_closes(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        connect = engine.connect
+        closed = []
+        class FailingConnection:
+            def __init__(self, con): self.con = con
+            def execute(self, sql, *args):
+                if sql.startswith('CREATE INDEX IF NOT EXISTS replay_challenges_expiry'):
+                    raise sqlite3.OperationalError('synthetic initialization failure')
+                return self.con.execute(sql, *args)
+            def close(self):
+                closed.append(True)
+                self.con.close()
+            def __getattr__(self, name): return getattr(self.con, name)
+        with mock.patch.object(engine, 'connect', side_effect=lambda: FailingConnection(connect())):
+            with self.assertRaises(ReplayUnavailable): SQLiteReplay(engine)
+        self.assertEqual(closed, [True])
+        with sqlite3.connect(self.path) as db:
+            self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='replay_challenges_v1'").fetchone())
+            self.assertIsNone(db.execute("SELECT value FROM meta WHERE name='replay_schema_v1'").fetchone())
+        self.assertTrue(SQLiteReplay(engine).issue('192.0.2.1'))
+
+    def test_concurrent_first_replay_initialization(self):
+        engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            stores = list(pool.map(lambda _: SQLiteReplay(engine), range(8)))
+        token = stores[0].issue('192.0.2.1')
+        self.assertTrue(stores[-1].consume(token, '192.0.2.1'))
+        self.assertFalse(stores[0].consume(token, '192.0.2.1'))
+
     def test_storage_failure_closed(self):
         engine = SQLiteEngine(self.path, policy(), self.secret, clock=lambda: self.now[0])
         store = SQLiteReplay(engine)

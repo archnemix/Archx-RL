@@ -895,6 +895,11 @@
       "purpose": "Sanitized Linux full regression for SQLite core schema and metadata startup checks",
       "inputs": "synthetic database files and controlled initialization faults",
       "outputs": "test results; not database integrity or rollback detection evidence"
+    },
+    "Docs/Test-Results/unreleased/replay-startup-full-test.log": {
+      "purpose": "Sanitized Linux full regression for SQLite replay schema startup checks",
+      "inputs": "synthetic challenge data and controlled initialization faults",
+      "outputs": "test results; not database integrity or rollback detection evidence"
     }
   }
 }

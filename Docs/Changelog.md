@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Transactionally mark SQLite replay initialization and reject missing/changed replay schema on restart; validated pre-marker stores retain outstanding challenges. Deletion of both marker and table remains indistinguishable from first use.
 - Reject existing incomplete SQLite quota/history schema or missing metadata at startup instead of silently recreating them; initialization now requires a newly created file. This is not rollback or deletion detection.
 - Check sealed-request challenge expiry after acquiring the replay store lock or SQLite writer, preventing pre-wait timestamps from accepting an expired challenge. Wall-clock and restored-state rollback remain unresolved.
 - Sample Python quota and history state time after acquiring the memory lock or SQLite writer, avoiding stale pre-wait timestamps under contention. Wall-clock jumps and persistent rollback remain unresolved.

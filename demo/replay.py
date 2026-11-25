@@ -12,6 +12,14 @@ import sqlite3
 import threading
 
 
+REPLAY_SCHEMA = {
+    'replay_challenges_v1': 'CREATE TABLE IF NOT EXISTS replay_challenges_v1 (token TEXT PRIMARY KEY, peer TEXT NOT NULL, expires REAL NOT NULL)',
+    'replay_challenges_expiry': 'CREATE INDEX IF NOT EXISTS replay_challenges_expiry ON replay_challenges_v1(expires)',
+    'replay_challenges_peer': 'CREATE INDEX IF NOT EXISTS replay_challenges_peer ON replay_challenges_v1(peer)',
+}
+REPLAY_MARKER = 'replay_schema_v1'
+
+
 class ReplayUnavailable(Exception):
     """Challenge capacity or storage is unavailable."""
 
@@ -78,10 +86,34 @@ class SQLiteReplay(MemoryReplay):
         super().__init__(engine.secret, engine.clock, ttl, capacity, per_peer)
         self.engine = engine
         try:
-            with self.engine.connect() as con:
-                con.execute('CREATE TABLE IF NOT EXISTS replay_challenges_v1 (token TEXT PRIMARY KEY, peer TEXT NOT NULL, expires REAL NOT NULL)')
-                con.execute('CREATE INDEX IF NOT EXISTS replay_challenges_expiry ON replay_challenges_v1(expires)')
-                con.execute('CREATE INDEX IF NOT EXISTS replay_challenges_peer ON replay_challenges_v1(peer)')
+            con = self.engine.connect()
+            try:
+                con.execute('BEGIN IMMEDIATE')
+                marker = con.execute('SELECT value FROM meta WHERE name=?', (REPLAY_MARKER,)).fetchone()
+                objects = {name:(kind, sql) for kind, name, sql in con.execute(
+                    'SELECT type, name, sql FROM sqlite_master WHERE name IN (?,?,?)', tuple(REPLAY_SCHEMA))}
+                if marker is not None and marker != ('1',):
+                    raise ReplayUnavailable('Challenge schema mismatch')
+                if marker is None and not objects:
+                    # First use of replay protection on an existing core store.
+                    for sql in REPLAY_SCHEMA.values():
+                        con.execute(sql)
+                else:
+                    # Also permit validated pre-marker stores, without dropping
+                    # their outstanding challenges, then record the marker.
+                    for name, sql in REPLAY_SCHEMA.items():
+                        expected = sql.replace(' IF NOT EXISTS', '')
+                        kind = 'table' if expected.startswith('CREATE TABLE ') else 'index'
+                        if objects.get(name) != (kind, expected):
+                            raise ReplayUnavailable('Challenge schema is incomplete or changed')
+                if marker is None:
+                    con.execute('INSERT INTO meta(name, value) VALUES(?,?)', (REPLAY_MARKER, '1'))
+                con.commit()
+            except Exception:
+                con.rollback()
+                raise
+            finally:
+                con.close()
         except sqlite3.Error as exc:
             raise ReplayUnavailable('Challenge storage unavailable') from exc
 
