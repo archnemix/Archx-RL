@@ -1,6 +1,6 @@
 # Next-version release backlog
 
-This tracks the requested next version; issues contain the implementation and acceptance requirements. @archnemix is the initial owner on each issue and may delegate; no unperformed work is implied. All remain open pending evidence.
+This tracks the requested next version; issues contain the implementation and acceptance requirements. Each issue names @archnemix as a proposed initial owner, subject to confirmation or delegation; GitHub did not set the assignee field, so assignment is not verified. No unperformed work is implied. All remain open pending evidence.
 
 ## Release gate
 
@@ -57,3 +57,11 @@ This tracks the requested next version; issues contain the implementation and ac
 Additional release-wide tracks: [test matrix #41](https://github.com/archnemix/Archx-RL/issues/41) and [platform research/ADRs #42](https://github.com/archnemix/Archx-RL/issues/42).
 
 Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A08/C02 and native A03/A04; performance/parity D01–D06/B04–B07; operational release A09–A15/B08–B12/C03–C05 and release tests. A16/D07 are later. Completion requires linked evidence, not just a closed issue.
+
+## Foundation evidence and outstanding verification
+
+- **A01:** commit `a38e410` adds `SECURITY.md` and `Docs/Threat-Model.md`. A private reporting channel and maintainer review are not yet verified.
+- **B01:** `tests/test_core.c` exercises exhaustion, 200 new-key churn attempts, targeted reset and 32 concurrent new keys. Full sanitized local output is in [foundation-full-test.log](../Test-Results/unreleased/foundation-full-test.log); the [Linux regression run](https://github.com/archnemix/Archx-RL/actions/runs/45659543851) passed for `a38e410`. Existing entries are not automatically reclaimed; restart resets all C quotas.
+- **A02, partial:** that run verified an ordinary push. Source-only PR and fork behavior, a deliberately failing PR, and required branch protection remain unverified. The integration received HTTP 403 when reading branch protection; a repository administrator must configure/verify required checks.
+- **C01, partial:** the demo now defaults to loopback, with explicit host override tested. A supported bounded entrypoint and TLS/proxy/load evidence remain outstanding.
+- These links are recorded here because the GitHub integration returned HTTP 403 when attempting to update or comment on the issues. The issues link back to this tracker; they should be updated and formally assigned when permissions permit.
