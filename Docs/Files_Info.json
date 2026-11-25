@@ -720,6 +720,46 @@
       "purpose": "Record Linux SMBIOS fixture and full regression",
       "inputs": "synthetic fixtures, sanitizers, PyNaCl and headless Chromium",
       "outputs": "sanitized test log"
+    },
+    "src/uuid_value.h": {
+      "purpose": "Internal UUID validation contract",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "src/uuid_value.c": {
+      "purpose": "Bounded, platform-independent UUID text validation",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "src/macos_cf_uuid.h": {
+      "purpose": "Internal macOS CoreFoundation UUID value boundary",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "src/macos_cf_uuid.c": {
+      "purpose": "Type-checked CoreFoundation synthetic UUID validation, no collection",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "tests/test_uuid_value.c": {
+      "purpose": "Synthetic portable UUID value fixtures",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "tests/test_macos_cf_uuid.c": {
+      "purpose": "Synthetic CoreFoundation type and value fixtures",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "Docs/Research/MacOS.md": {
+      "purpose": "macOS policy and CoreFoundation decision with limitations",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
+    },
+    "Docs/Test-Results/unreleased/macos-cf-full-test.log": {
+      "purpose": "Sanitized Linux regression with synthetic UUID tests",
+      "inputs": "synthetic fixtures and policy research",
+      "outputs": "sanitized test result or documentation"
     }
   }
 }

@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added synthetic macOS CoreFoundation UUID-value validation and documented Apple fingerprinting and distribution risks; no macOS collector or support is implied.
 - Added an experimental Windows RSMB provider and bounded SMBIOS parser with synthetic fixtures and a fuzz target; it is not integrated into the supported native core.
 - Added a Linux-only CMake build, installable shared/static targets, probe, ABI metadata and relocated consumer tests; Windows/macOS full-core builds remain outstanding.
 - Isolated OS randomness for fallback creation, failing closed if Linux `getrandom` is unavailable or not ready; Windows/macOS entropy adapters are experimental.

@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## macOS policy gate and synthetic CF validation
+- Separate data validation from collection: bounded ASCII UUID validation and CoreFoundation type checking can be tested without reading a machine identifier. Apple's developer-program fingerprinting restrictions require a distribution-specific review; accessible APIs do not establish permitted use.
+
 ## Experimental Windows firmware path
 - Query bounded RSMB data using the documented size-query pattern; parse the Windows header, structure bounds, UUID and selected serial with explicit absence/placeholder/invalid statuses. Clear temporary raw firmware and never log it. Native collector integration, ordinary-user and production evidence remain pending.
 - Treat pre-2.6 UUID byte order as a compatibility heuristic and non-ASCII serials as unavailable under the current conservative policy, not as verified identity.
