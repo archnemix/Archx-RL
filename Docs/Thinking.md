@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Signal canonicalization failures
+- A partial or invalid native signal serialization is not an identity: canonicalization now clears output and reports an internal failure on malformed values or insufficient space, preserving valid canonical bytes and ABI. Other native error and persistence paths still require fault review.
+
 ## ABI-v1 availability terminology
 - Preserve the existing `confidence` field and exact numeric behavior for compatibility, but explicitly describe it as signal availability, not a calibrated probability. The fallback value 10 is a historical marker rather than a coverage percentage. Any later schema rename needs a versioned migration.
 

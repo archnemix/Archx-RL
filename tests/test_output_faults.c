@@ -6,6 +6,7 @@
 #include <string.h>
 
 static int fail_output_allocation;
+static int fail_canonical;
 static void *test_output_malloc(size_t n);
 #define malloc test_output_malloc
 #include "../src/archx.c"
@@ -28,7 +29,9 @@ static void fake_signals(ax_signal_set *out) {
 int ax_signals_collect_linux(ax_signal_set *out) { fake_signals(out); return 0; }
 int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask) { (void)mask; fake_signals(out); return 0; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {
-  (void)set; int n = snprintf(out, len, "synthetic"); return n < 0 ? 0 : (size_t)n;
+  (void)set;
+  if (fail_canonical) return SIZE_MAX;
+  int n = snprintf(out, len, "synthetic"); return n < 0 ? SIZE_MAX : (size_t)n;
 }
 int ax_signals_fallback_id(char *out, size_t len) { (void)out; (void)len; return -1; }
 
@@ -62,6 +65,10 @@ int main(void) {
   ax_core *core = ax_core_new(config, strlen(config)); assert(core);
   fail_output_allocation = 1;
   ax_result rc = ax_collect(core, &out, &out_len); require_oom(rc, out);
+  fail_canonical = 1;
+  rc = ax_identify(core, &out, &out_len);
+  assert(rc == AX_ERR_INTERNAL && out == NULL && strstr(ax_last_error(), "canonicalization failed"));
+  fail_canonical = 0;
   fail_output_allocation = 1;
   rc = ax_identify(core, &out, &out_len); require_oom(rc, out);
   assert(ax_identify(core, &out, &out_len) == AX_OK);

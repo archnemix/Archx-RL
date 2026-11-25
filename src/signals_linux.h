@@ -11,6 +11,7 @@
 #define AX_SIGNALS_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
   char name[32];
@@ -36,7 +37,8 @@ int  ax_signals_collect_linux(ax_signal_set *out);
 int  ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask);
 
 /* Deterministic length-prefixed name/value pairs sorted by name.
- * Returns bytes written into `out` (always NUL-terminated). */
+ * Returns bytes written on success, or SIZE_MAX for invalid input or
+ * insufficient space. On failure, a nonempty valid output buffer is cleared. */
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t out_len);
 
 /* Read or create the persisted fallback ID ($XDG_DATA_HOME/archx/device_id).

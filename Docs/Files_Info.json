@@ -820,6 +820,16 @@
       "purpose": "Sanitized Linux regression for ABI-v1 availability terminology",
       "inputs": "synthetic readable signal combinations",
       "outputs": "compatibility test result"
+    },
+    "tests/test_canonical.c": {
+      "purpose": "Synthetic canonical signal representation bounds and invalid-input fixtures",
+      "inputs": "synthetic signal sets and buffer boundaries",
+      "outputs": "sanitized failure and regression results"
+    },
+    "Docs/Test-Results/unreleased/canonical-full-test.log": {
+      "purpose": "Sanitized Linux regression for canonicalization failure propagation",
+      "inputs": "synthetic signal sets and buffer boundaries",
+      "outputs": "sanitized failure and regression results"
     }
   }
 }

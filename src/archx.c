@@ -335,6 +335,9 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
 
   char canonical[1024];
   size_t canon_len = ax_signals_canonical(&set, canonical, sizeof canonical);
+  if (canon_len == SIZE_MAX) {
+    set_error("ax_identify: signal canonicalization failed"); return AX_ERR_INTERNAL;
+  }
 
   int confidence = 0;
   size_t signals_used = 0;
