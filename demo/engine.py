@@ -147,7 +147,7 @@ class Engine:
         window = self.settings['window_seconds']
         with self.lock:
             self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
-            self.observations.prune(now)
+            cleanup_pending = self.observations.prune(now)
             missing_keys = sum(1 for key in keys if key not in self.windows)
             if len(self.windows) + missing_keys > self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
@@ -162,6 +162,9 @@ class Engine:
             failure = self.decision_before_matching(missing, zone, clock_status)
             if failure:
                 return failure
+            if cleanup_pending:
+                return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),
+                        'retry_after_seconds':1, 'relation':'inconclusive'}
             relation, best = self.observations.match(tokens, self.settings['min_matches'])
             earliest = self.observations.enroll(tokens, now + self.settings['history_seconds'])
             if earliest is not None:

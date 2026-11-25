@@ -140,5 +140,11 @@
       "https://docs.python.org/3.11/library/stdtypes.html",
       "https://www.sqlite.org/queryplanner.html"
     ]
+  },
+  "bounded_expiry_heap": {
+    "summary": "Accessed 2026-11-22: Python heapq documents priority update and tombstone challenges. The experimental indexed heap updates in place with a position map to bound memory to one entry per live observation; bounded cleanup denies on backlog.",
+    "urls": [
+      "https://docs.python.org/3/library/heapq.html"
+    ]
   }
 }

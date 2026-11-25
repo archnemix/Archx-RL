@@ -775,6 +775,16 @@
       "purpose": "Sanitized full Linux regression for memory observation index",
       "inputs": "synthetic observation tokens and deterministic fixtures",
       "outputs": "bounded prototype state or sanitized test result"
+    },
+    "demo/expiry_heap.py": {
+      "purpose": "Indexed min heap with one expiry per live observation",
+      "inputs": "synthetic observation expirations and fixtures",
+      "outputs": "bounded prototype state or sanitized test result"
+    },
+    "Docs/Test-Results/unreleased/expiry-full-test.log": {
+      "purpose": "Sanitized full Linux regression for bounded observation expiration",
+      "inputs": "synthetic observation expirations and fixtures",
+      "outputs": "bounded prototype state or sanitized test result"
     }
   }
 }

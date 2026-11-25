@@ -3,7 +3,8 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
-- Added a bounded in-memory token index with deduplicated history and fail-closed history saturation; expiration and popular-token worst-case work are still bounded by capacity, not an agreed CPU budget.
+- Added bounded, incremental in-memory observation expiry with an indexed heap; a cleanup backlog fails closed, while window and SQLite cleanup remain separate.
+- Added a bounded in-memory token index with deduplicated history and fail-closed history saturation; popular-token worst-case work is still bounded by capacity, not an agreed CPU budget.
 - Added synthetic macOS CoreFoundation UUID-value validation and documented Apple fingerprinting and distribution risks; no macOS collector or support is implied.
 - Added an experimental Windows RSMB provider and bounded SMBIOS parser with synthetic fixtures and a fuzz target; it is not integrated into the supported native core.
 - Added a Linux-only CMake build, installable shared/static targets, probe, ABI metadata and relocated consumer tests; Windows/macOS full-core builds remain outstanding.

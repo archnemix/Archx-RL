@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'demo'))
 from observation_index import ObservationIndex
+from expiry_heap import ExpiryHeap
 from engine import Engine, policy
 from signal_validation import synthetic_signal
 
@@ -47,6 +48,12 @@ class ObservationTests(unittest.TestCase):
     def assert_consistent(self, index):
         self.assertLessEqual(len(index.records), index.capacity)
         self.assertEqual(len(index.records), len(index.snapshots))
+        self.assertEqual(len(index.records), len(index.expiries))
+        self.assertEqual(len(index.expiries.positions), len(index.records))
+        for pos, (expires, obs_id) in enumerate(index.expiries.heap):
+            self.assertEqual(index.expiries.positions[obs_id], pos)
+            self.assertEqual(index.records[obs_id][0], expires)
+            if pos: self.assertLessEqual(index.expiries.heap[(pos-1)//2], (expires, obs_id))
         self.assertEqual(sum(index.shapes.values()), len(index.records))
         self.assertEqual(sum(map(len, index.postings.values())),
                          sum(len(tokens) for _, tokens in index.records.values()))
@@ -122,6 +129,63 @@ class ObservationTests(unittest.TestCase):
         now[0] = 1063
         self.assertEqual(e.check(data, ip)['decision'], 'allow')
         self.assert_consistent(e.observations)
+
+    def test_indexed_heap_randomized_refreshes_without_tombstones(self):
+        rng = random.Random(9982)
+        heap = ExpiryHeap(); values = {}
+        for step in range(30000):
+            if values and rng.random() < .2:
+                expected = min((expiry, obs_id) for obs_id, expiry in values.items())
+                self.assertEqual(heap.pop(), expected)
+                del values[expected[1]]
+            else:
+                obs_id, expiry = rng.randrange(150), rng.randrange(-30, 80)
+                heap.set(obs_id, expiry); values[obs_id] = expiry
+            self.assertEqual(len(heap), len(values))
+            self.assertEqual(heap.peek(), min(((expiry, obs_id) for obs_id, expiry in values.items()), default=None))
+            for pos, (expiry, obs_id) in enumerate(heap.heap):
+                self.assertEqual(heap.positions[obs_id], pos)
+                self.assertEqual(values[obs_id], expiry)
+                if pos: self.assertLessEqual(heap.heap[(pos-1)//2], (expiry, obs_id))
+        while values:
+            expiry, obs_id = heap.pop()
+            self.assertEqual(expiry, values.pop(obs_id))
+        with self.assertRaises(IndexError): heap.pop()
+
+    def test_bounded_expiry_backlog_denies_then_recovers_without_stale_match(self):
+        e = Engine(policy(override={'max_requests':1000}), secret=b'synthetic', clock=lambda:1000, max_entries=150)
+        data = {'signals':{'machine_id':synthetic_signal('machine_id', 'expired')}}
+        machine_token = e.token('machine_id', data['signals']['machine_id'])
+        # Seed only synthetic token snapshots so this test reaches the history
+        # limit independently of the separate window-store capacity.
+        for i in range(150):
+            token = machine_token if i == 149 else e.token('machine_id', str(i))
+            e.observations.enroll({'machine_id':token, 'ip':str(i)}, 900)
+        first = e.check(data, '192.0.2.1')
+        self.assertEqual(first['decision'], 'capacity_exceeded')
+        self.assertEqual(first['retry_after_seconds'], 1)
+        self.assertEqual(len(e.observations), 86)
+        self.assertEqual(sorted(row[1] for row in e.windows.values()), [1, 1])
+        second = e.check(data, '192.0.2.1')
+        self.assertEqual(second['decision'], 'capacity_exceeded')
+        self.assertEqual(len(e.observations), 22)
+        self.assertEqual(sorted(row[1] for row in e.windows.values()), [2, 2])
+        result = e.check(data, '192.0.2.1')
+        self.assertEqual(result['decision'], 'allow')
+        self.assertEqual(result['relation'], 'new')
+        self.assertEqual(len(e.observations), 1)
+        self.assert_consistent(e.observations)
+
+    def test_many_refreshes_do_not_grow_expiry_heap(self):
+        index = ObservationIndex(1)
+        for i in range(5000):
+            self.assertIsNone(index.enroll({'ip':'same'}, i+1))
+            self.assertEqual(len(index.expiries), 1)
+        self.assertFalse(index.prune(4999))
+        self.assertFalse(index.prune(5000))
+        self.assertEqual(len(index), 0)
+        for bad in (0, -1, True):
+            with self.assertRaises(ValueError): index.prune(5001, bad)
 
     def test_invalid_capacity(self):
         for capacity in (0, -1, True, 1.0):

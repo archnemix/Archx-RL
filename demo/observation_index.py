@@ -4,6 +4,7 @@ This class stores pre-tokenized values, never unnormalized device signals. If
 raw-IP mode is selected an IP token is raw, exactly as in the engine's store.
 """
 from signal_validation import SIGNALS
+from expiry_heap import ExpiryHeap
 
 _BITS = {name: 1 << index for index, name in enumerate((*SIGNALS, 'ip'))}
 
@@ -32,17 +33,27 @@ class ObservationIndex:
         self.snapshots = {}     # canonical token tuple -> id
         self.postings = {}      # (name, token) -> set of ids
         self.shapes = {}        # signal-name mask -> live observation count
+        self.expiries = ExpiryHeap() # exactly one heap entry per live observation
         self.next_id = 0
 
     def __len__(self):
         return len(self.records)
 
-    def prune(self, now):
-        # Full scan is bounded by capacity, but is not yet amortized cleanup.
-        for obs_id, (expires, tokens) in list(self.records.items()):
-            if expires > now:
-                continue
-            del self.records[obs_id]
+    def prune(self, now, max_removals=64):
+        """Remove up to max_removals expired observations.
+
+        Return True if expired records remain; callers must not match/enroll
+        until a subsequent bounded pass has removed them all.
+        """
+        if type(max_removals) is not int or max_removals < 1:
+            raise ValueError('Cleanup budget must be a positive integer')
+        removed = 0
+        while removed < max_removals:
+            top = self.expiries.peek()
+            if top is None or top[0] > now:
+                return False
+            _, obs_id = self.expiries.pop()
+            _, tokens = self.records.pop(obs_id)
             del self.snapshots[tuple(sorted(tokens.items()))]
             for pair in tokens.items():
                 posting = self.postings[pair]
@@ -53,6 +64,9 @@ class ObservationIndex:
             self.shapes[shape] -= 1
             if not self.shapes[shape]:
                 del self.shapes[shape]
+            removed += 1
+        top = self.expiries.peek()
+        return top is not None and top[0] <= now
 
     def match(self, tokens, threshold):
         # Count only entries sharing actual name/token pairs. Never combine
@@ -88,13 +102,15 @@ class ObservationIndex:
         obs_id = self.snapshots.get(snapshot)
         if obs_id is not None:
             self.records[obs_id] = (expires, self.records[obs_id][1])
+            self.expiries.set(obs_id, expires)
             return None
         if len(self.records) >= self.capacity:
-            return min(expiry for expiry, _ in self.records.values())
+            return self.expiries.peek()[0]
         obs_id = self.next_id
         self.next_id += 1
         saved = dict(tokens)
         self.records[obs_id] = (expires, saved)
+        self.expiries.set(obs_id, expires)
         self.snapshots[snapshot] = obs_id
         for pair in snapshot:
             self.postings.setdefault(pair, set()).add(obs_id)
