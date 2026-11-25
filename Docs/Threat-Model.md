@@ -10,7 +10,7 @@ Assets include service availability, rate-limit state, host operations, pseudony
 
 | Threat | Evidence or current limitation | Recovery / mitigation |
 | --- | --- | --- |
-| Signal forgery, cloning, or rotation of all signals and IP | `tests/test_demo.py` fabrication/rotation and `tools/attack_lab.py`; **accepted limitation:** no source authenticity or guaranteed uniqueness. | Host authentication and authorization are independent; use other abuse controls and human recovery, not fingerprints as credentials. |
+| Signal forgery, cloning, or rotation of all signals and IP | `tests/test_demo.py` fabrication/rotation, `tools/attack_lab.py` and host-auth hook tests; **accepted limitation:** no source authenticity or guaranteed uniqueness. | Host authentication and authorization are independent; use other abuse controls and human recovery, not fingerprints as credentials. |
 | Victim poisoning with forged identifiers | `test_forged_signal_can_exhaust_victim_bucket`; verification does not prove device ownership. | Host-controlled remediation; avoid sole reliance on self-reported signals. |
 | Shared NAT causes collateral denial | `test_shared_ip_warning` and attack lab; IP is not a person. | Review thresholds and supply host recovery. Independently configurable IP/device quotas are backlog work. |
 | C bucket churn evicts active quota | `tests/test_core.c` fills the store, churns keys and checks an exhausted bucket, including parallel admission. Strict saturation fails closed; no automatic reclamation. | Authorized targeted `ax_reset` changes that key's enforcement; full restart loses all state. Capacity attacks can deny new keys indefinitely. |

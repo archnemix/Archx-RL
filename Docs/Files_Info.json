@@ -565,6 +565,11 @@
       "purpose": "Record bounded demo Linux regression",
       "inputs": "synthetic socket tests and full Linux suite with PyNaCl and Chromium",
       "outputs": "sanitized test log"
+    },
+    "Docs/Test-Results/unreleased/host-hooks-full-test.log": {
+      "purpose": "Record host principal and operation hook full Linux regression",
+      "inputs": "synthetic host and socket tests, PyNaCl and Chromium",
+      "outputs": "sanitized test log"
     }
   }
 }

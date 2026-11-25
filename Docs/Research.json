@@ -81,5 +81,11 @@
       "https://docs.python.org/3/library/socketserver.html",
       "https://docs.python.org/3/library/socket.html"
     ]
+  },
+  "wsgi_trust_context": {
+    "summary": "Accessed 2026-11-22. PEP 3333 describes environ and notes REMOTE_USER may be absent if no authentication occurred. An application must verify the server/middleware trust contract; client-provided headers and signals are not authenticated context.",
+    "urls": [
+      "https://peps.python.org/pep-3333/#environ-variables"
+    ]
   }
 }

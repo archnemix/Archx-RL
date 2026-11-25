@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Synthetic host authorization hooks
+- The host resolves an already-authenticated principal and separately authorizes the fixed example operation before the signal gate. Both hooks must be supplied together; exceptions, non-booleans and denials fail closed. The standalone example still has no authentication; a real host must establish trusted context and bound every route, including rejected requests.
+
 ## Private demo connection admission
 - Apply a global token bucket and concurrent socket cap before routing, one request per connection, and a monotonic absolute socket deadline enforced by the server loop. Overload drops connections without attempting a potentially blocking response. These controls do not interrupt a stuck handler or replace a supported deployment boundary.
 

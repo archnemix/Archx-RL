@@ -36,6 +36,86 @@ class HostIntegrationTests(unittest.TestCase):
         self.assertTrue(any(k=='Retry-After' for k,v in denied[0][1]))
         self.assertEqual(actions,['called'])
 
+    def test_host_principal_and_operation_are_independent_of_forged_signals(self):
+        actions, authorizations = [], []
+        engine = Engine(policy(override={'max_requests':10}), secret=b'host-test')
+        def resolve(environ):
+            # A real host must authenticate and set this itself; HTTP headers
+            # and submitted signals are not trusted principal context.
+            return environ.get('host.authenticated_principal')
+        def authorize(principal, operation):
+            authorizations.append((principal, operation))
+            return principal == 'trusted-principal' and operation == 'synthetic.read'
+        app = create_application(RequestService(engine), lambda: actions.append('called') or {'ok':True},
+                                 resolve_principal=resolve, authorize=authorize)
+        def send(seed, trusted=None):
+            raw=json.dumps({'signals':{'machine_id':synthetic_signal('machine_id',seed)}}).encode()
+            environ={'REMOTE_ADDR':'192.0.2.1','REQUEST_METHOD':'POST','PATH_INFO':'/protected',
+                     'CONTENT_TYPE':'application/json','CONTENT_LENGTH':str(len(raw)),'wsgi.input':io.BytesIO(raw),
+                     'HTTP_X_AUTHENTICATED_PRINCIPAL':'trusted-principal'}
+            if trusted is not None: environ['host.authenticated_principal']=trusted
+            statuses=[]
+            payload=b''.join(app(environ, lambda status, headers: statuses.append(status)))
+            return statuses[0], json.loads(payload)
+        self.assertEqual(send('victim')[0], '403 Forbidden')
+        self.assertEqual(send('other')[0], '403 Forbidden')
+        self.assertEqual(send('victim', 'different-principal')[0], '403 Forbidden')
+        self.assertEqual(engine.observations, [])  # rejected before signal enrollment
+        self.assertEqual(send('victim', 'trusted-principal')[0], '200 OK')
+        self.assertEqual(actions, ['called'])
+        self.assertEqual(authorizations, [('different-principal', 'synthetic.read'), ('trusted-principal', 'synthetic.read')])
+
+    def test_loopback_spoofed_principal_header_is_not_host_context(self):
+        actions=[]
+        engine=Engine(policy(),secret=b'host-test')
+        app=create_application(RequestService(engine), lambda: actions.append('called') or {'ok':True},
+                               resolve_principal=lambda env:env.get('host.authenticated_principal'),
+                               authorize=lambda principal,operation:principal == 'trusted' and operation == 'synthetic.read')
+        # Simulates a trusted upstream middleware, not a client-controlled header.
+        trusted=[False]
+        def host(environ, start_response):
+            if trusted[0]: environ['host.authenticated_principal']='trusted'
+            return app(environ,start_response)
+        server=make_server('127.0.0.1',0,host,handler_class=QuietHandler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            def send():
+                raw=json.dumps({'signals':{'machine_id':synthetic_signal('machine_id','victim')}})
+                con=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=5)
+                try:
+                    con.request('POST','/protected',raw,{'Content-Type':'application/json','Host-Authenticated-Principal':'trusted'})
+                    response=con.getresponse();status=response.status;response.read();return status
+                finally: con.close()
+            self.assertEqual(send(),403)
+            self.assertEqual(actions,[])
+            trusted[0]=True
+            self.assertEqual(send(),200)
+            self.assertEqual(actions,['called'])
+        finally:
+            server.shutdown();server.server_close();thread.join()
+
+    def test_host_authorization_failures_do_not_fall_through_or_leak(self):
+        actions=[]
+        engine=Engine(policy(),secret=b'host-test')
+        def invoke(resolve, authorize):
+            app=create_application(RequestService(engine), lambda:actions.append('called'),
+                                   resolve_principal=resolve, authorize=authorize)
+            raw=b'{}'
+            environ={'REMOTE_ADDR':'192.0.2.1','REQUEST_METHOD':'POST','PATH_INFO':'/protected',
+                     'CONTENT_TYPE':'application/json','CONTENT_LENGTH':str(len(raw)),'wsgi.input':io.BytesIO(raw)}
+            statuses=[]; payload=b''.join(app(environ, lambda status, headers:statuses.append(status)))
+            return statuses[0],payload
+        def broken(*args): raise RuntimeError('synthetic-private-marker')
+        for resolve, authorize in ((broken, lambda p,o:True), (lambda e:'principal', broken),
+                                   (lambda e:'principal', lambda p,o:'yes')):
+            status,payload=invoke(resolve,authorize)
+            self.assertEqual(status, '503 Service Unavailable')
+            self.assertNotIn(b'synthetic-private-marker', payload)
+        self.assertEqual(actions, [])
+        self.assertEqual(engine.observations, [])
+        with self.assertRaises(ValueError):
+            create_application(RequestService(engine), resolve_principal=lambda e:'principal')
+
     def test_loopback_wsgi_http_enforces_gate(self):
         actions=[]
         app=create_application(RequestService(Engine(policy(override={'max_requests':1}),secret=b'host-test')),
