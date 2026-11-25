@@ -1,4 +1,4 @@
-/* Internal bounded SMBIOS parser for synthetic tests and a future collector.
+/* Internal bounded SMBIOS parser used by synthetic tests and the experimental collector.
  * It does not fetch firmware, authenticate signals or implement a public ABI.
  */
 #ifndef AX_SMBIOS_H
