@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Request gate aggregate metrics
+- An opt-in in-memory collector records fixed decision categories and disjoint timing buckets only. No user-supplied identifiers or exception/provider text become labels; monitoring failures never alter the gate result. Connection admission, pre-gate errors, challenge/config and host operations remain outside scope.
+
 ## Signal canonicalization failures
 - A partial or invalid native signal serialization is not an identity: canonicalization now clears output and reports an internal failure on malformed values or insufficient space, preserving valid canonical bytes and ABI. Other native error and persistence paths still require fault review.
 

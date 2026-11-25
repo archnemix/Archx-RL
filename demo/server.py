@@ -68,7 +68,7 @@ class Handler(BaseHTTPRequestHandler):
             replay=getattr(self.server,'replay',None), reputation=getattr(self.server,'reputation',None),
             reputation_mode=getattr(self.server,'reputation_mode','observe'),
             reputation_stale=getattr(self.server,'reputation_stale','open'),
-            turnstile=getattr(self.server,'turnstile',None))
+            turnstile=getattr(self.server,'turnstile',None), metrics=getattr(self.server,'metrics',None))
     def get_body(self):
         if len(self.headers.get_all('Content-Type', [])) != 1 or self.headers.get('Content-Type','').split(';',1)[0].strip().lower() != 'application/json': raise ValueError('Content-Type must be application/json')
         if self.headers.get_all('Transfer-Encoding', []): raise ValueError('Transfer encoding unsupported')

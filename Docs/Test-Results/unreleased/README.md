@@ -20,6 +20,7 @@ Purpose: identify the inputs and environment for the associated sanitized logs.
 - JSON output boundary, synthetic allocator faults, sanitizer tests and the full Linux suite with Chromium passed in `output-full-test.log`. [Linux CI](https://github.com/archnemix/Archx-RL/actions/runs/45670147325) passed the preceding analyzer/differential commit `5f0753c`.
 - Synthetic ABI-v1 availability semantics and the full Linux/Chromium/sanitizer suite passed in `coverage-full-test.log`. [Linux CI](https://github.com/archnemix/Archx-RL/actions/runs/45670535605) passed the preceding JSON output commit `b2d0558`; Windows and macOS Intel primitive jobs passed, with macOS ARM queued when last checked.
 - Canonicalization boundary and injected failure fixtures plus the full Linux suite, real headless Chromium and sanitizers passed in `canonical-full-test.log`.
+- Fixed-category metrics, concurrent accounting, privacy-marker and instrumentation-failure tests passed in `metrics-full-test.log` alongside the full Linux suite and real headless Chromium. This does not validate an exporter or deployment monitoring.
 - IPsum level 3 and level 1 refreshes were separately exercised against GitHub; only entry counts were reported. This confirms retrieval at that moment, not feed correctness or provider availability.
 
 No Windows/macOS or live Cloudflare test was run for these changes. These are local sandbox results, not a released version or a GitHub CI run; see `.github/archx-runner/runs/` for recorded CI results.

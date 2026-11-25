@@ -145,6 +145,21 @@ The [saved survey](.github/archx-runner/runs/linux-permissions.json) records **a
 
 The deterministic [attack-lab report](reports/attack-lab.json) records both the per-signal limits that worked and the observed full-rotation bypass and shared-IP false positive. It uses synthetic traffic only.
 
+### Optional process-local gate metrics
+
+Hosts using the experimental Python `RequestService` may opt into a `ServiceMetrics` instance and periodically call `snapshot()` from their own trusted management context:
+
+```python
+from metrics import ServiceMetrics
+from service import RequestService
+
+metrics = ServiceMetrics()
+gate = RequestService(engine, metrics=metrics)  # engine is supplied by the host
+snapshot = metrics.snapshot()
+```
+
+The fixed schema counts broad check decisions and disjoint duration buckets; it stores no peer IP, signals, request body, principal, exception text, or dynamic labels. It is disabled by default, in-memory, process-local, resets on restart and has no HTTP/export endpoint. Measurement is best-effort: an instrumentation failure is discarded and does not change the gate result, so counts may be incomplete. It covers calls to `RequestService.check` only—not parsing errors rejected before that call, challenge/config routes, host authorization, connections rejected before handling, or application operations. The host must still enforce every decision and independently secure any exported aggregates. This is not production monitoring or a complete overload/readiness picture.
+
 ### Optional SQLite persistence (single host)
 
 The Python demo can persist rate-limit buckets and pseudonymous signal observations on **one host**, surviving process restarts and coordinating multiple processes through SQLite transactions. Example for a local development terminal:

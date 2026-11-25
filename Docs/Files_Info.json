@@ -830,6 +830,21 @@
       "purpose": "Sanitized Linux regression for canonicalization failure propagation",
       "inputs": "synthetic signal sets and buffer boundaries",
       "outputs": "sanitized failure and regression results"
+    },
+    "demo/metrics.py": {
+      "purpose": "Opt-in process-local fixed-cardinality request gate metrics",
+      "inputs": "fixed decision categories and synthetic timings",
+      "outputs": "bounded aggregate snapshot or sanitized test results"
+    },
+    "tests/test_metrics.py": {
+      "purpose": "Synthetic metrics privacy, concurrency and integration fixtures",
+      "inputs": "fixed decision categories and synthetic timings",
+      "outputs": "bounded aggregate snapshot or sanitized test results"
+    },
+    "Docs/Test-Results/unreleased/metrics-full-test.log": {
+      "purpose": "Sanitized Linux regression for optional gate metrics",
+      "inputs": "fixed decision categories and synthetic timings",
+      "outputs": "bounded aggregate snapshot or sanitized test results"
     }
   }
 }

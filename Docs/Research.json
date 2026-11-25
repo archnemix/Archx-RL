@@ -160,5 +160,12 @@
     "urls": [
       "https://pubs.opengroup.org/onlinepubs/9699919799/functions/snprintf.html"
     ]
+  },
+  "operational_metrics": {
+    "summary": "Accessed 2026-11-22. Prometheus warns that unbounded dimensions create a time series for each label combination; user or device identifiers must not become metric labels. The experimental fixed-schema snapshot is not a Prometheus exporter.",
+    "urls": [
+      "https://prometheus.io/docs/practices/naming/",
+      "https://prometheus.io/docs/practices/instrumentation/"
+    ]
   }
 }

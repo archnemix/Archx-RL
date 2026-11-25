@@ -4,6 +4,9 @@ The host supplies an IP obtained from its own trusted transport boundary and
 must enforce every returned decision. This is not authentication or middleware.
 """
 import json
+import time
+
+from metrics import ServiceMetrics
 
 from replay import ReplayUnavailable
 from sealed_payload import unseal
@@ -34,11 +37,14 @@ def status_for(result):
 
 class RequestService:
     def __init__(self, engine, *, sealed_key=None, replay=None, reputation=None,
-                 reputation_mode='observe', reputation_stale='open', turnstile=None):
+                 reputation_mode='observe', reputation_stale='open', turnstile=None, metrics=None):
         if reputation_mode not in ('observe', 'block') or reputation_stale not in ('open', 'closed'):
             raise ValueError('Invalid reputation policy')
         if sealed_key is not None and replay is None:
             raise ValueError('Encrypted mode requires a replay store')
+        if metrics is not None and not isinstance(metrics, ServiceMetrics):
+            raise ValueError('Invalid metrics collector')
+        self.metrics = metrics
         self.engine, self.sealed_key, self.replay = engine, sealed_key, replay
         self.reputation, self.reputation_mode, self.reputation_stale = reputation, reputation_mode, reputation_stale
         self.turnstile = turnstile
@@ -61,6 +67,31 @@ class RequestService:
             return self.failure('storage_error', 'replay_unavailable')
 
     def check(self, envelope, peer):
+        if self.metrics is None:
+            return self._check(envelope, peer)
+        # Instrumentation is best-effort and must not change or hide a gate
+        # decision or exception. Only a fixed decision category is retained.
+        try:
+            started = time.perf_counter()
+        except Exception:
+            started = None
+        decision = 'unexpected'
+        try:
+            result = self._check(envelope, peer)
+            try:
+                if isinstance(result, dict):
+                    decision = result.get('decision')
+            except Exception:
+                decision = 'unexpected'
+            return result
+        finally:
+            try:
+                seconds = time.perf_counter() - started if started is not None else None
+                self.metrics.observe(decision, seconds)
+            except Exception:
+                pass
+
+    def _check(self, envelope, peer):
         # Precharge once before expensive decryption or Siteverify. Device buckets
         # are charged only after reputation and Turnstile verification succeed.
         limited = self.engine.reject_malformed(peer)

@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added optional, process-local fixed-cardinality metrics for Python request-service checks; metrics have no endpoint and do not cover all traffic.
 - Fail closed on invalid or truncated native signal canonicalization rather than hashing a partial representation; added boundary and injected-failure tests.
 - Clarified the ABI-v1 `confidence` field as an availability heuristic, preserving its name and legacy fallback marker; tested every synthetic signal combination.
 - Hardened C JSON emission with bounded terminator search and checked formatting/appends; synthetic output-allocation faults fail with an error.
