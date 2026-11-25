@@ -1,0 +1,46 @@
+# Experimental clock/mutex/store adapter conformance only; not native product support.
+name: Experimental platform primitives
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-primitives-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conformance:
+    name: Primitives ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - os: windows-2022
+            arch: X64
+            cmake_arch: '-A x64'
+          - os: macos-15
+            arch: ARM64
+            cmake_arch: ''
+          - os: macos-15-intel
+            arch: X64
+            cmake_arch: ''
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify runner architecture
+        shell: bash
+        run: test "$RUNNER_ARCH" = '${{ matrix.arch }}'
+      - name: Configure primitive conformance only
+        run: cmake -S tests/platform -B build/platform ${{ matrix.cmake_arch }}
+      - name: Build primitive conformance
+        run: cmake --build build/platform --config Release
+      - name: Run clock mutex and store tests natively
+        run: ctest --test-dir build/platform -C Release --output-on-failure

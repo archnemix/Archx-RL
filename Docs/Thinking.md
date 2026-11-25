@@ -2,6 +2,10 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Native store primitives
+- Isolate mutex and monotonic interval clock operations behind a small internal contract. Preserve Linux sleep-excluding semantics; choose Windows unbiased interrupt time and macOS uptime raw for equivalent intended policy, subject to native sleep/resume verification. This is not a full native port.
+- Platform initialization, lock and time errors deny; an unlock error may follow an already-completed mutation and does not imply rollback. Synthetic faults and common concurrent store tests cover the contract.
+
 ## Synthetic host authorization hooks
 - The host resolves an already-authenticated principal and separately authorizes the fixed example operation before the signal gate. Both hooks must be supplied together; exceptions, non-booleans and denials fail closed. The standalone example still has no authentication; a real host must establish trusted context and bound every route, including rejected requests.
 

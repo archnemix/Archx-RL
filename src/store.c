@@ -1,12 +1,11 @@
 /* Bounded in-memory token-bucket store. See store.h for the design notes. */
 #include "store.h"
+#include "platform.h"
 
 #include <math.h>
 #include <limits.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 typedef struct {
   uint8_t  key[32];
@@ -19,14 +18,8 @@ struct ax_store {
   ax_entry      *entries;
   size_t         capacity;   /* power of two */
   size_t         size;       /* occupied count */
-  pthread_mutex_t lock;
+  ax_platform_mutex *lock;
 };
-
-static int64_t now_ms(void) {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-}
 
 /* Keys are HMAC outputs (uniform), so a Fibonacci multiply of the first
  * 8 bytes is a perfectly good hash. */
@@ -49,13 +42,14 @@ ax_store *ax_store_new(size_t capacity) {
   s->capacity = next_pow2(capacity);
   s->entries = (ax_entry *)calloc(s->capacity, sizeof(ax_entry));
   if (!s->entries) { free(s); return NULL; }
-  pthread_mutex_init(&s->lock, NULL);
+  s->lock = ax_platform_mutex_new();
+  if (!s->lock) { free(s->entries); free(s); return NULL; }
   return s;
 }
 
 void ax_store_free(ax_store *s) {
   if (!s) return;
-  pthread_mutex_destroy(&s->lock);
+  ax_platform_mutex_free(s->lock);
   free(s->entries);
   free(s);
 }
@@ -88,7 +82,7 @@ static void delete_entry(ax_store *s, size_t hole) {
 }
 
 /* Insert a fresh full bucket. Caller holds the lock; key not present. */
-static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacity) {
+static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacity, int64_t now) {
   if (s->size >= s->capacity) return NULL;
   size_t mask = s->capacity - 1;
   size_t i = hash_key(key) & mask;
@@ -96,7 +90,7 @@ static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacit
   ax_entry *e = &s->entries[i];
   memcpy(e->key, key, 32);
   e->tokens = capacity;
-  e->last_refill_ms = now_ms();
+  e->last_refill_ms = now;
   e->occupied = 1;
   s->size++;
   return e;
@@ -105,23 +99,26 @@ static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacit
 int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
                           double capacity, double refill_per_sec, double cost,
                           double *remaining, int64_t *retry_after_ms) {
-  if (!s || !key) return 0;
+  if (remaining) *remaining = 0;
+  if (retry_after_ms) *retry_after_ms = -1;
+  if (!s || !key) return -2;
   if (capacity < 0) capacity = 0;
   if (refill_per_sec < 0) refill_per_sec = 0;
   if (cost < 0) cost = 0;
 
-  pthread_mutex_lock(&s->lock);
+  if (ax_platform_mutex_lock(s->lock) != 0) return -2;
+  int64_t now;
+  if (ax_platform_monotonic_ms(&now) != 0 || now < 0) {
+    ax_platform_mutex_unlock(s->lock);
+    return -2;
+  }
   ax_entry *e = find_entry(s, key);
-  if (!e) e = insert_entry(s, key, capacity);
+  if (!e) e = insert_entry(s, key, capacity, now);
   if (!e) {
-    if (remaining) *remaining = 0;
-    if (retry_after_ms) *retry_after_ms = -1;
-    pthread_mutex_unlock(&s->lock);
-    return -1; /* saturated: no bucket was changed */
+    return ax_platform_mutex_unlock(s->lock) == 0 ? -1 : -2;
   }
 
-  int64_t now = now_ms();
-  double elapsed = (double)(now - e->last_refill_ms) / 1000.0;
+  double elapsed = now >= e->last_refill_ms ? (double)(now - e->last_refill_ms) / 1000.0 : 0.0;
   if (elapsed > 0) {
     e->tokens += elapsed * refill_per_sec;
     if (e->tokens > capacity) e->tokens = capacity;
@@ -145,22 +142,25 @@ int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
     }
   }
   if (remaining) *remaining = e->tokens;
-  pthread_mutex_unlock(&s->lock);
+  if (ax_platform_mutex_unlock(s->lock) != 0) {
+    if (remaining) *remaining = 0;
+    if (retry_after_ms) *retry_after_ms = -1;
+    return -2;
+  }
   return allowed;
 }
 
-void ax_store_reset(ax_store *s, const uint8_t key[32]) {
-  if (!s || !key) return;
-  pthread_mutex_lock(&s->lock);
+int ax_store_reset(ax_store *s, const uint8_t key[32]) {
+  if (!s || !key || ax_platform_mutex_lock(s->lock) != 0) return -1;
   ax_entry *e = find_entry(s, key);
   if (e) delete_entry(s, (size_t)(e - s->entries));
-  pthread_mutex_unlock(&s->lock);
+  return ax_platform_mutex_unlock(s->lock);
 }
 
-size_t ax_store_size(const ax_store *s) {
-  if (!s) return 0;
-  pthread_mutex_lock((pthread_mutex_t *)&s->lock);
+int ax_store_size(ax_store *s, size_t *out) {
+  if (!s || !out || ax_platform_mutex_lock(s->lock) != 0) return -1;
   size_t result = s->size;
-  pthread_mutex_unlock((pthread_mutex_t *)&s->lock);
-  return result;
+  if (ax_platform_mutex_unlock(s->lock) != 0) return -1;
+  *out = result;
+  return 0;
 }

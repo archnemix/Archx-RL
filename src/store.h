@@ -24,15 +24,16 @@ void      ax_store_free(ax_store *s);
  * *remaining (optional) gets the post-operation balance.
  * *retry_after_ms (optional) gets ms until at least `cost` tokens are
  *   available when denied (0 when allowed).
- * Returns 1 = allowed, 0 = rate limited, -1 = store saturated.
+ * Returns 1 = allowed, 0 = rate limited, -1 = store saturated,
+ * -2 = platform error (deny; a failed unlock may follow a charge).
  */
 int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
                           double capacity, double refill_per_sec, double cost,
                           double *remaining, int64_t *retry_after_ms);
 
-void ax_store_reset(ax_store *s, const uint8_t key[32]);
+int ax_store_reset(ax_store *s, const uint8_t key[32]);
 
 /* entry count (diagnostics/tests) */
-size_t ax_store_size(const ax_store *s);
+int ax_store_size(ax_store *s, size_t *out);
 
 #endif

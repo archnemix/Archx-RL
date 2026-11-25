@@ -570,6 +570,71 @@
       "purpose": "Record host principal and operation hook full Linux regression",
       "inputs": "synthetic host and socket tests, PyNaCl and Chromium",
       "outputs": "sanitized test log"
+    },
+    "src/platform.h": {
+      "purpose": "Internal store clock and mutex contract",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "src/platform_posix.c": {
+      "purpose": "Experimental POSIX exclusive mutex adapter",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "src/platform_linux.c": {
+      "purpose": "Linux monotonic store clock",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "src/platform_macos.c": {
+      "purpose": "Experimental macOS uptime clock",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "src/platform_windows.c": {
+      "purpose": "Experimental Windows mutex and interval clock",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "tests/test_platform.c": {
+      "purpose": "Native platform primitive and concurrent store conformance",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "tests/test_store_faults.c": {
+      "purpose": "Synthetic platform failure and clock anomaly tests",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "tests/platform/CMakeLists.txt": {
+      "purpose": "Build platform primitive tests only",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "tests/platform/fake_platform.c": {
+      "purpose": "Synthetic platform fault injection implementation",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "tests/platform/fake_platform.h": {
+      "purpose": "Synthetic platform fault controls",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    ".github/workflows/platform-primitives.yml": {
+      "purpose": "Read-only experimental native platform primitive tests",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "Docs/Plan/Platform-Primitives.md": {
+      "purpose": "Platform clock and mutex ADR and limitations",
+      "inputs": "portable store operations and synthetic test fixtures",
+      "outputs": "internal results, conformance evidence or documentation"
+    },
+    "Docs/Test-Results/unreleased/platform-full-test.log": {
+      "purpose": "Record local store platform abstraction regression",
+      "inputs": "Linux full test suite with synthetic platform faults",
+      "outputs": "sanitized test log"
     }
   }
 }

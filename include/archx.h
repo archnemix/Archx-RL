@@ -110,12 +110,14 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
  * the thread-local error; check ax_last_error() to distinguish failures.
  * Store saturation returns AX_DENY_RATE_LIMIT with a nonempty error, remaining
  * 0 and retry -1; no existing bucket is evicted. Callers must fail closed on
- * errors and should inspect ax_last_error() on the calling thread.
+ * errors and should inspect ax_last_error() on the calling thread. Platform
+ * clock or mutex errors also deny; an unlock failure may follow a charge.
  */
 ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
                      int64_t *remaining, int64_t *retry_after_ms);
 
-/* Reset the bucket for `key` (e.g. after a successful login). */
+/* Reset the bucket for `key`. On mutex error returns AX_ERR_INTERNAL; an
+ * unlock error can occur after the bucket was already reset. */
 ax_result ax_reset(ax_core *core, const char *key);
 
 /* ---- misc ---- */

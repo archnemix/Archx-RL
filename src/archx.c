@@ -525,7 +525,8 @@ ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
   int allowed = ax_store_token_bucket(core->store, bk, core->capacity,
                                       core->refill_per_sec, (double)cost,
                                       &rem, &retry);
-  if (allowed < 0) set_error("ax_check: bucket store capacity exceeded");
+  if (allowed == -1) set_error("ax_check: bucket store capacity exceeded");
+  else if (allowed < 0) set_error("ax_check: bucket store platform failure");
   if (remaining) *remaining = (int64_t)rem; /* floor for positive values */
   if (retry_after_ms) *retry_after_ms = retry;
   return allowed > 0 ? AX_ALLOW : AX_DENY_RATE_LIMIT;
@@ -539,6 +540,9 @@ ax_result ax_reset(ax_core *core, const char *key) {
   }
   uint8_t bk[32];
   bucket_key(core, key, bk);
-  ax_store_reset(core->store, bk);
+  if (ax_store_reset(core->store, bk) != 0) {
+    set_error("ax_reset: bucket store platform failure");
+    return AX_ERR_INTERNAL;
+  }
   return AX_OK;
 }
