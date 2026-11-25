@@ -6,7 +6,8 @@ import os
 import threading
 import time
 from pathlib import Path
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
+from bounded_server import BoundedDemoServer
 from urllib.parse import urlsplit
 from engine import Engine, PRESETS, SIGNALS, policy, load_geo
 from sqlite_engine import SQLiteEngine
@@ -49,9 +50,11 @@ def scenario(preset, override=None):
 
 class Handler(BaseHTTPRequestHandler):
     server_version='ArchxDemo/0.1'
-    def setup(self):
-        super().setup()
-        self.connection.settimeout(10)
+    protocol_version='HTTP/1.0'
+    def handle(self):
+        # One HTTP request per admitted connection, even if a client pipelines.
+        self.close_connection=True
+        self.handle_one_request()
     def log_message(self, format, *args): pass # avoid logging identifiers
     def json(self, data, status=200):
         payload=json.dumps(data,separators=(',',':')).encode()
@@ -137,6 +140,10 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host',default='127.0.0.1'); parser.add_argument('--port',type=int,default=8000)
+    parser.add_argument('--max-connections',type=int,default=32,help='maximum concurrent accepted handlers (1-1024)')
+    parser.add_argument('--connection-rate',type=float,default=25,help='global admitted connection tokens per second')
+    parser.add_argument('--connection-burst',type=int,default=50,help='global connection token burst')
+    parser.add_argument('--connection-deadline',type=float,default=15,help='absolute socket lifetime in seconds (max 300)')
     parser.add_argument('--preset',choices=list(PRESETS),default='basic'); parser.add_argument('--config',help='JSON policy override file'); parser.add_argument('--geo',help='JSON list of trusted CIDR timezone mappings'); parser.add_argument('--db',help='private SQLite database file (requires ARCHX_DEMO_SECRET of at least 32 bytes)')
     parser.add_argument('--trusted-proxy',action='append',default=[],help='trusted proxy CIDR; must overwrite X-Forwarded-For with one client address')
     parser.add_argument('--sealed-private-key',help='private 32-byte hex key file; requires encrypted check requests')
@@ -152,7 +159,12 @@ def main():
     geo=load_geo(json.loads(Path(args.geo).read_text())) if args.geo else []
     secret=os.getenv('ARCHX_DEMO_SECRET','').encode() or None
     engine = SQLiteEngine(args.db, policy(args.preset,override), secret=secret, geo=geo) if args.db else Engine(policy(args.preset,override),secret=secret,geo=geo)
-    httpd=ThreadingHTTPServer((args.host,args.port),Handler)
+    try:
+        httpd=BoundedDemoServer((args.host,args.port),Handler,max_connections=args.max_connections,
+            connection_rate=args.connection_rate,connection_burst=args.connection_burst,
+            connection_deadline=args.connection_deadline)
+    except ValueError as exc:
+        parser.error(str(exc))
     httpd.engine=engine
     try: httpd.trusted_proxies=trusted_networks(args.trusted_proxy)
     except ValueError as exc: parser.error(str(exc))
@@ -176,6 +188,9 @@ def main():
     if any(turnstile_values) and not all(turnstile_values): parser.error('Turnstile requires sitekey, ARCHX_TURNSTILE_SECRET, expected hostname and action')
     httpd.turnstile=Turnstile(*turnstile_values) if all(turnstile_values) else None
     print(f'Archx demo on http://{args.host}:{args.port} (preset: {args.preset})',flush=True)
-    httpd.serve_forever()
+    try:
+        httpd.serve_forever(poll_interval=0.1)
+    finally:
+        httpd.server_close()
 
 if __name__=='__main__': main()

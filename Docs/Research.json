@@ -74,5 +74,12 @@
       "https://esbuild.github.io/api/#bundle",
       "https://playwright.dev/docs/browsers"
     ]
+  },
+  "python_socket_server": {
+    "summary": "Accessed 2026-11-22. ThreadingMixIn starts request threads and daemon_threads controls shutdown behavior; socket timeouts apply to blocking operations while shutdown closes the connection. Neither cancels arbitrary application work or establishes production safety.",
+    "urls": [
+      "https://docs.python.org/3/library/socketserver.html",
+      "https://docs.python.org/3/library/socket.html"
+    ]
   }
 }

@@ -5,11 +5,11 @@ import subprocess
 import sys
 import threading
 import unittest
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'demo'))
+from bounded_server import BoundedDemoServer
 from engine import Engine, policy
 from replay import MemoryReplay
 from server import Handler
@@ -30,7 +30,7 @@ class BrowserClientTests(unittest.TestCase):
     def run_against_server(self, script, success_marker, turnstile=True):
         PrivateKey=self.prerequisites()
         key=PrivateKey.generate()
-        server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        server=BoundedDemoServer(('127.0.0.1',0),Handler,connection_rate=1000,connection_burst=1000)
         server.engine=Engine(policy(override={'max_requests':100}),secret=b'browser-test')
         server.sealed_key=bytes(key)
         server.replay=MemoryReplay(server.engine.secret,server.engine.clock)

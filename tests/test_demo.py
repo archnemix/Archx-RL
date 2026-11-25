@@ -27,7 +27,7 @@ class DemoDefaultsTests(unittest.TestCase):
     def test_default_bind_is_loopback_and_explicit_override_works(self):
         for args, expected in [([], '127.0.0.1'), (['--host', '0.0.0.0'], '0.0.0.0')]:
             with self.subTest(args=args), patch.object(sys, 'argv', ['server.py'] + args), \
-                 patch('server.ThreadingHTTPServer') as constructor, patch('sys.stdout', new_callable=StringIO):
+                 patch('server.BoundedDemoServer') as constructor, patch('sys.stdout', new_callable=StringIO):
                 server.main()
                 self.assertEqual(constructor.call_args.args[0][0], expected)
 

@@ -550,6 +550,21 @@
       "purpose": "Record foundation full Linux regression",
       "inputs": "synthetic test suite with PyNaCl and headless Chromium",
       "outputs": "sanitized test log"
+    },
+    "demo/bounded_server.py": {
+      "purpose": "Private-demo per-process connection admission",
+      "inputs": "synthetic loopback requests and configuration",
+      "outputs": "bounded demo admission or test results"
+    },
+    "tests/test_boundaries.py": {
+      "purpose": "Synthetic mixed traffic, saturation and slow-client admission tests",
+      "inputs": "synthetic loopback requests and configuration",
+      "outputs": "bounded demo admission or test results"
+    },
+    "Docs/Test-Results/unreleased/bounded-full-test.log": {
+      "purpose": "Record bounded demo Linux regression",
+      "inputs": "synthetic socket tests and full Linux suite with PyNaCl and Chromium",
+      "outputs": "sanitized test log"
     }
   }
 }

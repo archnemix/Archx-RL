@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Private demo connection admission
+- Apply a global token bucket and concurrent socket cap before routing, one request per connection, and a monotonic absolute socket deadline enforced by the server loop. Overload drops connections without attempting a potentially blocking response. These controls do not interrupt a stuck handler or replace a supported deployment boundary.
+
 ## Next-version foundation
 - To preserve the existing C decision ABI, saturation returns denial plus a thread-local capacity error rather than silently evicting buckets. No automatic reclamation is implemented; authorized resets have quota consequences.
 - Demo exposure requires an explicit host override; it is not a supported deployment entrypoint. Read-only CI and write-enabled survey workflows are separate. Required branch protection and native Windows/macOS evidence remain open.
