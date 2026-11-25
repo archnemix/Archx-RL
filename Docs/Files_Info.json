@@ -845,6 +845,31 @@
       "purpose": "Sanitized Linux regression for optional gate metrics",
       "inputs": "fixed decision categories and synthetic timings",
       "outputs": "bounded aggregate snapshot or sanitized test results"
+    },
+    "tools/gate_benchmark.py": {
+      "purpose": "Bounded synthetic closed-loop gate latency and capacity-recovery benchmark",
+      "inputs": "bounded synthetic requests and workloads",
+      "outputs": "aggregate host-specific measurement or sanitized test results"
+    },
+    "tests/test_gate_benchmark.py": {
+      "purpose": "Structural synthetic benchmark correctness, privacy and capacity tests",
+      "inputs": "bounded synthetic requests and workloads",
+      "outputs": "aggregate host-specific measurement or sanitized test results"
+    },
+    "Docs/Test-Results/unreleased/gate-benchmark-memory.json": {
+      "purpose": "Sanitized synthetic memory gate benchmark sample",
+      "inputs": "bounded synthetic requests and workloads",
+      "outputs": "aggregate host-specific measurement or sanitized test results"
+    },
+    "Docs/Test-Results/unreleased/gate-benchmark-sqlite.json": {
+      "purpose": "Sanitized synthetic SQLite gate benchmark sample",
+      "inputs": "bounded synthetic requests and workloads",
+      "outputs": "aggregate host-specific measurement or sanitized test results"
+    },
+    "Docs/Test-Results/unreleased/gate-benchmark-full-test.log": {
+      "purpose": "Sanitized Linux regression for gate benchmark",
+      "inputs": "bounded synthetic requests and workloads",
+      "outputs": "aggregate host-specific measurement or sanitized test results"
     }
   }
 }

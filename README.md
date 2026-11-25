@@ -177,6 +177,12 @@ SQLite transactions serialize bucket updates and observation insertion; duplicat
 
 SQLite is a single-host development option, not an industry-grade distributed rate limiter. It serializes writes and has no multi-host consistency, backup/restore tooling, key rotation, authenticated users, automatic retention job, external security review, or production load testing. A synthetic 200-request sequential microbenchmark is recorded in each [runner log](.github/archx-runner/runs/latest.log); its timings depend on the host and are not throughput guarantees. A full policy, security, concurrency and load review is still needed before production use.
 
+### Synthetic in-process gate benchmark
+
+`python3 tools/gate_benchmark.py --mode memory --scenario shared-ip --population 200 --requests 300 --workers 4 --max-outstanding 16` runs a bounded, closed-loop workload against the Python request gate. Options also cover SQLite and unique or repeated snapshots. The JSON reports decision/error counts, p50/p95/p99/max latency and generator queue wait, process CPU time, Linux process-lifetime peak RSS, bounded submitted/uncollected work and a synthetic history-capacity recovery check. See `--help` and the [sanitized example runs](Docs/Test-Results/unreleased/README.md).
+
+This is not a network, HTTPS, proxy, browser, open-loop, multi-process, soak or production capacity test; process CPU includes the generator and its queue is not a server queue. RSS is a lifetime high-water mark. Measurements vary by host; no budgets have been agreed, and this tool does not declare performance or security pass/fail. Real deployment budgets, workloads, contention, resource limits and recovery testing remain release blockers.
+
 ### Optional IP reputation, Turnstile and sealed requests (Python demo only)
 
 These controls are **opt-in** and apply to `POST /api/v2/check`, not to arbitrary host application routes. The host must integrate and enforce the returned decisions. They do not turn this HTTP demonstration into production middleware. The C core is separate and does not implement them. Never send real identifiers to the public preview or directly over untrusted HTTP. A browser cannot collect Linux machine IDs; only the native Linux collector is included.

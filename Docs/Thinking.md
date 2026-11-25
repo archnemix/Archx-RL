@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Synthetic gate benchmark
+- Use a bounded submitted/uncollected workload and report latency percentiles, aggregate outcomes, process CPU and Linux peak RSS with a separate synthetic capacity/expiry recovery probe. Avoid storing identifiers or inventing latency budgets. This is closed-loop and in-process, not representative of network overload or production capacity.
+
 ## Request gate aggregate metrics
 - An opt-in in-memory collector records fixed decision categories and disjoint timing buckets only. No user-supplied identifiers or exception/provider text become labels; monitoring failures never alter the gate result. Connection admission, pre-gate errors, challenge/config and host operations remain outside scope.
 
