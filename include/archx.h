@@ -79,7 +79,13 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len);
  *  "tier":"full|partial|fallback","app_id":"my-app"}
  * If no OS signal is readable (containers, odd sysfs perms), a generated
  * random ID is persisted under $XDG_DATA_HOME/archx/device_id (fallback
- * tier, confidence 10). *out_json freed with ax_buffer_free().
+ * tier, confidence 10). The ABI v1 field `confidence` is a historical name
+ * for an availability heuristic, NOT a probability, accuracy estimate, proof
+ * of identity or fraud-resistance score. For full/partial tiers it is the sum
+ * of readable signal weights capped at 100; fallback uses the fixed value 10
+ * and signals_used 0, not 10 percent coverage. ABI v1 keeps the field name
+ * and behavior for compatibility; callers must not infer stronger guarantees.
+ * *out_json freed with ax_buffer_free().
  */
 ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len);
 

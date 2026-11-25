@@ -810,6 +810,16 @@
       "purpose": "Sanitized Linux regression for JSON output hardening",
       "inputs": "synthetic output buffers and fake collector",
       "outputs": "sanitized error and regression results"
+    },
+    "tests/test_coverage.c": {
+      "purpose": "Synthetic ABI-v1 availability-score and fallback compatibility fixtures",
+      "inputs": "synthetic readable signal combinations",
+      "outputs": "compatibility test result"
+    },
+    "Docs/Test-Results/unreleased/coverage-full-test.log": {
+      "purpose": "Sanitized Linux regression for ABI-v1 availability terminology",
+      "inputs": "synthetic readable signal combinations",
+      "outputs": "compatibility test result"
     }
   }
 }

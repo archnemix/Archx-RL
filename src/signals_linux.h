@@ -6,7 +6,7 @@
  *   board_serial  (weight 15)  /sys/class/dmi/id/board_serial   (often 0400, may need root)
  *
  * Anything unreadable is reported as readable=0 with weight excluded from
- * the confidence score — the core never invents stability it doesn't have. */
+ * the ABI-v1 availability heuristic — it is not measured identity confidence. */
 #ifndef AX_SIGNALS_H
 #define AX_SIGNALS_H
 
@@ -15,7 +15,7 @@
 typedef struct {
   char name[32];
   char value[256];   /* normalized (trimmed, lowercased) */
-  int  weight;       /* confidence contribution when readable */
+  int  weight;       /* availability weight when readable */
   int  readable;     /* 1 if value was obtained from the OS */
 } ax_signal;
 

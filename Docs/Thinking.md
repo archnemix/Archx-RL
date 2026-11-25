@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## ABI-v1 availability terminology
+- Preserve the existing `confidence` field and exact numeric behavior for compatibility, but explicitly describe it as signal availability, not a calibrated probability. The fallback value 10 is a historical marker rather than a coverage percentage. Any later schema rename needs a versioned migration.
+
 ## C analyzer triage
 - GCC 12 at -O0 reports schedule uses despite the first 16 words being initialized and each later word depending only on earlier indices; classify only these as likely false positives, not proof of algorithm security. The original JSON warning is not reproduced. A follow-up bounds JSON terminator search and checks serialization errors; targeted synthetic allocation faults pass, while comprehensive B05 fault injection remains open.
 

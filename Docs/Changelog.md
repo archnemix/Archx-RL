@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Clarified the ABI-v1 `confidence` field as an availability heuristic, preserving its name and legacy fallback marker; tested every synthetic signal combination.
 - Hardened C JSON emission with bounded terminator search and checked formatting/appends; synthetic output-allocation faults fail with an error.
 - Added deterministic SHA-256/HMAC differential tests and documented partial GCC analyzer triage, including unresolved JSON emission concerns.
 - Added bounded, incremental in-memory observation expiry with an indexed heap; a cleanup backlog fails closed, while window and SQLite cleanup remain separate.
