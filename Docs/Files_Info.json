@@ -785,6 +785,21 @@
       "purpose": "Sanitized full Linux regression for bounded observation expiration",
       "inputs": "synthetic observation expirations and fixtures",
       "outputs": "bounded prototype state or sanitized test result"
+    },
+    "tests/test_crypto_differential.py": {
+      "purpose": "Deterministic synthetic SHA-256 and HMAC differential tests",
+      "inputs": "synthetic messages and compiler diagnostics",
+      "outputs": "sanitized regression or triage report"
+    },
+    "Docs/Research/Analyzer-Triage.md": {
+      "purpose": "Reproduction and limitations of GCC diagnostic triage",
+      "inputs": "synthetic messages and compiler diagnostics",
+      "outputs": "sanitized regression or triage report"
+    },
+    "Docs/Test-Results/unreleased/analyzer-full-test.log": {
+      "purpose": "Sanitized Linux full regression with crypto differential cases",
+      "inputs": "synthetic messages and compiler diagnostics",
+      "outputs": "sanitized regression or triage report"
     }
   }
 }

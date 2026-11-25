@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added deterministic SHA-256/HMAC differential tests and documented partial GCC analyzer triage, including unresolved JSON emission concerns.
 - Added bounded, incremental in-memory observation expiry with an indexed heap; a cleanup backlog fails closed, while window and SQLite cleanup remain separate.
 - Added a bounded in-memory token index with deduplicated history and fail-closed history saturation; popular-token worst-case work is still bounded by capacity, not an agreed CPU budget.
 - Added synthetic macOS CoreFoundation UUID-value validation and documented Apple fingerprinting and distribution risks; no macOS collector or support is implied.

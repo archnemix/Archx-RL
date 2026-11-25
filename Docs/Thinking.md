@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## C analyzer triage
+- GCC 12 at -O0 reports schedule uses despite the first 16 words being initialized and each later word depending only on earlier indices; classify only these as likely false positives, not proof of algorithm security. The original JSON warning is not reproduced, while unchecked serialization errors remain a separate concern.
+
 ## In-memory observation indexing
 - Index token pairs to candidate observation IDs, count each observation independently, preserve oldest-snapshot tie ordering, and track signal-name shapes for comparability. Refresh duplicates; reject new history when full without evicting live observations. SQLite and memory share these tested cases but full parity remains open.
 - An indexed expiry heap holds one entry per observation even after repeated refresh. At most 64 expired histories are removed per request; if more remain, matching/enrollment fail closed while applicable buckets stay charged. This deliberately differs from SQLite cleanup. Popular tokens and window cleanup can still visit every entry under a lock; no idle cleanup or performance budget is verified, and D03–D06 remain open.

@@ -146,5 +146,13 @@
     "urls": [
       "https://docs.python.org/3/library/heapq.html"
     ]
+  },
+  "gcc_analyzer_triage": {
+    "summary": "Accessed 2026-11-22: GCC static analysis can have false positives, false negatives and complexity cutoffs. RFC 6234 describes SHA-256 schedule dependencies; local SHA diagnostic is likely a loop-analysis false positive, original JSON diagnostic not reproduced.",
+    "urls": [
+      "https://gcc.gnu.org/onlinedocs/gcc-13.4.0/gcc.pdf",
+      "https://www.rfc-editor.org/rfc/rfc6234.html"
+    ],
+    "local_report": "Docs/Research/Analyzer-Triage.md"
   }
 }
