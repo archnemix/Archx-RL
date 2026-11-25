@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Platform entropy
+- Use bounded OS randomness and propagate failure. Linux `getrandom` with GRND_NONBLOCK fails closed rather than using a potentially uninitialized early-boot fallback; this requires a compatible kernel, libc and seccomp policy. The Windows/macOS APIs are experimental and do not implement private persistence. Synthetic failures verify that no fallback ID is fabricated.
+
 ## Native store primitives
 - Isolate mutex and monotonic interval clock operations behind a small internal contract. Preserve Linux sleep-excluding semantics; choose Windows unbiased interrupt time and macOS uptime raw for equivalent intended policy, subject to native sleep/resume verification. This is not a full native port.
 - Platform initialization, lock and time errors deny; an unlock error may follow an already-completed mutation and does not imply rollback. Synthetic faults and common concurrent store tests cover the contract.

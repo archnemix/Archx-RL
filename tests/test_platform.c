@@ -32,6 +32,11 @@ static THREAD_RESULT worker(void *context) {
 
 int main(void) {
   int64_t before, after;
+  unsigned char random_bytes[256];
+  CHECK(ax_platform_random(NULL, 0) == 0);
+  CHECK(ax_platform_random(NULL, 1) == -1);
+  CHECK(ax_platform_random(random_bytes, sizeof random_bytes + 1) == -1);
+  CHECK(ax_platform_random(random_bytes, sizeof random_bytes) == 0);
   CHECK(ax_platform_monotonic_ms(NULL) == -1);
   CHECK(ax_platform_monotonic_ms(&before) == 0 && before >= 0);
   for (int i=0; i<5000; i++) {
@@ -82,6 +87,6 @@ int main(void) {
   size_t size = 0;
   CHECK(ax_store_size(store, &size) == 0 && size == 16);
   ax_store_free(store);
-  puts("platform clock/mutex/store conformance passed");
+  puts("platform entropy/clock/mutex/store conformance passed");
   return 0;
 }

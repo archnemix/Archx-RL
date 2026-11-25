@@ -1,9 +1,13 @@
 /* Deterministic platform failures and time changes for the C limiter API. */
 #include "archx.h"
 #include "store.h"
+#include "signals_linux.h"
 #include "fake_platform.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <string.h>
 
 int main(void) {
@@ -43,6 +47,20 @@ int main(void) {
   /* The failed unlock also follows an already-completed reset. */
   assert(ax_check(core, "another", 2, &remaining, &retry) == AX_ALLOW);
   ax_core_free(core);
-  puts("store platform fault injection passed");
+  /* Entropy failure must not create a fabricated fallback ID. A later retry
+   * can recover from the locked, empty file with a real entropy adapter. */
+  char dir[] = "/tmp/archx-entropy-XXXXXX"; assert(mkdtemp(dir));
+  assert(setenv("XDG_DATA_HOME", dir, 1) == 0);
+  char id[65], second[65], path[512];
+  ax_test_fail_random = 1;
+  assert(ax_signals_fallback_id(id, sizeof id) != 0);
+  snprintf(path, sizeof path, "%s/archx/device_id", dir);
+  struct stat st; assert(stat(path, &st) == 0 && st.st_size == 0);
+  ax_test_fail_random = 0;
+  assert(ax_signals_fallback_id(id, sizeof id) == 0);
+  assert(ax_signals_fallback_id(second, sizeof second) == 0 && strcmp(id, second) == 0);
+  assert(unlink(path) == 0);
+  snprintf(path, sizeof path, "%s/archx", dir); assert(rmdir(path) == 0); assert(rmdir(dir) == 0);
+  puts("store and entropy fault injection passed");
   return 0;
 }

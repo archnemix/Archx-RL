@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "sha256.h"
+#include "platform.h"
 
 static void normalize(char *s) {
   for (char *p = s; *p; p++) {
@@ -133,19 +134,6 @@ size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t out_len)
   return written;
 }
 
-static int read_random(uint8_t *buf, size_t len) {
-  int fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-  if (fd < 0) return -1;
-  size_t got = 0;
-  while (got < len) {
-    ssize_t n = read(fd, buf + got, len - got);
-    if (n <= 0) { close(fd); return -1; }
-    got += (size_t)n;
-  }
-  close(fd);
-  return 0;
-}
-
 static int mkdir_p(const char *path) {
   char tmp[512];
   if (strlen(path) >= sizeof tmp) return -1;
@@ -181,7 +169,7 @@ int ax_signals_fallback_id(char *out, size_t out_len) {
   char hex[65];
   if (st.st_size == 0) {
     uint8_t raw[32];
-    if (read_random(raw, sizeof raw) != 0) goto done;
+    if (ax_platform_random(raw, sizeof raw) != 0) goto done;
     ax_hex_encode(raw, sizeof raw, hex);
     size_t offset = 0;
     while (offset < 64) {

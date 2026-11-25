@@ -4,6 +4,7 @@
 #endif
 #include <windows.h>
 #include <realtimeapiset.h>
+#include <bcrypt.h>
 #include <stdlib.h>
 #include "platform.h"
 
@@ -31,4 +32,10 @@ int ax_platform_monotonic_ms(int64_t *out) {
   if (!out || !QueryUnbiasedInterruptTime(&ticks) || ticks / 10000 > (ULONGLONG)INT64_MAX) return -1;
   *out = (int64_t)(ticks / 10000);
   return 0;
+}
+
+int ax_platform_random(void *out, size_t len) {
+  if (len == 0) return 0;
+  if (!out || len > 256) return -1;
+  return BCryptGenRandom(NULL, (PUCHAR)out, (ULONG)len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0 ? 0 : -1;
 }

@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Isolated OS randomness for fallback creation, failing closed if Linux `getrandom` is unavailable or not ready; Windows/macOS entropy adapters are experimental.
 - Began the native platform abstraction with a C store clock/mutex contract and experimental Windows/macOS primitive adapters; full native platform support remains unimplemented.
 - Added optional host-owned principal and operation authorization hooks to the synthetic WSGI example; Archx does not authenticate or authorize users.
 - Added process-local connection rate, concurrency and socket-deadline controls to the private demo, with synthetic mixed-traffic and slow-client tests. Production entrypoint and overload validation remain open.

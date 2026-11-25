@@ -635,6 +635,11 @@
       "purpose": "Record local store platform abstraction regression",
       "inputs": "Linux full test suite with synthetic platform faults",
       "outputs": "sanitized test log"
+    },
+    "Docs/Test-Results/unreleased/entropy-full-test.log": {
+      "purpose": "Record local entropy abstraction regression",
+      "inputs": "synthetic entropy faults and Linux full regression suite",
+      "outputs": "sanitized test log"
     }
   }
 }
