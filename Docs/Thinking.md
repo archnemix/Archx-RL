@@ -2,6 +2,10 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Experimental Windows firmware path
+- Query bounded RSMB data using the documented size-query pattern; parse the Windows header, structure bounds, UUID and selected serial with explicit absence/placeholder/invalid statuses. Clear temporary raw firmware and never log it. Native collector integration, ordinary-user and production evidence remain pending.
+- Treat pre-2.6 UUID byte order as a compatibility heuristic and non-ASCII serials as unavailable under the current conservative policy, not as verified identity.
+
 ## Linux CMake packaging
 - Added a Linux-only package and installation path with relative runtime paths and separate static/shared exports; synthetic consumers test both after relocation. The public header is the source of ABI metadata. No release version is invented, and Windows/macOS full builds are explicitly rejected until implemented.
 

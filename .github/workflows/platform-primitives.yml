@@ -42,5 +42,5 @@ jobs:
         run: cmake -S tests/platform -B build/platform ${{ matrix.cmake_arch }}
       - name: Build primitive conformance
         run: cmake --build build/platform --config Release
-      - name: Run entropy clock mutex and store tests natively
-        run: ctest --test-dir build/platform -C Release --output-on-failure
+      - name: Run synthetic parser and native primitive tests
+        run: ctest --test-dir build/platform -C Release --verbose

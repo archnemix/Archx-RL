@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added an experimental Windows RSMB provider and bounded SMBIOS parser with synthetic fixtures and a fuzz target; it is not integrated into the supported native core.
 - Added a Linux-only CMake build, installable shared/static targets, probe, ABI metadata and relocated consumer tests; Windows/macOS full-core builds remain outstanding.
 - Isolated OS randomness for fallback creation, failing closed if Linux `getrandom` is unavailable or not ready; Windows/macOS entropy adapters are experimental.
 - Began the native platform abstraction with a C store clock/mutex contract and experimental Windows/macOS primitive adapters; full native platform support remains unimplemented.

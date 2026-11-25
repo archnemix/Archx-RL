@@ -670,6 +670,56 @@
       "purpose": "Record local Linux CMake installation and relocation tests",
       "inputs": "Linux GCC and CMake synthetic installed package",
       "outputs": "sanitized test log"
+    },
+    "src/smbios.h": {
+      "purpose": "Internal bounded SMBIOS parser contract",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "src/smbios.c": {
+      "purpose": "Bounded synthetic-testable SMBIOS Type 1 parser",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "src/signals_windows.h": {
+      "purpose": "Experimental Windows firmware provider contract",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "src/signals_windows.c": {
+      "purpose": "Experimental Windows RSMB retrieval and error mapping",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "tests/test_smbios.c": {
+      "purpose": "Synthetic SMBIOS fixtures and mutation tests",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "tests/test_windows_firmware.c": {
+      "purpose": "Synthetic provider failures and Windows availability-only smoke",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "tests/fuzz_smbios.c": {
+      "purpose": "Coverage-guided SMBIOS parser target",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "tests/fuzz_smbios.sh": {
+      "purpose": "Fixed-duration synthetic SMBIOS fuzzer smoke",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "Docs/Research/Windows.md": {
+      "purpose": "Windows RSMB research decision and outstanding evidence",
+      "inputs": "synthetic firmware fixtures or bounded OS API",
+      "outputs": "availability status or sanitized test result"
+    },
+    "Docs/Test-Results/unreleased/smbios-full-test.log": {
+      "purpose": "Record Linux SMBIOS fixture and full regression",
+      "inputs": "synthetic fixtures, sanitizers, PyNaCl and headless Chromium",
+      "outputs": "sanitized test log"
     }
   }
 }
