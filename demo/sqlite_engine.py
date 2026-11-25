@@ -16,16 +16,19 @@ from pathlib import Path
 
 from engine import Engine
 
-SCHEMA = (
-    'CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)',
-    'CREATE TABLE IF NOT EXISTS windows (key TEXT PRIMARY KEY, start REAL NOT NULL, count INTEGER NOT NULL)',
-    'CREATE INDEX IF NOT EXISTS windows_start ON windows(start)',
-    'CREATE TABLE IF NOT EXISTS observations (id INTEGER PRIMARY KEY, expires REAL NOT NULL, fingerprint TEXT NOT NULL UNIQUE)',
-    'CREATE INDEX IF NOT EXISTS observations_expires ON observations(expires)',
-    'CREATE TABLE IF NOT EXISTS signals (observation_id INTEGER NOT NULL REFERENCES observations(id) ON DELETE CASCADE, name TEXT NOT NULL, token TEXT NOT NULL, PRIMARY KEY (observation_id, name))',
-    'CREATE INDEX IF NOT EXISTS signals_lookup ON signals(name, token, observation_id)',
-    'CREATE INDEX IF NOT EXISTS signals_by_name ON signals(name, observation_id)',
-)
+SCHEMA = {
+    'meta': 'CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)',
+    'windows': 'CREATE TABLE IF NOT EXISTS windows (key TEXT PRIMARY KEY, start REAL NOT NULL, count INTEGER NOT NULL)',
+    'windows_start': 'CREATE INDEX IF NOT EXISTS windows_start ON windows(start)',
+    'observations': 'CREATE TABLE IF NOT EXISTS observations (id INTEGER PRIMARY KEY, expires REAL NOT NULL, fingerprint TEXT NOT NULL UNIQUE)',
+    'observations_expires': 'CREATE INDEX IF NOT EXISTS observations_expires ON observations(expires)',
+    'signals': 'CREATE TABLE IF NOT EXISTS signals (observation_id INTEGER NOT NULL REFERENCES observations(id) ON DELETE CASCADE, name TEXT NOT NULL, token TEXT NOT NULL, PRIMARY KEY (observation_id, name))',
+    'signals_lookup': 'CREATE INDEX IF NOT EXISTS signals_lookup ON signals(name, token, observation_id)',
+    'signals_by_name': 'CREATE INDEX IF NOT EXISTS signals_by_name ON signals(name, observation_id)',
+}
+# SQLite records CREATE statements without IF NOT EXISTS. Checking the exact
+# known definitions at startup avoids silently recreating lost state tables.
+EXPECTED_SCHEMA = {name: sql.replace(' IF NOT EXISTS', '') for name, sql in SCHEMA.items()}
 
 class SQLiteEngine(Engine):
     def __init__(self, db_path, settings, secret, **kwargs):
@@ -35,15 +38,20 @@ class SQLiteEngine(Engine):
             raise ValueError('Persistent mode requires a file path')
         super().__init__(settings=settings, secret=secret, **kwargs)
         self.db_path = str(Path(db_path).absolute())
-        flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW
-        fd = os.open(self.db_path, flags, 0o600)
+        flags = os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW
+        try:
+            fd = os.open(self.db_path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+            created = True
+        except FileExistsError:
+            fd = os.open(self.db_path, flags)
+            created = False
         try:
             st = os.fstat(fd)
             if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or st.st_mode & 0o077:
                 raise ValueError('Database must be a private regular file owned by the service user')
         finally:
             os.close(fd)
-        self._initialize()
+        self._initialize(created)
 
     def connect(self):
         con = sqlite3.connect(Path(self.db_path).as_uri() + '?mode=rw', uri=True, timeout=5, isolation_level=None)
@@ -58,20 +66,33 @@ class SQLiteEngine(Engine):
                 con.close()
             raise
 
-    def _initialize(self):
+    def _initialize(self, created):
         con = self.connect()
         try:
             con.execute('PRAGMA journal_mode=WAL')
             con.execute('BEGIN IMMEDIATE')
-            for sql in SCHEMA: con.execute(sql)
+            objects = {name: (kind, sql) for kind, name, sql in con.execute(
+                'SELECT type, name, sql FROM sqlite_master')}
+            if created and not objects:
+                for sql in SCHEMA.values():
+                    con.execute(sql)
+                fresh = True
+            else:
+                fresh = False
+                for name, sql in EXPECTED_SCHEMA.items():
+                    kind = 'table' if sql.startswith('CREATE TABLE ') else 'index'
+                    if objects.get(name) != (kind, sql):
+                        raise ValueError('Database schema is incomplete or changed; restore or migrate explicitly')
             key_check = hmac.new(self.secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
             policy_check = hashlib.sha256(json.dumps({k:v for k,v in self.settings.items() if k != 'messages' and not (k == 'ip_storage' and v == 'hash')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
             for key, expected in [('schema','3'), ('key_check',key_check), ('policy_check',policy_check)]:
-                row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
-                if row is None:
+                if fresh:
                     con.execute('INSERT INTO meta(name,value) VALUES(?,?)',(key,expected))
-                elif not hmac.compare_digest(row[0], expected):
-                    raise ValueError('Database secret, policy, or schema does not match; use a new database or migrate explicitly')
+                else:
+                    row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
+                    if (row is None or not isinstance(row[0], str) or
+                        not hmac.compare_digest(row[0].encode('utf-8'), expected.encode('ascii'))):
+                        raise ValueError('Database secret, policy, or schema does not match; restore or migrate explicitly')
             con.commit()
         except Exception:
             con.rollback()

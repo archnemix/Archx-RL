@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## SQLite startup and missing state
+- Core schema and metadata are initialized only for an exclusively created file, not repaired for an existing incomplete database; known schema definitions and metadata are verified. Existing empty files, equivalent but differently written schemas and interrupted first initialization now require operator investigation. This is not database integrity checking or deletion/replacement/rollback detection; the optional replay table remains outside this core check.
+
 ## Replay expiry under contention
 - Sample replay issuance and consumption time inside the memory lock or SQLite writer. Tests hold the serialization boundary and advance a synthetic clock: previously an expired challenge could be consumed and a newly issued challenge could already be expired. The fix does not address wall-clock or restored-state rollback.
 

@@ -54,6 +54,76 @@ class PersistentTests(unittest.TestCase):
         self.engine()
         with sqlite3.connect(self.path) as db: db.execute("UPDATE meta SET value='2' WHERE name='schema'")
         with self.assertRaisesRegex(ValueError,'schema'): self.engine()
+    def test_existing_empty_or_unrelated_database_is_not_initialized(self):
+        for kind in ('empty', 'unrelated'):
+            with self.subTest(kind=kind):
+                path = str(Path(self.tmp.name) / (kind + '.sqlite'))
+                fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                os.close(fd)
+                if kind == 'unrelated':
+                    with sqlite3.connect(path) as db: db.execute('CREATE TABLE unrelated (value TEXT)')
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    SQLiteEngine(path, policy(), SECRET)
+                with sqlite3.connect(path) as db:
+                    names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                self.assertNotIn('windows', names)
+                self.assertEqual(names, {'unrelated'} if kind == 'unrelated' else set())
+
+    def test_missing_schema_objects_are_not_silently_recreated(self):
+        for name, object_type in (('windows', 'TABLE'), ('observations', 'TABLE'),
+                                  ('signals', 'TABLE'), ('meta', 'TABLE'),
+                                  ('windows_start', 'INDEX'), ('signals_lookup', 'INDEX')):
+            with self.subTest(name=name):
+                path = str(Path(self.tmp.name) / (name + '.sqlite'))
+                e = SQLiteEngine(path, policy(override={'max_requests':1}), SECRET, clock=lambda:self.now[0])
+                self.assertEqual(e.check(req(), '192.0.2.1')['decision'], 'allow')
+                with sqlite3.connect(path) as db: db.execute(f'DROP {object_type} {name}')
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    SQLiteEngine(path, policy(override={'max_requests':1}), SECRET)
+                with sqlite3.connect(path) as db:
+                    self.assertIsNone(db.execute('SELECT name FROM sqlite_master WHERE name=?', (name,)).fetchone())
+
+    def test_missing_metadata_is_not_silently_recreated(self):
+        for field in ('schema', 'key_check', 'policy_check'):
+            with self.subTest(field=field):
+                path = str(Path(self.tmp.name) / (field + '.sqlite'))
+                SQLiteEngine(path, policy(), SECRET)
+                with sqlite3.connect(path) as db: db.execute('DELETE FROM meta WHERE name=?', (field,))
+                with self.assertRaisesRegex(ValueError, 'schema'):
+                    SQLiteEngine(path, policy(), SECRET)
+                with sqlite3.connect(path) as db:
+                    self.assertIsNone(db.execute('SELECT value FROM meta WHERE name=?', (field,)).fetchone())
+
+    def test_failed_first_initialization_is_not_retried_as_fresh(self):
+        with mock.patch.object(SQLiteEngine, '_initialize', side_effect=RuntimeError('synthetic failure')):
+            with self.assertRaises(RuntimeError): self.engine()
+        self.assertTrue(os.path.isfile(self.path))
+        with self.assertRaisesRegex(ValueError, 'schema'): self.engine()
+
+    def test_concurrent_first_start_does_not_adopt_empty_file(self):
+        created, resume = threading.Event(), threading.Event()
+        initialize = SQLiteEngine._initialize
+        def delayed(engine, fresh):
+            if fresh:
+                created.set()
+                if not resume.wait(5): raise RuntimeError('initialization test timed out')
+            return initialize(engine, fresh)
+        with mock.patch.object(SQLiteEngine, '_initialize', delayed), ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(self.engine, max_requests=1)
+            try:
+                self.assertTrue(created.wait(3))
+                with self.assertRaisesRegex(ValueError, 'schema'): self.engine(max_requests=1)
+            finally:
+                resume.set()
+            first = future.result(timeout=6)
+        self.assertEqual(first.check(req(),'192.0.2.1')['decision'], 'allow')
+        self.assertEqual(self.engine(max_requests=1).check(req(),'192.0.2.1')['decision'], 'rate_limited')
+
+    def test_modified_schema_definition_rejected(self):
+        self.engine()
+        with sqlite3.connect(self.path) as db: db.execute('ALTER TABLE windows ADD COLUMN unexpected TEXT')
+        with self.assertRaisesRegex(ValueError, 'schema'): self.engine()
+
     def test_private_permissions_and_symlink(self):
         self.engine()
         self.assertEqual(os.stat(self.path).st_mode & 0o777,0o600)

@@ -890,6 +890,11 @@
       "purpose": "Sanitized Linux full regression including replay expiration under lock contention",
       "inputs": "synthetic clocks, challenges and requests",
       "outputs": "test results; not clock rollback or restore safety evidence"
+    },
+    "Docs/Test-Results/unreleased/sqlite-startup-full-test.log": {
+      "purpose": "Sanitized Linux full regression for SQLite core schema and metadata startup checks",
+      "inputs": "synthetic database files and controlled initialization faults",
+      "outputs": "test results; not database integrity or rollback detection evidence"
     }
   }
 }
