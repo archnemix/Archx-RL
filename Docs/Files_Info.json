@@ -1045,6 +1045,11 @@
       "purpose": "Check profiling and concurrent quota invariant",
       "inputs": "synthetic memory and SQLite traffic",
       "outputs": "serialization accounting and no-excess-admission assertions"
+    },
+    "tools/index_match_benchmark.py": {
+      "purpose": "Compare synthetic sparse observation matching against historical linear matching",
+      "inputs": "bounded synthetic observations and sample count",
+      "outputs": "sanitized matching-only timing and parity checks"
     }
   }
 }

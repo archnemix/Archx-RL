@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 from contention_benchmark import run
+from index_match_benchmark import run as run_index_comparison
 
 
 class ContentionBenchmarkTests(unittest.TestCase):
@@ -24,6 +25,15 @@ class ContentionBenchmarkTests(unittest.TestCase):
                         self.assertLessEqual(metrics['p99'], metrics['max'])
                     self.assertNotIn('192.0.2.1', json.dumps(report))
                     self.assertNotIn('synthetic-contention-only', json.dumps(report))
+
+    def test_sparse_index_comparison(self):
+        report = run_index_comparison(128, 7)
+        self.assertEqual(report['population'], 128)
+        self.assertEqual(report['matching_observations'], 1)
+        for field in ('linear_match_ms', 'indexed_match_ms'):
+            self.assertLessEqual(report[field]['p50'], report[field]['p99'])
+        for population, samples in ((0, 1), (10001, 1), (1, 0), (1, 1001)):
+            with self.assertRaises(ValueError): run_index_comparison(population, samples)
 
     def test_invalid_parameters(self):
         for args in (['--workers', '0'], ['--workers', '17'], ['--per-worker', '0'], ['--quota', '10001']):
