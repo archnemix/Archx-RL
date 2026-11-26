@@ -37,6 +37,13 @@ jobs:
           echo 'ARCHX_REQUIRE_BROWSER=1' >> "$GITHUB_ENV"
       - name: Build and test
         run: ./test.sh
+      - name: Real TLS proxy experiment (private demo only)
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          nginx -v
+          ARCHX_TEST_NGINX="$(command -v nginx)" python3 tests/test_https_proxy.py
       - name: Fuzz SMBIOS parser smoke
         run: ./tests/fuzz_smbios.sh
       - name: Verify Linux GCC and Clang CMake installation and consumers
