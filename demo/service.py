@@ -9,7 +9,7 @@ import time
 from metrics import ServiceMetrics
 
 from replay import ReplayUnavailable
-from sealed_payload import unseal
+from sealed_payload import TransportKeyRing, unseal, unseal_v3
 
 
 def parse_json(data):
@@ -53,7 +53,9 @@ class RequestService:
         return {'decision':decision, 'reason':reason, 'message':self.engine.message(reason), 'relation':'inconclusive'}
 
     def config(self):
-        return {'protocol':'sealed-v2' if self.sealed_key is not None else 'raw-v2',
+        protocol = ('sealed-v3' if type(self.sealed_key) is TransportKeyRing else
+                    'sealed-v2' if self.sealed_key is not None else 'raw-v2')
+        return {'protocol':protocol,
                 'required':self.engine.settings['required'], 'conditional':self.engine.settings['conditional'],
                 'missing_required_message':self.engine.message('missing_required'),
                 'turnstile':{'sitekey':self.turnstile.sitekey, 'action':self.turnstile.action} if self.turnstile else None}
@@ -103,7 +105,10 @@ class RequestService:
             return limited
         try:
             if self.sealed_key is not None:
-                body = parse_json(unseal(envelope, self.sealed_key))
+                plaintext = (unseal_v3(envelope, self.sealed_key)
+                             if type(self.sealed_key) is TransportKeyRing
+                             else unseal(envelope, self.sealed_key))
+                body = parse_json(plaintext)
                 if not isinstance(body, dict):
                     raise ValueError('Invalid request')
                 body = dict(body)
