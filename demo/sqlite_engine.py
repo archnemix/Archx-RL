@@ -3,6 +3,7 @@
 SQLite provides transaction serialization on one host, not a multi-host store.
 The database and its parent directory must be private to the service operator.
 """
+import copy
 import hashlib
 import hmac
 import ipaddress
@@ -31,13 +32,32 @@ SCHEMA = {
 # known definitions at startup avoids silently recreating lost state tables.
 EXPECTED_SCHEMA = {name: sql.replace(' IF NOT EXISTS', '') for name, sql in SCHEMA.items()}
 
+
+def persistent_checks(secret, settings):
+    key_check = hmac.new(secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
+    policy_check = hashlib.sha256(json.dumps(
+        {k: v for k, v in settings.items() if k != 'messages' and not (k == 'ip_storage' and v == 'hash')},
+        sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return {'schema': '3', 'key_check': key_check, 'policy_check': policy_check}
+
+
+def metadata_matches(con, expected):
+    for key, value in expected.items():
+        row = con.execute('SELECT value FROM meta WHERE name=?', (key,)).fetchone()
+        if (row is None or not isinstance(row[0], str) or
+                not hmac.compare_digest(row[0].encode('utf-8'), value.encode('ascii'))):
+            return False
+    return True
+
+
 class SQLiteEngine(Engine):
     def __init__(self, db_path, settings, secret, **kwargs):
         if not isinstance(secret, bytes) or len(secret) < 32:
             raise ValueError('Persistent mode requires an explicit secret of at least 32 bytes')
         if not db_path or str(db_path) == ':memory:':
             raise ValueError('Persistent mode requires a file path')
-        super().__init__(settings=settings, secret=secret, **kwargs)
+        super().__init__(settings=copy.deepcopy(settings), secret=secret, **kwargs)
+        self._persistent_checks = persistent_checks(self.secret, self.settings)
         self.db_path = str(Path(db_path).absolute())
         flags = os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW
         try:
@@ -84,16 +104,10 @@ class SQLiteEngine(Engine):
                     kind = 'table' if sql.startswith('CREATE TABLE ') else 'index'
                     if objects.get(name) != (kind, sql):
                         raise ValueError('Database schema is incomplete or changed; restore or migrate explicitly')
-            key_check = hmac.new(self.secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
-            policy_check = hashlib.sha256(json.dumps({k:v for k,v in self.settings.items() if k != 'messages' and not (k == 'ip_storage' and v == 'hash')}, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-            for key, expected in [('schema','3'), ('key_check',key_check), ('policy_check',policy_check)]:
-                if fresh:
-                    con.execute('INSERT INTO meta(name,value) VALUES(?,?)',(key,expected))
-                else:
-                    row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
-                    if (row is None or not isinstance(row[0], str) or
-                        not hmac.compare_digest(row[0].encode('utf-8'), expected.encode('ascii'))):
-                        raise ValueError('Database secret, policy, or schema does not match; restore or migrate explicitly')
+            if fresh:
+                con.executemany('INSERT INTO meta(name,value) VALUES(?,?)', self._persistent_checks.items())
+            elif not metadata_matches(con, self._persistent_checks):
+                raise ValueError('Database secret, policy, or schema does not match; restore or migrate explicitly')
             con.commit()
         except Exception:
             con.rollback()
@@ -106,8 +120,21 @@ class SQLiteEngine(Engine):
         if self.metrics is not None:
             try: started = time.perf_counter()
             except Exception: pass
-        try: return con.execute('BEGIN IMMEDIATE')
-        finally: self._record_wait(started)
+        try:
+            cursor = con.execute('BEGIN IMMEDIATE')
+        finally:
+            self._record_wait(started)
+        # Check inside the writer transaction: a worker started before an
+        # explicit policy change must not continue charging under old rules.
+        # This detects metadata changes, not arbitrary file replacement or a
+        # worker running an older version without this check.
+        try:
+            if (persistent_checks(self.secret, self.settings) != self._persistent_checks or
+                    not metadata_matches(con, self._persistent_checks)):
+                raise sqlite3.DatabaseError('Persistent metadata changed')
+        except (TypeError, ValueError, UnicodeError) as exc:
+            raise sqlite3.DatabaseError('Persistent metadata changed') from exc
+        return cursor
 
     def cleanup_expired(self):
         """One atomic indexed maintenance batch; errors propagate to the caller."""

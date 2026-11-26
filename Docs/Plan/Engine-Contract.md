@@ -16,6 +16,7 @@ Scope: `demo.engine.Engine` (one process, memory) and `demo.sqlite_engine.SQLite
 - Memory stores exact token tuples for duplicate lookup; SQLite uses a SHA-256 fingerprint of a canonical token tuple. The latter assumes collision resistance. Both only retain raw IPs if explicitly configured to do so; keyed tokens remain linkable pseudonymous data.
 - Memory state is process-local and lost on restart. SQLite transactions persist a single host's state and handle a detected SQLite error by rolling back and returning `storage_error`; this does not prevent deletion, rollback to an older backup, runtime tampering, crash/ambiguous-commit errors, or arbitrary non-SQLite exceptions. A database writer may wait up to its configured busy timeout; that is not an end-to-end deadline. SQLite startup validates its expected schema and metadata, not the authenticity or completeness of all data.
 - Wall-clock jumps or restored state can reset/extend windows or change history behavior. No reset-proof or cross-host guarantee is made. The per-request cleanup budget does not bound all other work: popular tokens can have capacity-sized postings, and SQLite transaction, I/O, indexing and lock waits have no wall-clock bound.
+- An experimental [offline policy-tightening transaction](../Research/SQLite-Policy-Migration.md) preserves existing state and rejects stale engine writers running the new code. It does not support older binaries concurrently, general schema migration, key rotation or safe backup/restore; all writers must be stopped during maintenance.
 
 ## Evidence
 
