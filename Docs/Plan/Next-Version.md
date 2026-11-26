@@ -121,3 +121,7 @@ C04 native fixture evidence is now recorded in the [provider ADR](Crypto-JSON-AD
 ## B06 analyzer follow-up
 
 The SHA schedule is now explicitly zero-initialized; the seven GCC 12.2 `-O0` uninitialized warnings no longer reproduce, while known-answer/differential and full local tests pass. [Triage details](../Research/Analyzer-Triage.md) record persistent complexity cutoffs. The original `archx.c:263` diagnostic remains unclassified, so #22 is still open.
+
+## D03 high-churn measurement and remaining limitation
+
+A synthetic sequential [expiry backlog measurement](../Test-Results/unreleased/expiry-backlog-benchmark.json) ran five independently seeded waves of 5,000 expired observations and 5,000 live rate-window buckets each, using `python3 tools/expiry_benchmark.py --population 5000 --waves 5`. Each check includes the existing full rate-window scan, preparation, bounded history prune and decisions, not just cleanup; preload time is excluded. On that Linux x86-64/Python 3.11 runner, 25,000 expired records drained at at most 64 per check, with 390 fail-closed capacity decisions followed by five `new` recoveries. Reported p50/p95/p99/max were 0.682/0.866/1.093/1.324 ms per check. These measurements are not budgets, concurrent/network performance, or deployment capacity. The index is bounded by configured capacity, not idle-time cleanup. **#36 remains open:** request paths still rebuild the entire window dictionary and SQLite cleanup is transaction-wide, so full-state cleanup has not been replaced across both stores.

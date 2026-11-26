@@ -1020,6 +1020,16 @@
       "purpose": "Inject deterministic parser allocation failures and test public error propagation",
       "inputs": "synthetic JSON documents and fake signal collector",
       "outputs": "failure cleanup and error propagation regression"
+    },
+    "tools/expiry_benchmark.py": {
+      "purpose": "Measure synthetic bounded expiry backlog cleanup costs",
+      "inputs": "bounded population and waves",
+      "outputs": "sanitized runner-specific JSON measurements"
+    },
+    "tests/test_expiry_benchmark.py": {
+      "purpose": "Test expiry benchmark accounting and recovery",
+      "inputs": "synthetic backlog sizes",
+      "outputs": "bounded batch and stale-match assertions"
     }
   }
 }
