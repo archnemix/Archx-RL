@@ -27,7 +27,7 @@ int ax_platform_mutex_unlock(ax_platform_mutex *mutex) {
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
   struct in6_addr address;
   char normalized[AX_PLATFORM_IP_TEXT_MAX];
-  if (!input || !out) return -1;
+  if (!input || !out || strchr(input, '%')) return -1;
   int family = strchr(input, ':') ? AF_INET6 : AF_INET;
   if (inet_pton(family, input, &address) != 1 ||
       !inet_ntop(family, &address, normalized, sizeof normalized)) return -1;

@@ -69,7 +69,7 @@ int main(void) {
   CHECK(ax_platform_normalize_ip("127.0.0.1", ip, 9) == -1 && ip[0] == 'x');
   CHECK(ax_platform_normalize_ip("127.0.0.1", ip, sizeof ip) == 0 && strcmp(ip, "127.0.0.1") == 0);
   CHECK(ax_platform_normalize_ip("2001:0db8:0:0:0:0:0:1", ip, sizeof ip) == 0 && strcmp(ip, "2001:db8::1") == 0);
-  strcpy(ip, "unchanged");
+  memcpy(ip, "unchanged", sizeof "unchanged");
   CHECK(ax_platform_normalize_ip("fe80::1%1", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
   CHECK(ax_platform_normalize_ip("127.0.0.1:80", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
   CHECK(ax_platform_normalize_ip("example.invalid", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);

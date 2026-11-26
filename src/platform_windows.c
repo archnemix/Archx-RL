@@ -45,7 +45,7 @@ int ax_platform_random(void *out, size_t len) {
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
   struct in6_addr address;
   char normalized[AX_PLATFORM_IP_TEXT_MAX];
-  if (!input || !out) return -1;
+  if (!input || !out || strchr(input, '%')) return -1;
   int family = strchr(input, ':') ? AF_INET6 : AF_INET;
   if (InetPtonA(family, input, &address) != 1 ||
       !InetNtopA(family, &address, normalized, (DWORD)sizeof normalized)) return -1;
