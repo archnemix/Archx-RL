@@ -1,0 +1,4 @@
+Synthetic Linux local regression, 2026-11-22
+Commands: python3 tests/test_sqlite_engine.py; python3 tests/test_observation_index.py
+Result: 30 SQLite and shared-scenario tests passed; 9 observation-index tests passed.
+Tests include fixed-clock duplicate refresh, saturation/no charge and recovery, malformed peer precharge, and the explicitly different over-64 expiry-backlog behavior. No real identifiers used.

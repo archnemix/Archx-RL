@@ -259,6 +259,58 @@ class PersistentTests(unittest.TestCase):
         e=self.engine(max_requests=2); data={'signals':{'machine_id':synthetic_signal('machine_id','victim')}}
         for ip in ('192.0.2.1','192.0.2.2'): self.assertEqual(e.check(data,ip)['decision'],'allow')
         self.assertEqual(e.check(data,'198.51.100.1')['decision'],'rate_limited')
+    def test_shared_capacity_denial_does_not_charge_and_retry(self):
+        p=policy(override={'max_requests':2,'window_seconds':60})
+        memory=Engine(p,secret=SECRET,clock=lambda:self.now[0],max_entries=2)
+        db=SQLiteEngine(self.path,p,SECRET,clock=lambda:self.now[0],max_entries=2)
+        engines=(memory,db)
+        def both(payload, peer):
+            results=[engine.check(payload,peer) for engine in engines]
+            self.assertEqual(results[0],results[1])
+            return results[0]
+        payload=req()
+        self.assertEqual(both(payload,'192.0.2.1')['decision'],'allow')
+        blocked=both(payload,'192.0.2.2')
+        self.assertEqual((blocked['decision'],blocked['retry_after_seconds']),('capacity_exceeded',60))
+        # The denied new peer must not charge the already existing machine key.
+        self.assertEqual(both(payload,'192.0.2.1')['decision'],'allow')
+        limited=both(payload,'192.0.2.1')
+        self.assertEqual((limited['decision'],limited['retry_after_seconds']),('rate_limited',60))
+        self.now[0]+=60
+        self.assertEqual(both(payload,'192.0.2.1')['decision'],'allow')
+
+    def test_shared_malformed_precharge_contract(self):
+        p=policy(override={'max_requests':1,'window_seconds':60})
+        memory=Engine(p,secret=SECRET,clock=lambda:self.now[0])
+        db=SQLiteEngine(self.path,p,SECRET,clock=lambda:self.now[0])
+        for engine in (memory,db): self.assertIsNone(engine.reject_malformed('192.0.2.1'))
+        results=[engine.check(req(),'192.0.2.1') for engine in (memory,db)]
+        self.assertEqual(results[0],results[1])
+        self.assertEqual((results[0]['decision'],results[0]['retry_after_seconds']),('rate_limited',60))
+        self.now[0]+=60
+        for engine in (memory,db): self.assertIsNone(engine.reject_malformed('192.0.2.1'))
+        # The service has already charged the peer; do not double-charge it.
+        results=[engine.check(req(),'192.0.2.1',_ip_precharged=True) for engine in (memory,db)]
+        self.assertEqual(results[0],results[1])
+        self.assertEqual(results[0]['decision'],'allow')
+
+    def test_intentional_bounded_history_cleanup_difference(self):
+        p=policy(override={'max_requests':1000,'window_seconds':60,'history_seconds':60})
+        memory=Engine(p,secret=SECRET,clock=lambda:self.now[0],max_entries=200)
+        db=SQLiteEngine(self.path,p,SECRET,clock=lambda:self.now[0],max_entries=200)
+        for i in range(70):
+            data={'signals':{'machine_id':synthetic_signal('machine_id',str(i))}}
+            for engine in (memory,db): self.assertEqual(engine.check(data,'192.0.2.1')['decision'],'allow')
+        self.now[0]+=60
+        data={'signals':{'machine_id':synthetic_signal('machine_id','after-expiry')}}
+        a=memory.check(data,'192.0.2.1');b=db.check(data,'192.0.2.1')
+        self.assertEqual((a['decision'],a['retry_after_seconds']),('capacity_exceeded',1))
+        self.assertEqual((b['decision'],b['relation']),('allow','new'))
+        self.assertEqual(len(memory.observations),6)
+        # A later pass drains the remaining six and must not match expired entries.
+        a=memory.check(data,'192.0.2.1')
+        self.assertEqual((a['decision'],a['relation']),('allow','new'))
+
     def test_memory_and_database_modelled_history_and_capacity_agree(self):
         rng = random.Random(223711)
         p = policy('standard', override={'max_requests':10000, 'history_seconds':60, 'window_seconds':3})

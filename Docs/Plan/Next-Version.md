@@ -87,3 +87,7 @@ Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A0
 ## D02 duplicate refresh scenario
 
 `tests/test_sqlite_engine.py::PersistentTests.test_duplicate_refresh_and_expiry_parity_with_memory` drives memory and SQLite through the same synthetic duplicate and expiry timeline. Both preserve one snapshot, refresh its expiry, match after the original expiry, and report a new observation after the refreshed expiry. Existing randomized index and concurrent duplicate tests cover additional in-memory behavior. This supports the narrow #35 acceptance but does not establish all of the broader B04 contract or release gates; #35 remains open until GitHub issue-write access is restored and evidence can be attached.
+
+## B04 engine contract
+
+[Engine-Contract.md](Engine-Contract.md) specifies duplicates, expiry, capacity, charging and retries for direct engine and service calls, and explicitly documents the bounded-memory/SQLite cleanup difference and storage limitations. `tests/test_sqlite_engine.py` now tests shared saturation/no-charge recovery, peer precharge, duplicate expiry and intentional cleanup divergence, alongside its seeded 450-step parity test. The stated #20 contract/testing scope is addressed; GitHub issue evidence and closure remain blocked by issue-write permissions. This does not complete the broader operational release gates or prove universal backend parity.

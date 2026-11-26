@@ -965,6 +965,11 @@
       "purpose": "Select compiler-appropriate static thread-local storage for internal C state",
       "inputs": "compiler C11 or MSVC thread-local support",
       "outputs": "AX_THREAD_LOCAL declaration macro"
+    },
+    "Docs/Plan/Engine-Contract.md": {
+      "purpose": "Define memory and SQLite request-engine behavior and explicit differences",
+      "inputs": "engine implementations and shared synthetic tests",
+      "outputs": "bounded prototype behavior contract and limitations"
     }
   }
 }
