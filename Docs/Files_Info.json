@@ -1160,6 +1160,16 @@
       "purpose": "Test prototype challenge progression and privileged peer-window recovery",
       "inputs": "synthetic memory/SQLite data and mocked host authorization/audit",
       "outputs": "authorization, heap, policy, reset and failure assertions"
+    },
+    "demo/retention.py": {
+      "purpose": "Explicit prototype single-host retention plan for expired data, recognized legacy tables, backup names and passive WAL checkpoints",
+      "inputs": "operator-selected store, optional retired legacy and trusted private backup directory",
+      "outputs": "bounded logical cleanup and checkpoint counts; no physical-erasure guarantee"
+    },
+    "tests/test_retention.py": {
+      "purpose": "Test opt-in idle retention and logical versus physical deletion limitations",
+      "inputs": "synthetic temporary SQLite, replay and backup files",
+      "outputs": "bounded expiry, explicit legacy deletion, backup selection and pinned WAL assertions"
     }
   }
 }

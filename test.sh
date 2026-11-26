@@ -48,6 +48,7 @@ python3 tests/test_traffic_matrix.py
 python3 tests/test_expiry_benchmark.py
 python3 tests/test_expiry_cleanup.py
 python3 tests/test_idle_cleanup.py
+python3 tests/test_retention.py
 python3 tests/test_contention_benchmark.py
 python3 tests/test_boundaries.py
 python3 tests/test_sqlite_engine.py

@@ -6,6 +6,7 @@ may race the original request. SQLite coordinates only processes using one DB.
 import hashlib
 import hmac
 import ipaddress
+import math
 import re
 import secrets
 import sqlite3
@@ -53,6 +54,23 @@ class MemoryReplay:
 
     def _prune(self, now):
         self.pending = {key:value for key,value in self.pending.items() if value[1] > now}
+
+    def cleanup_expired(self):
+        """Delete at most 64 expired challenges; scan is bounded by capacity."""
+        with self.lock:
+            now = self.clock()
+            if type(now) not in (int,float) or not math.isfinite(now):
+                raise ValueError('Invalid maintenance clock')
+            expired = []
+            pending = False
+            for key, (_, expires) in self.pending.items():
+                if expires <= now:
+                    if len(expired) == 64:
+                        pending = True
+                        break
+                    expired.append(key)
+            for key in expired: del self.pending[key]
+            return {'challenges_pending':pending}
 
     def issue(self, peer):
         peer_key = self._peer(peer)
@@ -110,6 +128,27 @@ class SQLiteReplay(MemoryReplay):
                     con.execute('INSERT INTO meta(name, value) VALUES(?,?)', (REPLAY_MARKER, '1'))
                 con.commit()
             except Exception:
+                con.rollback()
+                raise
+            finally:
+                con.close()
+        except sqlite3.Error as exc:
+            raise ReplayUnavailable('Challenge storage unavailable') from exc
+
+    def cleanup_expired(self):
+        """Delete one indexed, bounded batch, propagating storage failure."""
+        try:
+            con = self.engine.connect()
+            try:
+                con.execute('BEGIN IMMEDIATE')
+                now = self.clock()
+                if type(now) not in (int,float) or not math.isfinite(now):
+                    raise ValueError('Invalid maintenance clock')
+                con.execute('DELETE FROM replay_challenges_v1 WHERE token IN (SELECT token FROM replay_challenges_v1 WHERE expires <= ? ORDER BY expires LIMIT 64)', (now,))
+                pending=con.execute('SELECT 1 FROM replay_challenges_v1 WHERE expires <= ? LIMIT 1',(now,)).fetchone() is not None
+                con.commit()
+                return {'challenges_pending':pending}
+            except BaseException:
                 con.rollback()
                 raise
             finally:

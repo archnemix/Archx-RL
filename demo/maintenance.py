@@ -1,7 +1,8 @@
 """Opt-in process-local prototype idle cleanup; not a deployment scheduler.
 
-The host owns lifecycle, monitoring and retries. Backups/WAL/legacy and replay
-state are outside this worker. A blocked SQLite call cannot be cancelled here.
+The host owns lifecycle, monitoring and retries. A direct engine worker only
+cleans engine state; an explicitly configured RetentionPlan may add other
+operations. A blocked SQLite call cannot be cancelled here.
 """
 import math
 import threading
