@@ -45,8 +45,8 @@ class NativeSurveyTests(unittest.TestCase):
             return subprocess.run([sys.executable,str(ROOT/'tools/permission_survey/validate_native.py'),expected,str(path)], capture_output=True,text=True)
 
     def test_fixed_native_schema_and_privacy(self):
-        samples=[('windows',{'schema_version':1,'platform':'windows','architecture':'x86_64','privilege':'not_elevated',
-                 'firmware':'ok','signals':{'product_uuid':'present','system_serial':'placeholder','board_serial':'ambiguous','machine_guid_metadata':'string_type_only'}}),
+        samples=[('windows',{'schema_version':2,'platform':'windows','architecture':'x86_64','privilege':'not_elevated',
+                 'admin_enabled':'no','firmware':'ok','signals':{'product_uuid':'present','system_serial':'placeholder','board_serial':'ambiguous','machine_guid_metadata':'string_type_only'}}),
                  ('macos',{'schema_version':1,'platform':'macos','architecture':'arm64','privilege':'nonroot',
                  'platform_service':'found','signals':{'platform_uuid_property':'string_type_only','platform_serial_property':'unavailable_or_denied'}})]
         for system, sample in samples:
@@ -63,10 +63,19 @@ class NativeSurveyTests(unittest.TestCase):
                 result=self.invoke(system,json.dumps(sample));self.assertNotEqual(result.returncode,0)
                 self.assertNotIn('PRIVATE_MARKER',result.stdout+result.stderr)
 
+    def test_standard_token_must_not_be_elevated_or_admin_enabled(self):
+        sample={'schema_version':2,'platform':'windows','architecture':'x86_64','privilege':'not_elevated',
+                'admin_enabled':'no','firmware':'ok','signals':{'product_uuid':'present','system_serial':'present',
+                'board_serial':'present','machine_guid_metadata':'string_type_only'}}
+        self.assertEqual(self.invoke('windows-standard',json.dumps(sample)).returncode,0)
+        for field, value in [('privilege','elevated'),('privilege','unknown'),('admin_enabled','yes'),('admin_enabled','unknown')]:
+            modified=dict(sample, **{field:value})
+            self.assertNotEqual(self.invoke('windows-standard',json.dumps(modified)).returncode,0)
+
     def test_duplicate_fields_and_inconsistent_status_rejected(self):
         result=self.invoke('macos','{"platform":"macos","platform":"PRIVATE_MARKER"}')
         self.assertNotEqual(result.returncode,0);self.assertNotIn('PRIVATE_MARKER',result.stdout+result.stderr)
-        sample={'schema_version':1,'platform':'windows','architecture':'x86_64','privilege':'unknown','firmware':'read_error',
+        sample={'schema_version':2,'platform':'windows','architecture':'x86_64','privilege':'unknown','admin_enabled':'unknown','firmware':'read_error',
                 'signals':{'product_uuid':'present','system_serial':'not_checked','board_serial':'not_checked','machine_guid_metadata':'absent'}}
         self.assertNotEqual(self.invoke('windows',json.dumps(sample)).returncode,0)
         result=self.invoke('macos','x'*5000+'PRIVATE_MARKER')

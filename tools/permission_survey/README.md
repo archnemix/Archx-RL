@@ -31,3 +31,19 @@ are not Windows 11 client systems, physical devices, sandboxed/notarized or App
 Store distributions, or evidence for arbitrary privilege levels. API success
 never establishes stability, uniqueness, consent, authorization, or suitability.
 See the platform research documents for open policy and native-support work.
+
+
+### Standard-user Windows check
+
+On GitHub-hosted Windows push jobs only, a helper creates a randomly named,
+expiring local account in the built-in Users group, verifies it is not a direct
+Administrators member, and executes the survey with a clean environment. The
+child reports token elevation and whether the Administrators SID is enabled;
+the validator rejects elevated or unknown tokens for this check. Passwords are
+random, held in process memory, never printed, placed in environment variables,
+or passed as command arguments. The helper attempts to remove the account and
+restricted executable directory in a finally block; runner disposal is the
+last cleanup boundary if interrupted. This operation modifies only the
+**disposable hosted** machine, never self-hosted or PR runners. A single local
+account and enabled-SID check cannot establish every group's privilege,
+client-OS policy or physical-device behavior.

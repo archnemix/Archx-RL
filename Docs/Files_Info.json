@@ -955,6 +955,11 @@
       "purpose": "Build standalone native availability survey",
       "inputs": "platform compiler and APIs",
       "outputs": "survey executable"
+    },
+    "tools/permission_survey/windows_standard_user.ps1": {
+      "purpose": "Run Windows survey as an ephemeral standard local user on a disposable GitHub runner",
+      "inputs": "native survey executable and hosted runner",
+      "outputs": "validated availability categories and cleanup"
     }
   }
 }

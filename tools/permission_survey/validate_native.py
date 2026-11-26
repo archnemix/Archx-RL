@@ -28,18 +28,24 @@ def validate(raw, expected, version='unknown'):
     if len(raw) > 4096:
         raise ValueError('oversize')
     data = json.loads(raw, object_pairs_hook=unique_pairs)
-    if type(data) is not dict or type(data.get('schema_version')) is not int or data['schema_version'] != 1:
+    platform_name = 'windows' if expected == 'windows-standard' else expected
+    version_expected = 2 if platform_name == 'windows' else 1
+    if type(data) is not dict or type(data.get('schema_version')) is not int or data['schema_version'] != version_expected:
         raise ValueError('schema')
-    if data.get('platform') != expected or data.get('architecture') not in ARCHES:
+    if data.get('platform') != platform_name or data.get('architecture') not in ARCHES:
         raise ValueError('platform')
     if type(data.get('signals')) is not dict:
         raise ValueError('signals')
     signals = data['signals']
-    if expected == 'windows':
-        if set(data) != {'schema_version','platform','architecture','privilege','firmware','signals'}:
+    if expected in {'windows', 'windows-standard'}:
+        if set(data) != {'schema_version','platform','architecture','privilege','admin_enabled','firmware','signals'}:
             raise ValueError('fields')
         if data['privilege'] not in {'elevated','not_elevated','unknown'} or data['firmware'] not in {'ok','permission_denied','unsupported','read_error'}:
             raise ValueError('state')
+        if data['admin_enabled'] not in {'yes','no','unknown'}:
+            raise ValueError('admin')
+        if expected == 'windows-standard' and (data['privilege'] != 'not_elevated' or data['admin_enabled'] != 'no'):
+            raise ValueError('standard token')
         if set(signals) != {'product_uuid','system_serial','board_serial','machine_guid_metadata'}:
             raise ValueError('fields')
         if signals['machine_guid_metadata'] not in {'string_type_only','absent','permission_denied','unexpected_type','read_error'}:
@@ -67,7 +73,7 @@ def validate(raw, expected, version='unknown'):
 
 def main():
     try:
-        if len(sys.argv) != 3 or sys.argv[1] not in {'windows','macos'}:
+        if len(sys.argv) != 3 or sys.argv[1] not in {'windows','windows-standard','macos'}:
             raise ValueError('arguments')
         with Path(sys.argv[2]).open('rb') as f:
             raw = f.read(4097)

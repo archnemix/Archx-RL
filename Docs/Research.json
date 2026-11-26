@@ -223,5 +223,13 @@
       "https://developer.apple.com/documentation/iokit/1514535-ioservicegetmatchingservice",
       "https://developer.apple.com/app-store/user-privacy-and-data-use/"
     ]
+  },
+  "windows_standard_user_survey": {
+    "summary": "A disposable local standard account with an unprivileged process can test runner-specific access. Token elevation and enabled Administrators SID are checked separately; account creation and process execution do not establish general Windows 11 or production behavior.",
+    "urls": [
+      "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.localaccounts/new-localuser?view=powershell-5.1",
+      "https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.processstartinfo.password?view=net-9.0",
+      "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-checktokenmembership"
+    ]
   }
 }

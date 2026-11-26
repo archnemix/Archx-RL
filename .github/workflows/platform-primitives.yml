@@ -62,6 +62,10 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Survey validation failed' }
             Write-Output "::notice title=Native availability::$result"
           } finally { Remove-Item $raw -ErrorAction SilentlyContinue }
+      - name: Survey disposable Windows standard user (sanitized categories only)
+        if: github.event_name == 'push' && runner.os == 'Windows' && runner.environment == 'github-hosted'
+        shell: pwsh
+        run: ./tools/permission_survey/windows_standard_user.ps1
       - name: Survey macOS runner (sanitized categories only)
         if: github.event_name == 'push' && runner.os == 'macOS'
         shell: bash

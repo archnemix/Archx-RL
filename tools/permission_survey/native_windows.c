@@ -47,6 +47,15 @@ static const char *privilege(void) {
   CloseHandle(token);
   return !ok ? "unknown" : elevation.TokenIsElevated ? "elevated" : "not_elevated";
 }
+/* Reports enabled Administrators SID only, not account identity or all privileges. */
+static const char *admin_enabled(void) {
+  BYTE sid[SECURITY_MAX_SID_SIZE];
+  DWORD size = sizeof sid;
+  BOOL member = FALSE;
+  if (!CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, sid, &size) ||
+      !CheckTokenMembership(NULL, sid, &member)) return "unknown";
+  return member ? "yes" : "no";
+}
 static const char *architecture(void) {
   SYSTEM_INFO info;
   GetNativeSystemInfo(&info);
@@ -63,11 +72,11 @@ int main(void) {
   const char *uuid = status == AX_WINDOWS_FIRMWARE_OK ? signal_status(data.uuid_status) : "not_checked";
   const char *serial = status == AX_WINDOWS_FIRMWARE_OK ? signal_status(data.serial_status) : "not_checked";
   const char *board = status == AX_WINDOWS_FIRMWARE_OK ? signal_status(data.board_serial_status) : "not_checked";
-  printf("{\"schema_version\":1,\"platform\":\"windows\",\"architecture\":\"%s\","
-         "\"privilege\":\"%s\",\"firmware\":\"%s\",\"signals\":{"
+  printf("{\"schema_version\":2,\"platform\":\"windows\",\"architecture\":\"%s\","
+         "\"privilege\":\"%s\",\"admin_enabled\":\"%s\",\"firmware\":\"%s\",\"signals\":{"
          "\"product_uuid\":\"%s\",\"system_serial\":\"%s\",\"board_serial\":\"%s\","
          "\"machine_guid_metadata\":\"%s\"}}\n",
-         architecture(), privilege(), firmware_status(status), uuid, serial, board, registry_metadata());
+         architecture(), privilege(), admin_enabled(), firmware_status(status), uuid, serial, board, registry_metadata());
   SecureZeroMemory(&data, sizeof data);
   return 0;
 }
