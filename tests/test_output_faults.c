@@ -60,11 +60,12 @@ static ax_result call_output(int kind, ax_core *core, const char *profile, size_
     case 0: return ax_collect(core, out, NULL);
     case 1: case 4: return ax_identify(core, out, NULL);
     case 2: return ax_profile(core, out, NULL);
+    case 5: return ax_collect_capabilities(core, out, NULL);
     default: return ax_compare(core, profile, len, profile, len, out, NULL);
   }
 }
 static void check_format_faults(ax_core *core, const char *profile, size_t profile_len) {
-  for (int kind=0; kind<5; kind++) {
+  for (int kind=0; kind<6; kind++) {
     fake_no_signals = kind == 4;
     char *out = NULL; format_calls = 0; fail_format_at = 0;
     assert(call_output(kind, core, profile, profile_len, &out) == AX_OK);
@@ -116,6 +117,8 @@ int main(void) {
   ax_core *core = ax_core_new(config, strlen(config)); assert(core);
   fail_output_allocation = 1;
   ax_result rc = ax_collect(core, &out, &out_len); require_oom(rc, out);
+  fail_output_allocation = 1;
+  rc = ax_collect_capabilities(core, &out, &out_len); require_oom(rc, out);
   fail_canonical = 1;
   rc = ax_identify(core, &out, &out_len);
   assert(rc == AX_ERR_INTERNAL && out == NULL && strstr(ax_last_error(), "canonicalization failed"));

@@ -4,6 +4,17 @@ import sodium from 'libsodium-wrappers';
 const MAX_RESPONSE = 8192;
 const PREFIX = 'archx-sealed-check-v2\0';
 
+/** Capability metadata only: this browser client does not collect native IDs. */
+export function capabilities() {
+  return {schema:'archx.capabilities', version:1, platform:'browser', signals:{
+    machine_id:{kind:'os_install', status:'unsupported'},
+    product_uuid:{kind:'firmware', status:'unsupported'},
+    board_serial:{kind:'firmware', status:'unsupported'},
+    app_install:{kind:'app_install', status:'not_collected'},
+    ip:{kind:'network', status:'host_provided'},
+  }};
+}
+
 function requireSecureOrigin() {
   const url = new URL(globalThis.location.href);
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);

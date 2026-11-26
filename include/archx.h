@@ -73,6 +73,13 @@ void     ax_core_free(ax_core *core);
  */
 ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len);
 
+/* Optional ABI-v1 extension (check symbol availability on older libraries).
+ * Returns versioned capability/status metadata only, never raw signal values.
+ * Collected statuses describe this snapshot, not identity or authentication.
+ * Host-supplied network evidence and an uncollected app fallback are marked
+ * separately. Free *out_json with ax_buffer_free(). */
+ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *out_len);
+
 /*
  * Build the device identity: collect signals, normalize, HMAC-SHA256 them
  * app-scoped, and return:

@@ -62,6 +62,14 @@ class Core {
     }
   }
   collect() { return this.result('collect'); }
+  capabilities() {
+    this.requireOpen();
+    if (!this.fn.capabilities) {
+      try { this.fn.capabilities = this.lib.func('int ax_collect_capabilities(void *core, _Out_ void **json, _Out_ size_t *len)'); }
+      catch (_) { throw new ArchxError('Capability extension unavailable in this library'); }
+    }
+    return this.result('capabilities');
+  }
   identify() { return this.result('identify'); }
   profile(ip = null) { return this.result('profile', ip === null ? null : text(ip, 'ip')); }
   compare(baseline, current) {

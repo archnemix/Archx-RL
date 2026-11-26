@@ -7,11 +7,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef enum {
+  AX_SIGNAL_UNKNOWN = 0,
+  AX_SIGNAL_AVAILABLE,
+  AX_SIGNAL_ABSENT,
+  AX_SIGNAL_DENIED,
+  AX_SIGNAL_PLACEHOLDER,
+  AX_SIGNAL_INVALID,
+  AX_SIGNAL_READ_ERROR,
+  AX_SIGNAL_UNSUPPORTED
+} ax_signal_status;
+
 typedef struct {
   char name[32];
   char value[256];   /* normalized (trimmed, lowercased) */
   int  weight;       /* availability weight when readable */
   int  readable;     /* 1 if a value is available for canonicalization */
+  ax_signal_status status; /* internal capability status; no raw data in reports */
 } ax_signal;
 
 #define AX_MAX_SIGNALS 8

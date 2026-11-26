@@ -13,8 +13,8 @@
 
 static const unsigned char *input;
 static size_t input_len, input_pos, read_chunk;
-static int injected_read_error, injected_close_error, interrupt_once;
-static const char *source_machine, *source_fallback, *source_uuid, *source_board;
+static int injected_read_error, injected_close_error, injected_open_error, interrupt_once;
+static const char *source_machine, *source_fallback, *source_uuid, *source_board, *denied_path;
 static int fake_open(const char *path, int flags, ...);
 static ssize_t fake_read(int fd, void *buf, size_t len);
 static int fake_close(int fd);
@@ -31,6 +31,8 @@ static int fake_uname(struct utsname *uts);
 
 static int fake_open(const char *path, int flags, ...) {
   (void)flags;
+  if (injected_open_error) { errno=injected_open_error; return -1; }
+  if (denied_path && !strcmp(path, denied_path)) { errno=EACCES; return -1; }
   const char *text = NULL;
   if (!strcmp(path,"/etc/machine-id")) text=source_machine;
   else if (!strcmp(path,"/var/lib/dbus/machine-id")) text=source_fallback;
@@ -58,16 +60,16 @@ int main(void) {
   char out[256];
   const char good[]="  AbCd-1234  \r\nignored";
   fixture((const unsigned char *)good,strlen(good)); read_chunk=1; interrupt_once=1;
-  assert(read_first_line("synthetic",out,sizeof out) && !strcmp(out,"abcd-1234"));
+  assert(read_first_line("synthetic",out,sizeof out) == AX_SIGNAL_AVAILABLE && !strcmp(out,"abcd-1234"));
   const unsigned char embedded[]={'a','b','c','d',0,'e','f','\n'};
-  fixture(embedded,sizeof embedded); assert(!read_first_line("synthetic",out,sizeof out) && !out[0]);
+  fixture(embedded,sizeof embedded); assert(read_first_line("synthetic",out,sizeof out) == AX_SIGNAL_INVALID && !out[0]);
   unsigned char big[600]; memset(big,'a',sizeof big);
-  fixture(big,sizeof big); read_chunk=0; assert(!read_first_line("synthetic",out,sizeof out) && !out[0]);
+  fixture(big,sizeof big); read_chunk=0; assert(read_first_line("synthetic",out,sizeof out) == AX_SIGNAL_INVALID && !out[0]);
   fixture((const unsigned char *)good,strlen(good)); injected_read_error=1;
-  assert(!read_first_line("synthetic",out,sizeof out) && !out[0]); injected_read_error=0;
+  assert(read_first_line("synthetic",out,sizeof out) == AX_SIGNAL_READ_ERROR && !out[0]); injected_read_error=0;
   fixture((const unsigned char *)good,strlen(good)); injected_close_error=1;
-  assert(!read_first_line("synthetic",out,sizeof out) && !out[0]); injected_close_error=0;
-  assert(!read_first_line("synthetic",out,0)); assert(!read_first_line("synthetic",NULL,0));
+  assert(read_first_line("synthetic",out,sizeof out) == AX_SIGNAL_READ_ERROR && !out[0]); injected_close_error=0;
+  assert(read_first_line("synthetic",out,0) == AX_SIGNAL_INVALID); assert(read_first_line("synthetic",NULL,0) == AX_SIGNAL_INVALID);
   assert(valid_machine_id("abcdef0123456789abcdef0123456789"));
   assert(!valid_machine_id("abcdef0123456789abcdef012345678g"));
   assert(!valid_machine_id("00000000000000000000000000000000"));
@@ -92,10 +94,28 @@ int main(void) {
   assert(ax_signals_collect_linux_selected(&set,7)==0 && set.signal_count==3);
   assert(set.signals[0].readable && !strcmp(set.signals[0].value,"abcdef0123456789abcdef0123456789"));
   assert(set.signals[1].readable && !strcmp(set.signals[1].value,"00112233-4455-6677-8899-aabbccddeeff"));
-  assert(!set.signals[2].readable && !set.signals[2].value[0]);
+  assert(set.signals[0].status == AX_SIGNAL_AVAILABLE && set.signals[1].status == AX_SIGNAL_AVAILABLE);
+  assert(!set.signals[2].readable && !set.signals[2].value[0] && set.signals[2].status == AX_SIGNAL_PLACEHOLDER);
+  denied_path="/etc/machine-id";
+  assert(ax_signals_collect_linux_selected(&set,1)==0);
+  assert(set.signals[0].status==AX_SIGNAL_AVAILABLE && set.signals[0].readable); /* valid fallback */
+  source_fallback=NULL;
+  assert(ax_signals_collect_linux_selected(&set,1)==0);
+  assert(set.signals[0].status==AX_SIGNAL_DENIED && !set.signals[0].value[0]);
+  denied_path=NULL; source_fallback="ABCDEF0123456789ABCDEF0123456789\n";
+  injected_open_error=EACCES;
+  assert(ax_signals_collect_linux_selected(&set,7)==0);
+  for (size_t i=0; i<3; i++) assert(set.signals[i].status==AX_SIGNAL_DENIED && !set.signals[i].value[0]);
+  injected_open_error=0; injected_read_error=1;
+  assert(ax_signals_collect_linux_selected(&set,7)==0);
+  for (size_t i=0; i<3; i++) assert(set.signals[i].status==AX_SIGNAL_READ_ERROR && !set.signals[i].value[0]);
+  injected_read_error=0;
+  source_machine=NULL; source_fallback=NULL; source_uuid=NULL; source_board=NULL;
+  assert(ax_signals_collect_linux_selected(&set,7)==0);
+  for (size_t i=0; i<3; i++) assert(set.signals[i].status==AX_SIGNAL_ABSENT && !set.signals[i].value[0]);
   source_machine="bad"; source_fallback=NULL; source_uuid="not-a-uuid"; source_board="bad\xc3\xa9value";
   assert(ax_signals_collect_linux_selected(&set,7)==0 && set.signal_count==3);
-  for (size_t i=0; i<3; i++) assert(!set.signals[i].readable && !set.signals[i].value[0]);
+  for (size_t i=0; i<3; i++) assert(!set.signals[i].readable && !set.signals[i].value[0] && set.signals[i].status==AX_SIGNAL_INVALID);
   puts("synthetic Linux signal normalization fixtures passed");
   return 0;
 }

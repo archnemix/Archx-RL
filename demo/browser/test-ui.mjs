@@ -27,6 +27,14 @@ try {
     if (new URL(request.url()).hostname==='challenges.cloudflare.com') errors.push('Unexpected external widget request');
   });
   await page.goto(origin+'/browser-test',{waitUntil:'load'});
+  const caps = await page.evaluate(async () => (await import('/browser-client.mjs')).capabilities());
+  assert.equal(caps.schema,'archx.capabilities');
+  assert.equal(caps.version,1);
+  assert.equal(caps.platform,'browser');
+  assert.equal(caps.signals.machine_id.status,'unsupported');
+  assert.equal(caps.signals.product_uuid.status,'unsupported');
+  assert.equal(caps.signals.app_install.status,'not_collected');
+  assert.equal(caps.signals.ip.status,'host_provided');
   await page.locator('#public-key').fill(publicKey);
   await page.locator('#check').waitFor({state:'visible'});
   await page.waitForFunction(()=>!document.querySelector('#check').disabled);

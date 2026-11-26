@@ -325,6 +325,52 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
   return emit_json(buf, sizeof buf, out_json, out_len);
 }
 
+/* Versioned metadata, intentionally separate from the ABI-v1 collect shape.
+ * Never serialize ax_signal.value: it contains sensitive raw local input. */
+static const char *capability_status(const ax_signal_set *set, const char *name) {
+  if (set->signal_count > AX_MAX_SIGNALS) return "unknown";
+  for (size_t i = 0; i < set->signal_count; i++) {
+    const ax_signal *signal = &set->signals[i];
+    if (!memchr(signal->name, '\0', sizeof signal->name) || strcmp(signal->name, name)) continue;
+    if ((signal->status == AX_SIGNAL_AVAILABLE) != (signal->readable != 0)) return "unknown";
+    switch (signal->status) {
+      case AX_SIGNAL_AVAILABLE: return "available";
+      case AX_SIGNAL_ABSENT: return "absent";
+      case AX_SIGNAL_DENIED: return "denied";
+      case AX_SIGNAL_PLACEHOLDER: return "placeholder";
+      case AX_SIGNAL_INVALID: return "invalid";
+      case AX_SIGNAL_READ_ERROR: return "read_error";
+      case AX_SIGNAL_UNSUPPORTED: return "unsupported";
+      default: return "unknown";
+    }
+  }
+  return "unknown";
+}
+
+ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *out_len) {
+  tls_error[0] = '\0';
+  if (!core || !out_json) { set_error("ax_collect_capabilities: invalid arguments"); return AX_ERR_INVALID; }
+  *out_json = NULL;
+  ax_signal_set set;
+  if (ax_signals_collect_linux(&set) != 0) {
+    set_error("ax_collect_capabilities: signal collection failed"); return AX_ERR_INTERNAL;
+  }
+  char buf[1024];
+  int n = snprintf(buf, sizeof buf,
+    "{\"schema\":\"archx.capabilities\",\"version\":1,\"platform\":\"linux\",\"signals\":{"
+    "\"machine_id\":{\"kind\":\"os_install\",\"status\":\"%s\"},"
+    "\"product_uuid\":{\"kind\":\"firmware\",\"status\":\"%s\"},"
+    "\"board_serial\":{\"kind\":\"firmware\",\"status\":\"%s\"},"
+    "\"app_install\":{\"kind\":\"app_install\",\"status\":\"not_collected\"},"
+    "\"ip\":{\"kind\":\"network\",\"status\":\"host_provided\"}}}",
+    capability_status(&set, "machine_id"), capability_status(&set, "product_uuid"),
+    capability_status(&set, "board_serial"));
+  if (n < 0 || (size_t)n >= sizeof buf) {
+    set_error("ax_collect_capabilities: output too long"); return AX_ERR_INTERNAL;
+  }
+  return emit_json(buf, sizeof buf, out_json, out_len);
+}
+
 /* ------------------------------------------------------------------ */
 /* ax_identify                                                         */
 /* ------------------------------------------------------------------ */

@@ -45,6 +45,14 @@ def _load(path):
         fn = getattr(lib, name)
         fn.argtypes = (C.c_void_p, C.POINTER(C.c_void_p), C.POINTER(C.c_size_t))
         fn.restype = C.c_int
+    # Optional addition within ABI v1; older ABI-v1 libraries remain usable.
+    try:
+        capability_fn = lib.ax_collect_capabilities
+    except AttributeError:
+        capability_fn = None
+    if capability_fn is not None:
+        capability_fn.argtypes = (C.c_void_p, C.POINTER(C.c_void_p), C.POINTER(C.c_size_t))
+        capability_fn.restype = C.c_int
     lib.ax_profile_with_ip.argtypes = (C.c_void_p, C.c_char_p, C.POINTER(C.c_void_p), C.POINTER(C.c_size_t))
     lib.ax_profile_with_ip.restype = C.c_int
     lib.ax_compare.argtypes = (C.c_void_p, C.c_char_p, C.c_size_t, C.c_char_p, C.c_size_t,
@@ -108,6 +116,13 @@ class Core:
 
     def collect(self):
         return self._result('ax_collect')
+
+    def capabilities(self):
+        with self._lock:
+            self._require_open()
+            if not hasattr(self._lib, 'ax_collect_capabilities'):
+                raise ArchxError('Capability extension unavailable in this library')
+            return self._result('ax_collect_capabilities')
 
     def identify(self):
         return self._result('ax_identify')

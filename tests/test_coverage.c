@@ -8,6 +8,7 @@
 
 static unsigned mask;
 static int fallback_fails;
+static ax_signal_status fake_status;
 static void signals(ax_signal_set *out, unsigned selected) {
   static const char *const names[] = {"machine_id", "product_uuid", "board_serial"};
   static const int weights[] = {60, 25, 15};
@@ -19,6 +20,7 @@ static void signals(ax_signal_set *out, unsigned selected) {
     snprintf(sig->name, sizeof sig->name, "%s", names[i]);
     snprintf(sig->value, sizeof sig->value, "synthetic-%zu", i);
     sig->weight = weights[i]; sig->readable = (mask & (1u << i)) != 0;
+    sig->status = fake_status;
   }
 }
 int ax_signals_collect_linux(ax_signal_set *out) { signals(out, 7); return 0; }
@@ -57,7 +59,36 @@ int main(void) {
     assert(ax_json_get(doc, "coverage") == NULL); /* v1 schema is unchanged */
     ax_json_free(doc); ax_buffer_free(result);
   }
+  /* Schema statuses are metadata, never the synthetic raw signal value. */
+  static const char *const states[] = {"unknown", "available", "absent", "denied", "placeholder", "invalid", "read_error", "unsupported"};
+  for (int status=0; status<8; status++) {
+    fake_status = (ax_signal_status)status;
+    mask = status == AX_SIGNAL_AVAILABLE ? 7u : 0u;
+    char *result = NULL; size_t len = 0; ax_json_value *doc = NULL;
+    assert(ax_collect_capabilities(core, &result, &len) == AX_OK);
+    assert(!strstr(result, "synthetic-0") && !strstr(result, "synthetic-1"));
+    assert(ax_json_parse(result, len, &doc) == 0);
+    assert(!strcmp(ax_json_get_string(doc,"schema"), "archx.capabilities"));
+    assert(ax_json_get_number(doc,"version",0) == 1);
+    const ax_json_value *signals = ax_json_get_object(doc,"signals");
+    const ax_json_value *machine = ax_json_get_object(signals,"machine_id");
+    const ax_json_value *firmware = ax_json_get_object(signals,"product_uuid");
+    const ax_json_value *app = ax_json_get_object(signals,"app_install");
+    const ax_json_value *ip = ax_json_get_object(signals,"ip");
+    assert(!strcmp(ax_json_get_string(machine,"kind"), "os_install"));
+    assert(!strcmp(ax_json_get_string(machine,"status"), states[status]));
+    assert(!strcmp(ax_json_get_string(firmware,"kind"), "firmware"));
+    assert(!strcmp(ax_json_get_string(firmware,"status"), states[status]));
+    assert(!strcmp(ax_json_get_string(app,"status"), "not_collected"));
+    assert(!strcmp(ax_json_get_string(ip,"status"), "host_provided"));
+    ax_json_free(doc); ax_buffer_free(result);
+  }
+  fake_status = AX_SIGNAL_AVAILABLE; mask = 0;
+  char *inconsistent = NULL;
+  assert(ax_collect_capabilities(core, &inconsistent, NULL) == AX_OK);
+  assert(strstr(inconsistent, "\"status\":\"unknown\""));
+  ax_buffer_free(inconsistent);
   ax_core_free(core);
-  puts("synthetic ABI-v1 availability-score semantics passed");
+  puts("synthetic ABI-v1 availability-score semantics and capability statuses passed");
   return 0;
 }

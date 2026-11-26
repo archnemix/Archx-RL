@@ -31,6 +31,13 @@ class BindingTests(unittest.TestCase):
         self.assertEqual(f['profiles']['192.0.2.1']['scope'], digest('scope', 'linux'))
         self.assertEqual(f['profiles']['192.0.2.1']['signals']['ip'], digest('ip', '192.0.2.1'))
         with Core(LIB, f['config']) as core:
+            caps = core.capabilities()
+            self.assertEqual((caps['schema'], caps['version'], caps['platform']), ('archx.capabilities', 1, 'linux'))
+            self.assertEqual(caps['signals']['machine_id']['kind'], 'os_install')
+            self.assertEqual(caps['signals']['product_uuid']['kind'], 'firmware')
+            self.assertEqual(caps['signals']['app_install']['status'], 'not_collected')
+            self.assertEqual(caps['signals']['ip']['status'], 'host_provided')
+            self.assertTrue(all(set(value) == {'kind', 'status'} for value in caps['signals'].values()))
             a, b, missing = core.profile('192.0.2.1'), core.profile('192.0.2.2'), core.profile()
             self.assertEqual(a, f['profiles']['192.0.2.1'])
             self.assertEqual(b, f['profiles']['192.0.2.2'])
@@ -71,6 +78,7 @@ class BindingTests(unittest.TestCase):
         prior = fake.fixture_core_frees()
         core = Core(FAKE, {})
         try:
+            with self.assertRaisesRegex(ArchxError, 'extension unavailable'): core.capabilities()
             for mode, exception in ((1, ValueError), (2, ArchxError), (3, ArchxError), (4, ArchxError)):
                 fake.fixture_mode(mode)
                 with self.assertRaises(exception): core.collect()

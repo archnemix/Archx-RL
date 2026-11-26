@@ -14,6 +14,15 @@ const wrong = path.join(root, 'build/binding_wrong_abi.so');
 
 const core = new Core(real, f.config);
 try {
+  const caps = core.capabilities();
+  assert.equal(caps.schema, 'archx.capabilities');
+  assert.equal(caps.version, 1);
+  assert.equal(caps.platform, 'linux');
+  assert.equal(caps.signals.machine_id.kind, 'os_install');
+  assert.equal(caps.signals.product_uuid.kind, 'firmware');
+  assert.equal(caps.signals.app_install.status, 'not_collected');
+  assert.equal(caps.signals.ip.status, 'host_provided');
+  for (const value of Object.values(caps.signals)) assert.deepEqual(Object.keys(value).sort(), ['kind', 'status']);
   const a = core.profile('192.0.2.1'), b = core.profile('192.0.2.2'), missing = core.profile();
   assert.deepEqual(a, f.profiles['192.0.2.1']);
   assert.deepEqual(b, f.profiles['192.0.2.2']);
@@ -55,6 +64,7 @@ const frees = fakeLib.func('int fixture_core_frees(void)');
 const before = frees();
 const fake = new Core(fakePath, {});
 try {
+  assert.throws(() => fake.capabilities(), /extension unavailable/);
   for (const [m, error] of [[1, SyntaxError], [2, ArchxError], [3, ArchxError], [4, ArchxError]]) {
     mode(m);
     assert.throws(() => fake.collect(), error);

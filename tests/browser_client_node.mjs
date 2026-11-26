@@ -17,7 +17,19 @@ globalThis.fetch=async (path, options={}) => {
   if (path==='/api/v2/check') lastEnvelope=options.body;
   return nativeFetch(new URL(path,origin),options);
 };
-const {checkEncrypted}=await import(pathToFileURL(resolve('build/browser/archx-client.mjs')).href);
+const {checkEncrypted,capabilities}=await import(pathToFileURL(resolve('build/browser/archx-client.mjs')).href);
+const browserCaps = capabilities();
+assert.equal(browserCaps.schema,'archx.capabilities');
+assert.equal(browserCaps.version,1);
+assert.equal(browserCaps.platform,'browser');
+assert.deepEqual(browserCaps.signals.machine_id,{kind:'os_install',status:'unsupported'});
+assert.deepEqual(browserCaps.signals.product_uuid,{kind:'firmware',status:'unsupported'});
+assert.deepEqual(browserCaps.signals.board_serial,{kind:'firmware',status:'unsupported'});
+assert.deepEqual(browserCaps.signals.app_install,{kind:'app_install',status:'not_collected'});
+assert.deepEqual(browserCaps.signals.ip,{kind:'network',status:'host_provided'});
+browserCaps.signals.machine_id.status='tampered';
+assert.equal(capabilities().signals.machine_id.status,'unsupported');
+assert.equal(networkRequests,0); // capability metadata needs no request or identifier collection
 const signal='123456789abcdef0123456789abcdef0'; // synthetic fixture
 const result=await checkEncrypted({publicKey,signals:{machine_id:signal},turnstileToken:'synthetic-token'});
 assert.equal(result.status,200);

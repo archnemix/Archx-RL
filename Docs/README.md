@@ -6,4 +6,4 @@ Start with [Rules](Rules.md), [Scope](Plan/Scope.md), [Architecture](Plan/Archit
 
 [Changes](Change.md) · [Changelog](Changelog.md) · [Decisions](Thinking.md) · [Flow](Logic.md) · [File index](Files_Info.json) · [Research](Research.json) · [Workarounds](Workaround.md) · [Secret names](Secrets.md) · [Test records](Test-Results/README.md)
 
-Guides: [Native core](Guides/Native-Core.md) · [Python policy service](Guides/Policy-Service.md) · [Browser protocol](Guides/Browser-Protocol.md) · [Privacy and security](Guides/Privacy-Security.md) · [Deployment status](Guides/Deployment.md).
+Guides: [Native core](Guides/Native-Core.md) · [Capability schema](Guides/Capability-Schema.md) · [Python policy service](Guides/Policy-Service.md) · [Browser protocol](Guides/Browser-Protocol.md) · [Privacy and security](Guides/Privacy-Security.md) · [Deployment status](Guides/Deployment.md).
