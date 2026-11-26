@@ -1035,6 +1035,16 @@
       "purpose": "Synthetic C store collision-chain lookup and reset timing",
       "inputs": "fixed synthetic colliding token keys",
       "outputs": "host-specific JSON timing measurements; no real identifiers"
+    },
+    "tools/contention_benchmark.py": {
+      "purpose": "Measure synthetic Python memory and SQLite serialization wait and hold times",
+      "inputs": "bounded concurrent hot-key workload",
+      "outputs": "sanitized percentile and quota-invariant report"
+    },
+    "tests/test_contention_benchmark.py": {
+      "purpose": "Check profiling and concurrent quota invariant",
+      "inputs": "synthetic memory and SQLite traffic",
+      "outputs": "serialization accounting and no-excess-admission assertions"
     }
   }
 }

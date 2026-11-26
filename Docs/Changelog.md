@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added synthetic memory-mutex and SQLite-writer contention profiling with concurrent quota checks and documented constraints for future sharding.
 - C bucket admission now probes once instead of twice; collision-chain saturation and reset tests and synthetic bounded-scan measurements document remaining costs.
 - Added a synthetic expiry-backlog measurement and accounting/recovery tests; the remaining rate-window full scan is not fixed.
 - Defensively zero-initialized the SHA schedule; GCC 12.2 no longer emits the prior uninitialized-schedule warnings, though analyzer complexity cutoffs and the historical core diagnostic remain unresolved.
