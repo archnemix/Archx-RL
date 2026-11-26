@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added optional WSGI health routes and host dependency readiness checks to the experimental admission/drain wrapper; it is not a production server.
 - Added explicitly configured prototype retention operations for expired replay, recognized retired trial tables, named backup files and passive WAL checkpoints; no physical erasure is guaranteed.
 - Added opt-in progressive IP challenges and explicitly privileged peer-window recovery for the Python prototype; the example is not a production recovery service.
 - Added a synthetic 48-case direct/loopback traffic and state benchmark matrix; timings and sampled queues are not production capacity claims.

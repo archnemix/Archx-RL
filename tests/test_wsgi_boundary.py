@@ -1,6 +1,8 @@
 """Synthetic WSGI admission and drain tests; no deployment support claim."""
 import sys
 import threading
+import http.client
+from wsgiref.simple_server import make_server
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -9,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'examples/python'))
 sys.path.insert(0, str(ROOT/'demo'))
 from boundary_wsgi import BoundaryGate
-from gated_wsgi import create_application
+from gated_wsgi import create_application, QuietHandler
 from engine import Engine, policy
 from service import RequestService
 
@@ -123,6 +125,91 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(self.invoke(gate)[0], '503 Service Unavailable')
         for value in (-1,301,float('nan'),True):
             with self.assertRaises(ValueError): gate.wait_drained(value)
+
+    def test_optional_health_startup_failure_and_dependency_transitions(self):
+        state={'ready':True}
+        for bad in (lambda:False, lambda:'yes'):
+            with self.assertRaises(ValueError):
+                BoundaryGate(self.app,max_inflight=2,requests_per_second=100,burst=20,readiness_probe=bad)
+        with self.assertRaises(ValueError):
+            BoundaryGate(self.app,max_inflight=2,requests_per_second=100,burst=20,health_routes='yes')
+        calls=[]
+        def app(env,start): calls.append('operation'); return self.app(env,start)
+        def readiness():
+            if state['ready']=='error': raise RuntimeError('private dependency failure')
+            return state['ready']
+        gate=BoundaryGate(app,max_inflight=2,requests_per_second=100,burst=20,readiness_probe=readiness,health_routes=True)
+        self.assertEqual(self.invoke(gate,'GET','/health/live')[0],'200 OK')
+        self.assertEqual(self.invoke(gate,'GET','/health/ready')[0],'200 OK')
+        self.assertEqual(self.invoke(gate,'POST','/protected')[0],'200 OK')
+        for bad in (False,'error','not-a-bool'):
+            state['ready']=bad
+            self.assertFalse(gate.is_ready())
+            self.assertEqual(self.invoke(gate,'GET','/health/live')[0],'200 OK')
+            status,body=self.invoke(gate,'GET','/health/ready')
+            self.assertEqual(status,'503 Service Unavailable'); self.assertNotIn(b'private',body)
+            self.assertEqual(self.invoke(gate,'POST','/protected')[0],'503 Service Unavailable')
+        state['ready']=True
+        self.assertTrue(gate.is_ready())
+        self.assertEqual(self.invoke(gate,'POST','/protected')[0],'200 OK')
+        self.assertEqual(calls,['operation','operation'])
+        gate.stop_accepting()
+        self.assertEqual(self.invoke(gate,'GET','/health/live')[0],'503 Service Unavailable')
+        self.assertEqual(self.invoke(gate,'POST','/protected')[0],'503 Service Unavailable')
+        self.assertTrue(gate.wait_drained(0))
+
+    def test_draining_rejects_new_requests_while_admitted_probe_finishes(self):
+        entered=threading.Event(); release=threading.Event(); calls=[]; probe_calls=[0]
+        def probe():
+            probe_calls[0]+=1
+            if probe_calls[0]>1: entered.set(); release.wait(3)
+            return True
+        def app(env,start): calls.append('admitted-before-drain'); return self.app(env,start)
+        gate=BoundaryGate(app,max_inflight=2,requests_per_second=100,burst=20,readiness_probe=probe)
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            existing=pool.submit(self.invoke,gate,'POST','/protected')
+            self.assertTrue(entered.wait(2)); gate.stop_accepting()
+            self.assertFalse(gate.wait_drained(0))
+            self.assertEqual(self.invoke(gate,'POST','/protected')[0],'503 Service Unavailable')
+            release.set(); self.assertEqual(existing.result()[0],'200 OK')
+        self.assertEqual(calls,['admitted-before-drain'])
+        self.assertTrue(gate.wait_drained(0))
+
+    def test_health_routes_share_admission_and_do_not_shadow_by_default(self):
+        gate=BoundaryGate(self.app,max_inflight=1,requests_per_second=1,burst=1,clock=lambda:100,health_routes=True)
+        self.assertEqual(self.invoke(gate,'GET','/health/live')[0],'200 OK')
+        self.assertEqual(self.invoke(gate,'GET','/health/ready')[0],'503 Service Unavailable')
+        bare=BoundaryGate(self.app,max_inflight=1,requests_per_second=100,burst=10)
+        self.assertEqual(self.invoke(bare,'GET','/health/live'),('200 OK',b'ok'))
+
+    def test_loopback_health_and_shutdown_never_run_denied_operations(self):
+        state={'ready':True}; calls=[]
+        def app(env,start): calls.append('operation'); return self.app(env,start)
+        gate=BoundaryGate(app,max_inflight=2,requests_per_second=10000,burst=100,
+                          readiness_probe=lambda:state['ready'],health_routes=True)
+        server=make_server('127.0.0.1',0,gate,handler_class=QuietHandler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
+        def request(method,path):
+            conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=3)
+            try:
+                conn.request(method,path); result=conn.getresponse(); result.read(); return result.status
+            finally: conn.close()
+        try:
+            self.assertEqual(request('GET','/health/live'),200)
+            self.assertEqual(request('GET','/health/ready'),200)
+            state['ready']=False
+            self.assertEqual(request('GET','/health/live'),200)
+            self.assertEqual(request('GET','/health/ready'),503)
+            self.assertEqual(request('POST','/protected'),503)
+            state['ready']=True
+            self.assertEqual(request('POST','/protected'),200)
+            gate.stop_accepting()
+            self.assertEqual(request('POST','/protected'),503)
+            self.assertEqual(request('GET','/health/ready'),503)
+            self.assertTrue(gate.wait_drained(0))
+            self.assertEqual(calls,['operation'])
+        finally:
+            server.shutdown(); server.server_close(); thread.join()
 
     def test_gate_wraps_host_routes_before_auth_or_protected_operation(self):
         calls=[]

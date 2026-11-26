@@ -12,3 +12,5 @@ This wrapper alone does **not** provide a supported production entrypoint: a rea
 ## Optional recovery experiment
 
 `gated_wsgi.create_application` leaves `/recovery` disabled unless the host supplies all principal, authorization, approval and audit hooks. See [Shared-IP Recovery](../../Docs/Guides/Shared-IP-Recovery.md) before considering the shared IP-window reset. The example is not a production identity, CSRF, audit or abuse-control system.
+
+Optional startup/dependency checks and admitted liveness/readiness routes are described in [Health and draining](../../Docs/Guides/Health-Drain.md). They cannot cancel stuck work or bound network-server queues.

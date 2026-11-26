@@ -46,9 +46,17 @@ class _HeldResponse:
 
 
 class BoundaryGate:
-    def __init__(self, application, *, max_inflight, requests_per_second, burst, clock=time.monotonic):
+    def __init__(self, application, *, max_inflight, requests_per_second, burst, clock=time.monotonic,
+                 readiness_probe=None, health_routes=False):
         if not callable(application) or not callable(clock):
             raise ValueError('application and clock must be callable')
+        if type(health_routes) is not bool or (readiness_probe is not None and not callable(readiness_probe)):
+            raise ValueError('invalid health configuration')
+        if readiness_probe is not None:
+            try: ready = readiness_probe() is True
+            except Exception: ready = False
+            if not ready: raise ValueError('readiness probe failed at startup')
+        self.readiness_probe, self.health_routes = readiness_probe, health_routes
         if type(max_inflight) is not int or not 1 <= max_inflight <= 1024:
             raise ValueError('max_inflight must be an integer from 1 to 1024')
         if type(burst) is not int or not 1 <= burst <= 100000:
@@ -98,10 +106,9 @@ class BoundaryGate:
             self.draining = True
             self.condition.notify_all()
 
-    def is_ready(self):
-        """Local, instantaneous admission readiness; not upstream health."""
+    def _local_ready(self, discount=0):
         with self.condition:
-            if self.draining or self.active >= self.max_inflight:
+            if self.draining or self.active-discount >= self.max_inflight:
                 return False
             try:
                 now = self.clock()
@@ -111,6 +118,15 @@ class BoundaryGate:
                 return False
             available = min(self.burst, self.tokens + max(0, now-self.last_refill)*self.rate)
             return available >= 1
+
+    def _dependency_ready(self):
+        if self.readiness_probe is None: return True
+        try: return self.readiness_probe() is True
+        except Exception: return False
+
+    def is_ready(self):
+        """Instantaneous local readiness and optional host dependency probe."""
+        return self._local_ready() and self._dependency_ready() and self._local_ready()
 
     def wait_drained(self, timeout):
         """Wait for existing calls; False means work is still running."""
@@ -126,6 +142,19 @@ class BoundaryGate:
                            ('Content-Length',str(len(body))), ('Cache-Control','no-store'), ('Retry-After','1')])
             return [body]
         try:
+            path = environ.get('PATH_INFO') if environ.get('REQUEST_METHOD') == 'GET' and self.health_routes else None
+            if path in ('/health/live','/health/ready'):
+                ready = path == '/health/live' or (self._local_ready(discount=1) and self._dependency_ready() and self._local_ready(discount=1))
+                body = b'{"status":"ok"}' if ready else b'{"status":"unavailable"}'
+                start_response('200 OK' if ready else '503 Service Unavailable',
+                               [('Content-Type','application/json'),('Content-Length',str(len(body))),('Cache-Control','no-store')])
+                self._leave()
+                return [body]
+            if not self._dependency_ready():
+                body = b'{"error":"unavailable"}'
+                start_response('503 Service Unavailable',[('Content-Type','application/json'),('Content-Length',str(len(body))),('Cache-Control','no-store'),('Retry-After','1')])
+                self._leave()
+                return [body]
             result = self.application(environ, start_response)
             return _HeldResponse(result, self._leave)
         except BaseException:
