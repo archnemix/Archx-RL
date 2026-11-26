@@ -1,0 +1,19 @@
+# One-time closure of a reviewed issue on the session branch; no checkout or external actions.
+name: Close verified issue 36
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close verified expiry cleanup issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 36 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on branch arena/328e63a8-archx-rl at aec31aa (not merged into main): both Python engines remove at most 64 expired windows and 64 expired observations per valid check, with fail-closed backlog behavior. tests/test_expiry_cleanup.py covers stale-window charges, heap invariants and concurrent recovery; tests/test_sqlite_engine.py covers memory/SQLite parity. Synthetic high-churn measurements for both engines are in Docs/Test-Results/unreleased/cleanup-indexed-{memory,sqlite}.json. Full Linux regression passed: https://github.com/archnemix/Archx-RL/actions/runs/45834146736. No idle cleanup or wall-clock latency bound is claimed; requests can be denied until backlog drains.'
