@@ -1,16 +1,29 @@
 /* Synthetic JSON output boundary and allocation fault tests. No OS collection. */
 #include <assert.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 static int fail_output_allocation;
-static int fail_canonical;
+static int fail_canonical, fake_no_signals;
+static size_t format_calls, fail_format_at;
 static void *test_output_malloc(size_t n);
+static int test_snprintf(char *out, size_t len, const char *format, ...);
 #define malloc test_output_malloc
+#define snprintf test_snprintf
 #include "../src/archx.c"
 #undef malloc
+#undef snprintf
+
+static int test_snprintf(char *out, size_t len, const char *format, ...) {
+  format_calls++;
+  if (fail_format_at && format_calls == fail_format_at) return -1;
+  va_list ap; va_start(ap, format);
+  int n = vsnprintf(out, len, format, ap);
+  va_end(ap); return n;
+}
 
 static void *test_output_malloc(size_t n) {
   if (fail_output_allocation) { fail_output_allocation = 0; return NULL; }
@@ -24,7 +37,7 @@ static void fake_signals(ax_signal_set *out) {
   out->signal_count = 1;
   snprintf(out->signals[0].name, sizeof out->signals[0].name, "machine_id");
   snprintf(out->signals[0].value, sizeof out->signals[0].value, "synthetic");
-  out->signals[0].readable = 1; out->signals[0].weight = 60;
+  out->signals[0].readable = !fake_no_signals; out->signals[0].weight = 60;
 }
 int ax_signals_collect_linux(ax_signal_set *out) { fake_signals(out); return 0; }
 int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask) { (void)mask; fake_signals(out); return 0; }
@@ -33,11 +46,49 @@ size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {
   if (fail_canonical) return SIZE_MAX;
   int n = snprintf(out, len, "synthetic"); return n < 0 ? SIZE_MAX : (size_t)n;
 }
-int ax_signals_fallback_id(char *out, size_t len) { (void)out; (void)len; return -1; }
+int ax_signals_fallback_id(char *out, size_t len) {
+  if (!fake_no_signals || len < 65) return -1;
+  memset(out, 'a', 64); out[64] = '\0'; return 0;
+}
 
 static void require_oom(ax_result result, char *out) {
   assert(result == AX_ERR_NOMEM && out == NULL);
   assert(strstr(ax_last_error(), "out of memory") != NULL);
+}
+static ax_result call_output(int kind, ax_core *core, const char *profile, size_t len, char **out) {
+  switch (kind) {
+    case 0: return ax_collect(core, out, NULL);
+    case 1: case 4: return ax_identify(core, out, NULL);
+    case 2: return ax_profile(core, out, NULL);
+    default: return ax_compare(core, profile, len, profile, len, out, NULL);
+  }
+}
+static void check_format_faults(ax_core *core, const char *profile, size_t profile_len) {
+  for (int kind=0; kind<5; kind++) {
+    fake_no_signals = kind == 4;
+    char *out = NULL; format_calls = 0; fail_format_at = 0;
+    assert(call_output(kind, core, profile, profile_len, &out) == AX_OK);
+    size_t count = format_calls; assert(count > 0); ax_buffer_free(out);
+    for (size_t i=1; i<=count; i++) {
+      format_calls=0; fail_format_at=i; out=(char *)profile;
+      assert(call_output(kind, core, profile, profile_len, &out) == AX_ERR_INTERNAL);
+      assert(out == NULL && *ax_last_error());
+      fail_format_at=0;
+      assert(call_output(kind, core, profile, profile_len, &out) == AX_OK);
+      ax_buffer_free(out);
+    }
+  }
+  fake_no_signals = 0;
+  int64_t remaining=9, retry=9;
+  format_calls=0; fail_format_at=1;
+  assert(ax_check(core,"synthetic-format-fault",100,&remaining,&retry) == AX_DENY_RATE_LIMIT);
+  assert(remaining == 0 && retry == -1 && strstr(ax_last_error(),"formatting failed"));
+  fail_format_at=0;
+  assert(ax_check(core,"synthetic-format-fault",100,&remaining,&retry) == AX_ALLOW && remaining == 0);
+  format_calls=0; fail_format_at=1;
+  assert(ax_reset(core,"synthetic-format-fault") == AX_ERR_INTERNAL);
+  fail_format_at=0;
+  assert(ax_check(core,"synthetic-format-fault",100,&remaining,&retry) == AX_DENY_RATE_LIMIT);
 }
 int main(void) {
   char guarded[] = {'A', 'B', 'C', 'D', 'E'};
@@ -87,7 +138,9 @@ int main(void) {
   require_oom(rc, out);
   assert(ax_compare(core, profile, profile_len, profile, profile_len, &out, &out_len) == AX_OK);
   assert(ax_json_parse(out, out_len, &parsed) == 0);
-  ax_json_free(parsed); ax_buffer_free(out); ax_buffer_free(profile); ax_core_free(core);
+  ax_json_free(parsed); ax_buffer_free(out);
+  check_format_faults(core, profile, profile_len);
+  ax_buffer_free(profile); ax_core_free(core);
   puts("synthetic JSON output boundary and allocation faults passed");
   return 0;
 }

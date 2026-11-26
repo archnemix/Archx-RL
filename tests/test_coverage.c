@@ -7,6 +7,7 @@
 #include <string.h>
 
 static unsigned mask;
+static int fallback_fails;
 static void signals(ax_signal_set *out, unsigned selected) {
   static const char *const names[] = {"machine_id", "product_uuid", "board_serial"};
   static const int weights[] = {60, 25, 15};
@@ -26,7 +27,7 @@ size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {
   (void)set; int n = snprintf(out, len, "synthetic-%u", mask); return n < 0 ? 0 : (size_t)n;
 }
 int ax_signals_fallback_id(char *out, size_t len) {
-  if (len < 65) return -1;
+  if (fallback_fails || len < 65) return -1;
   memset(out, 'a', 64); out[64] = '\0'; return 0;
 }
 
@@ -34,6 +35,11 @@ int main(void) {
   const char *config = "{\"app_id\":\"synthetic\",\"pepper\":\"synthetic\",\"store_capacity\":16}";
   ax_core *core = ax_core_new(config, strlen(config)); assert(core);
   assert(ax_abi_version() == 1);
+  mask = 0; fallback_fails = 1;
+  char *failed_result = (char *)config; size_t failed_len = 99;
+  assert(ax_identify(core, &failed_result, &failed_len) == AX_ERR_INTERNAL);
+  assert(failed_result == NULL && strstr(ax_last_error(), "fallback ID unavailable"));
+  fallback_fails = 0;
   for (mask = 0; mask < 8; mask++) {
     char *result = NULL; size_t len = 0; ax_json_value *doc = NULL;
     assert(ax_identify(core, &result, &len) == AX_OK);

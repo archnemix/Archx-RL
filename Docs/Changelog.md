@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Fail closed on C digest/bucket formatting and fallback-file unlock/close failures; added synthetic formatting, allocation and persistence fault injection.
 - Bound expired window and history cleanup in memory and SQLite; backlog fails closed and stale windows cannot be charged.
 - Added synthetic memory-mutex and SQLite-writer contention profiling with concurrent quota checks and documented constraints for future sharding.
 - C bucket admission now probes once instead of twice; collision-chain saturation and reset tests and synthetic bounded-scan measurements document remaining costs.

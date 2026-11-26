@@ -1060,6 +1060,16 @@
       "purpose": "Compare synthetic memory and SQLite expired backlog cleanup",
       "inputs": "bounded synthetic population",
       "outputs": "sanitized timing and cleanup-count measurements"
+    },
+    "tests/test_core_alloc_faults.c": {
+      "purpose": "Inject core and store allocation faults",
+      "inputs": "synthetic configuration and fail-at-each-allocation",
+      "outputs": "cleanup, error and recovery assertions"
+    },
+    "tests/test_fallback_faults.c": {
+      "purpose": "Inject Linux fallback-file operation failures",
+      "inputs": "synthetic temporary files and deterministic fake entropy",
+      "outputs": "no partial output, failure recovery and partial-file denial"
     }
   }
 }

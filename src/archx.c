@@ -51,7 +51,11 @@ struct ax_core {
 static AX_THREAD_LOCAL char tls_error[256];
 
 static void set_error(const char *msg) {
-  snprintf(tls_error, sizeof tls_error, "%s", msg ? msg : "unknown error");
+  const char *text = msg ? msg : "unknown error";
+  size_t n = strlen(text);
+  if (n >= sizeof tls_error) n = sizeof tls_error - 1;
+  memcpy(tls_error, text, n);
+  tls_error[n] = '\0';
 }
 
 uint32_t ax_abi_version(void) { return AX_ABI_VERSION; }
@@ -109,7 +113,7 @@ ax_core *ax_core_new(const char *config_json, size_t config_len) {
   if (strlen(app_id) >= sizeof core->app_id || strchr(app_id, '|')) {
     set_error("ax_core_new: app_id too long or contains | "); goto fail;
   }
-  snprintf(core->app_id, sizeof core->app_id, "%s", app_id);
+  memcpy(core->app_id, app_id, strlen(app_id) + 1);
 
   /* pepper: explicit string, or name of an env var to read it from. */
   const char *pepper = ax_json_get_string(root, "pepper");
@@ -231,7 +235,10 @@ static int json_escape_append(char *buf, size_t buf_len, size_t *pos, const char
       case '\t': esc = "\\t";  break;
       default:
         if ((unsigned char)*p < 0x20) {
-          snprintf(tmp, sizeof tmp, "\\u%04x", (unsigned char)*p);
+          static const char hex[] = "0123456789abcdef";
+          unsigned char c = (unsigned char)*p;
+          tmp[0] = '\\'; tmp[1] = 'u'; tmp[2] = '0'; tmp[3] = '0';
+          tmp[4] = hex[c >> 4]; tmp[5] = hex[c & 15]; tmp[6] = '\0';
           esc = tmp;
         }
         break;
@@ -364,8 +371,11 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
       set_error("ax_identify: no readable signals and fallback ID unavailable");
       return AX_ERR_INTERNAL;
     }
-    snprintf(canonical, sizeof canonical, "fallback=%s", fallback);
-    canon_len = strlen(canonical);
+    int fallback_len = snprintf(canonical, sizeof canonical, "fallback=%s", fallback);
+    if (fallback_len < 0 || (size_t)fallback_len >= sizeof canonical) {
+      set_error("ax_identify: fallback formatting failed"); return AX_ERR_INTERNAL;
+    }
+    canon_len = (size_t)fallback_len;
     confidence = 10;
     tier = "fallback";
   }
@@ -405,13 +415,15 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
 }
 
 /* Per-signal HMACs permit comparison without publishing raw identifiers. */
-static void match_digest(const ax_core *core, const char *name, const char *value, char hex[65]) {
+static int match_digest(const ax_core *core, const char *name, const char *value, char hex[65]) {
   char msg[600];
   int n = snprintf(msg, sizeof msg, "archx-profile-v1|%s|%zu:%s%zu:%s", core->app_id,
                    strlen(name), name, strlen(value), value);
+  if (n < 0 || (size_t)n >= sizeof msg) return -1;
   uint8_t digest[32];
   ax_hmac_sha256(core->pepper, core->pepper_len, (const uint8_t *)msg, (size_t)n, digest);
   ax_hex_encode(digest, sizeof digest, hex);
+  return 0;
 }
 
 ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_json, size_t *out_len) {
@@ -431,7 +443,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   ax_signal_set set;
   if (ax_signals_collect_linux_selected(&set, mask)) { set_error("ax_profile: collection failed"); return AX_ERR_INTERNAL; }
   char scope[65], buf[1024]; size_t pos = 0;
-  match_digest(core, "scope", "linux", scope);
+  if (match_digest(core, "scope", "linux", scope)) { set_error("ax_profile: digest formatting failed"); return AX_ERR_INTERNAL; }
   int n = snprintf(buf, sizeof buf, "{\"version\":1,\"scope\":\"%s\",\"signals\":{", scope);
   if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
   pos = (size_t)n;
@@ -442,7 +454,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
       if (!strcmp(match_names[i], set.signals[j].name)) sig = &set.signals[j];
     const char *value = i == 3 ? (ip ? normalized_ip : NULL) : (sig && sig->readable ? sig->value : NULL);
     char hex[65];
-    if (value) match_digest(core, match_names[i], value, hex);
+    if (value && match_digest(core, match_names[i], value, hex)) { set_error("ax_profile: digest formatting failed"); return AX_ERR_INTERNAL; }
     n = snprintf(buf + pos, sizeof buf - pos, "%s\"%s\":%s%s%s", first ? "" : ",", match_names[i],
                  value ? "\"" : "", value ? hex : "null", value ? "\"" : "");
     if (n < 0 || (size_t)n >= sizeof buf - pos) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
@@ -462,7 +474,8 @@ static int validate_profile(const ax_core *core, const ax_json_value *profile) {
   const ax_json_value *version = ax_json_get(profile, "version");
   const ax_json_value *scope = ax_json_get(profile, "scope");
   const ax_json_value *signals = ax_json_get(profile, "signals");
-  char expected[65]; match_digest(core, "scope", "linux", expected);
+  char expected[65];
+  if (match_digest(core, "scope", "linux", expected)) return -1;
   if (!version || version->type != AX_J_NUMBER || version->num != 1 ||
       !scope || scope->type != AX_J_STRING || strcmp(scope->str, expected) ||
       !signals || signals->type != AX_J_OBJECT) return 0;
@@ -488,10 +501,15 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
   ax_json_value *a = NULL, *b = NULL;
   int parsed = ax_json_parse(baseline, baseline_len, &a);
   if (!parsed) parsed = ax_json_parse(current, current_len, &b);
-  if (parsed || !validate_profile(core, a) || !validate_profile(core, b)) {
+  int valid_a = parsed ? 0 : validate_profile(core, a);
+  int valid_b = parsed || valid_a <= 0 ? 0 : validate_profile(core, b);
+  if (parsed || valid_a <= 0 || valid_b <= 0) {
     ax_json_free(a); ax_json_free(b);
     if (parsed == AX_JSON_NOMEM) {
       set_error("ax_compare: out of memory parsing profile"); return AX_ERR_NOMEM;
+    }
+    if (valid_a < 0 || valid_b < 0) {
+      set_error("ax_compare: digest formatting failed"); return AX_ERR_INTERNAL;
     }
     set_error("ax_compare: invalid or incompatible profile"); return AX_ERR_INVALID;
   }
@@ -527,13 +545,13 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
 /* ------------------------------------------------------------------ */
 
 /* bucket_key = HMAC-SHA256(pepper, "archx-bucket-v1|<app_id>|<key>") */
-static void bucket_key(const ax_core *core, const char *key, uint8_t out[32]) {
+static int bucket_key(const ax_core *core, const char *key, uint8_t out[32]) {
   char msg[1024];
   int n = snprintf(msg, sizeof msg, "archx-bucket-v1|%s|%s", core->app_id, key);
-  if (n < 0) n = 0;
-  if ((size_t)n >= sizeof msg) n = (int)sizeof msg - 1;
+  if (n < 0 || (size_t)n >= sizeof msg) return -1;
   ax_hmac_sha256(core->pepper, core->pepper_len,
                  (const uint8_t *)msg, (size_t)n, out);
+  return 0;
 }
 
 ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
@@ -547,7 +565,12 @@ ax_decision ax_check(ax_core *core, const char *key, int64_t cost,
   }
 
   uint8_t bk[32];
-  bucket_key(core, key, bk);
+  if (bucket_key(core, key, bk)) {
+    set_error("ax_check: bucket formatting failed");
+    if (remaining) *remaining = 0;
+    if (retry_after_ms) *retry_after_ms = -1;
+    return AX_DENY_RATE_LIMIT;
+  }
 
   double rem = 0.0;
   int64_t retry = 0;
@@ -568,7 +591,9 @@ ax_result ax_reset(ax_core *core, const char *key) {
     return AX_ERR_INVALID;
   }
   uint8_t bk[32];
-  bucket_key(core, key, bk);
+  if (bucket_key(core, key, bk)) {
+    set_error("ax_reset: bucket formatting failed"); return AX_ERR_INTERNAL;
+  }
   if (ax_store_reset(core->store, bk) != 0) {
     set_error("ax_reset: bucket store platform failure");
     return AX_ERR_INTERNAL;

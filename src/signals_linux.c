@@ -125,6 +125,7 @@ static int mkdir_p(const char *path) {
 }
 
 int ax_signals_fallback_id(char *out, size_t out_len) {
+  if (!out || out_len < 65) return -1;
   const char *xdg = getenv("XDG_DATA_HOME");
   const char *home = getenv("HOME");
   char dir[512], path[600];
@@ -167,10 +168,12 @@ int ax_signals_fallback_id(char *out, size_t out_len) {
     for (size_t i = 0; i < 64; i++)
       if (!((hex[i] >= '0' && hex[i] <= '9') || (hex[i] >= 'a' && hex[i] <= 'f'))) goto done;
   }
-  memcpy(out, hex, 65);
   result = 0;
 done:
-  flock(fd, LOCK_UN);
-  close(fd);
+  /* Do not expose an ID when unlocking or closing reports failure. These
+   * failures may follow writes and do not imply durable-state rollback. */
+  if (flock(fd, LOCK_UN) != 0) result = -1;
+  if (close(fd) != 0) result = -1;
+  if (result == 0) memcpy(out, hex, 65);
   return result;
 }
