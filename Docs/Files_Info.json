@@ -1095,6 +1095,16 @@
       "purpose": "Exercise fixed-cardinality synthetic failure snapshots and illustrative alerts",
       "inputs": "mocked adapters and synthetic requests only",
       "outputs": "local aggregates; no HTTP exporter or production SLO"
+    },
+    "tools/sqlite_multiprocess_probe.py": {
+      "purpose": "Short synthetic SQLite mixed-process contention probe",
+      "inputs": "synthetic peer, signals, quota and replay nonce in a temporary store",
+      "outputs": "sanitized aggregate decisions, replay results and worker timings"
+    },
+    "tests/test_sqlite_multiprocess_probe.py": {
+      "purpose": "Check quota and single-use replay invariants under short multiprocess contention",
+      "inputs": "temporary SQLite WAL database and synthetic processes",
+      "outputs": "aggregate assertions; not sustained or production testing"
     }
   }
 }

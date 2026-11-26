@@ -1,0 +1,49 @@
+{
+  "environment": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "python": "3.11.2",
+    "sqlite": "3.40.1"
+  },
+  "description": "short local spawn-process synthetic probe, no network; not production workload or sustained soak",
+  "writers": 4,
+  "readers": 2,
+  "replay_consumers": 2,
+  "iterations_per_writer_or_reader": 100,
+  "elapsed_seconds": 0.86,
+  "journal": "wal",
+  "aggregate": {
+    "writer": {
+      "allow": 100,
+      "rate_limited": 300
+    },
+    "reader": {
+      "reads": 200
+    },
+    "replay": {
+      "consumed": 1,
+      "rejected": 1
+    }
+  },
+  "window_counts": [
+    400,
+    400
+  ],
+  "pending_challenges": 0,
+  "worker_elapsed_seconds": {
+    "writer": [
+      0.142,
+      0.328,
+      0.376,
+      0.627
+    ],
+    "reader": [
+      0.015,
+      0.039
+    ],
+    "replay": [
+      0.021,
+      0.055
+    ]
+  }
+}

@@ -45,6 +45,7 @@ python3 tests/test_expiry_cleanup.py
 python3 tests/test_contention_benchmark.py
 python3 tests/test_boundaries.py
 python3 tests/test_sqlite_engine.py
+python3 tests/test_sqlite_multiprocess_probe.py
 python3 tests/test_state_clock.py
 python3 tests/test_security.py
 python3 tests/test_browser.py
