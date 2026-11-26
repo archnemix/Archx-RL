@@ -13,6 +13,12 @@ REFERENCE = re.compile(r'\[`([^`]+)`\]\(\.\./((?:tests|tools)/[^)]+)\)')
 
 
 class ThreatModelTests(unittest.TestCase):
+    def test_security_policy_discloses_unverified_private_reporting(self):
+        text=(ROOT/'SECURITY.md').read_text(encoding='utf-8')
+        self.assertIn('private vulnerability reporting was **disabled when last checked**',text)
+        self.assertIn('no working private reporting channel',text)
+        self.assertIn('do not disclose',text.lower())
+
     def test_threats_have_traceable_evidence_or_known_limitation(self):
         text = MODEL.read_text(encoding='utf-8')
         rows = [line for line in text.splitlines() if re.match(r'^\| T\d{2} \|', line)]
