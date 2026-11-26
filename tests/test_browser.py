@@ -27,12 +27,16 @@ class BrowserClientTests(unittest.TestCase):
             self.skipTest('Build the optional browser client and install Node.js')
         return PrivateKey
 
-    def run_against_server(self, script, success_marker, turnstile=True):
+    def run_against_server(self, script, success_marker, turnstile=True, v3=False):
         PrivateKey=self.prerequisites()
         key=PrivateKey.generate()
         server=BoundedDemoServer(('127.0.0.1',0),Handler,connection_rate=1000,connection_burst=1000)
         server.engine=Engine(policy(override={'max_requests':100}),secret=b'browser-test')
-        server.sealed_key=bytes(key)
+        if v3:
+            from sealed_payload import TransportKeyRing
+            server.sealed_key=TransportKeyRing({'old':bytes(key), 'alias':bytes(key)})
+        else:
+            server.sealed_key=bytes(key)
         server.replay=MemoryReplay(server.engine.secret,server.engine.clock)
         class Verifier:
             sitekey='synthetic-site-key';action='test'
@@ -53,6 +57,9 @@ class BrowserClientTests(unittest.TestCase):
     def test_node_javascript_interoperability_with_backend(self):
         self.run_against_server('tests/browser_client_node.mjs','cross-language tests passed')
 
+    def test_node_javascript_v3_key_id_interoperability(self):
+        self.run_against_server('tests/browser_client_v3_node.mjs', 'v3 cross-language tests passed', v3=True)
+
     def test_real_browser_synthetic_widget_and_encrypted_request(self):
         self.prerequisites()
         if not (ROOT/'demo/browser/node_modules/playwright').is_dir():
@@ -67,6 +74,7 @@ class BrowserClientTests(unittest.TestCase):
         for turnstile in (False,True):
             with self.subTest(turnstile=turnstile):
                 self.run_against_server('demo/browser/test-ui.mjs','browser encrypted UI and replay tests passed',turnstile=turnstile)
+        self.run_against_server('demo/browser/test-v3-ui.mjs', 'browser v3 cross-language tests passed', v3=True)
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

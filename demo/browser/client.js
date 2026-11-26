@@ -1,4 +1,4 @@
-/* Browser sealed-v2 client. Collects and stores no identifiers itself. */
+/* Browser sealed-v2/v3 client. Collects and stores no identifiers itself. */
 import sodium from 'libsodium-wrappers';
 
 const MAX_RESPONSE = 8192;
@@ -55,8 +55,15 @@ async function requestJson(path, options = {}) {
 }
 
 /** Submit caller-provided signals using an independently trusted public key. */
-export async function checkEncrypted({publicKey, signals, turnstileToken, timezone} = {}) {
+export async function checkEncrypted({publicKey, keyId, signals, turnstileToken, timezone} = {}) {
   requireSecureOrigin();
+  // V3 is explicit: the key ID and public key must come from the same trusted
+  // source. Never let an unauthenticated server choose a downgrade or key ID.
+  if (keyId !== undefined && (typeof keyId !== 'string' || keyId.length < 1 || keyId.length > 32 || /[^A-Za-z0-9_-]/.test(keyId))) {
+    throw new Error('Invalid trusted transport key ID.');
+  }
+  const version = keyId === undefined ? 'sealed-v2' : 'sealed-v3';
+  const prefix = keyId === undefined ? PREFIX : 'archx-sealed-check-v3\0' + String.fromCharCode(keyId.length) + keyId;
   if (typeof publicKey !== 'string' || !/^[0-9a-fA-F]{64}$/.test(publicKey)) {
     throw new Error('Provide an independently trusted 32-byte public key in hex.');
   }
@@ -70,20 +77,20 @@ export async function checkEncrypted({publicKey, signals, turnstileToken, timezo
   if (!body.signals || typeof body.signals !== 'object' || Array.isArray(body.signals)) throw new Error('Signals must be an object.');
   await sodium.ready;
   const encoder = new TextEncoder();
-  const previewLength = encoder.encode(PREFIX + JSON.stringify(body)).length;
+  const previewLength = encoder.encode(prefix + JSON.stringify(body)).length;
   const encodedLength = Math.ceil((previewLength + sodium.crypto_box_SEALBYTES) / 3) * 4;
-  const envelopeOverhead = JSON.stringify({version:'sealed-v2', ciphertext:''}).length;
+  const envelopeOverhead = JSON.stringify({version, ...(keyId === undefined ? {} : {key_id:keyId}), ciphertext:''}).length;
   if (previewLength > 6144 || encodedLength + envelopeOverhead > 8192) throw new Error('Request is too large.');
   const config = await requestJson('/api/v2/config');
-  if (!config.ok || config.data.protocol !== 'sealed-v2') throw new Error('Encrypted mode unavailable; refusing downgrade.');
+  if (!config.ok || config.data.protocol !== version) throw new Error('Encrypted mode unavailable; refusing downgrade.');
   const challenge = await requestJson('/api/v2/challenge');
   if (!challenge.ok || typeof challenge.data.nonce !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(challenge.data.nonce)) {
     throw new Error('A fresh server challenge is unavailable.');
   }
   body.nonce = challenge.data.nonce;
-  const plaintext = encoder.encode(PREFIX + JSON.stringify(body));
+  const plaintext = encoder.encode(prefix + JSON.stringify(body));
   const ciphertext = sodium.crypto_box_seal(plaintext, sodium.from_hex(publicKey));
-  const envelope = JSON.stringify({version:'sealed-v2', ciphertext:sodium.to_base64(ciphertext,sodium.base64_variants.ORIGINAL)});
+  const envelope = JSON.stringify({version, ...(keyId === undefined ? {} : {key_id:keyId}), ciphertext:sodium.to_base64(ciphertext,sodium.base64_variants.ORIGINAL)});
   if (new TextEncoder().encode(envelope).length > 8192) throw new Error('Request is too large.');
   const result = await requestJson('/api/v2/check', {
     method:'POST', headers:{'Content-Type':'application/json'}, body:envelope,

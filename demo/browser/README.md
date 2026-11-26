@@ -1,6 +1,6 @@
 # Browser sealed client
 
-Purpose: provide a small optional browser client for the existing `sealed-v2` Python check API, plus a Chromium integration test. It collects and stores no identifiers. The embedding application supplies signals and an independently authenticated public key.
+Purpose: provide a small optional browser client for the Python check API, plus Chromium integration tests. It collects and stores no identifiers. The embedding application supplies signals and an independently authenticated public key. By default it uses `sealed-v2`; to use experimental `sealed-v3`, the host must also supply `keyId` from the same trusted source as the public key and wire a v3 key ring into the Python service. The synthetic demo UI and server command remain v2-only. See the [transport-key experiment](../../Docs/Research/Transport-Key-Grace.md) for rotation and security limitations.
 
 From the repository root, run `npm ci --prefix demo/browser` and `npm run build --prefix demo/browser`; the generated browser module is `build/browser/archx-client.mjs` and is intentionally not committed. The optional demo server serves it at `/browser-client.mjs` and offers a synthetic-only `/browser-test` page.
 
