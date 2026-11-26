@@ -1,0 +1,23 @@
+# One-time, explicitly authorized closure of reviewed issues on this branch.
+# No checkout, third-party action, untrusted input, or user-provided secret.
+name: Close verified issues
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close reviewed P0 fixes with evidence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue close 1 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on branch arena/328e63a8-archx-rl (not yet merged into main): C saturation fails closed without recycling active buckets. tests/test_core.c covers exhausted victim under churn, existing keys, recovery/reset and concurrency; tests/test_platform.c covers store saturation outputs. Linux full regression passed at c3fb75e: https://github.com/archnemix/Archx-RL/actions/runs/45822536439. Saturation is distinguished via ax_last_error while preserving the ABI.'
+          gh issue close 18 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on branch arena/328e63a8-archx-rl (not yet merged into main): trusted host principal and fixed host operation are separate from client signals in examples/python/gated_wsgi.py. tests/test_host_integration.py covers forged headers/signals, authorization, operation selection, account rotation and victim poisoning. Linux full regression passed at c3fb75e: https://github.com/archnemix/Archx-RL/actions/runs/45822536439. This is an integration example, not an authentication service or production deployment certification.'
