@@ -58,15 +58,17 @@ jobs:
           try {
             & build/native-survey/Release/native_permission_survey.exe | Out-File -FilePath $raw -Encoding utf8
             if ($LASTEXITCODE -ne 0) { throw 'Survey failed' }
-            python tools/permission_survey/validate_native.py windows $raw
+            $result = python tools/permission_survey/validate_native.py windows $raw
             if ($LASTEXITCODE -ne 0) { throw 'Survey validation failed' }
+            Write-Output "::notice title=Native availability::$result"
           } finally { Remove-Item $raw -ErrorAction SilentlyContinue }
       - name: Survey macOS runner (sanitized categories only)
         if: github.event_name == 'push' && runner.os == 'macOS'
         shell: bash
         run: |
-          set -eu
+          set -euo pipefail
           raw="$RUNNER_TEMP/native-survey-input.json"
           trap 'rm -f "$raw"' EXIT
           build/native-survey/native_permission_survey > "$raw"
-          python3 tools/permission_survey/validate_native.py macos "$raw"
+          result="$(python3 tools/permission_survey/validate_native.py macos "$raw")"
+          echo "::notice title=Native availability::$result"
