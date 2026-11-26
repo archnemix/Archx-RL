@@ -55,7 +55,8 @@ uint32_t ax_abi_version(void);
  *     "key_scope": "device"              (reserved; currently informational)
  *   }
  * }
- * Returns NULL on failure; call ax_last_error() for details.
+ * The complete configuration input, including whitespace, must be at most
+ * 65536 bytes. Returns NULL on failure; call ax_last_error() for details.
  * On success the handle owns all compiled state; it does NOT own the
  * strings inside `config_json` (it copies what it needs).
  */

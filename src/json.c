@@ -199,7 +199,9 @@ static ax_json_value *parse_value(parser *ps) {
 }
 
 int ax_json_parse(const char *json, size_t len, ax_json_value **out) {
+  if (!out) return -1;
   *out = NULL;
+  if (!json || len > AX_JSON_MAX_INPUT) return -1;
   parser ps = { json, json + len, 0 };
   ax_json_value *v = parse_value(&ps);
   if (!v) return -1;

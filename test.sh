@@ -53,6 +53,7 @@ $CC $SAN_FLAGS tests/test_coverage.c src/archx.c src/sha256.c src/json.c src/sto
 $CC $SAN_FLAGS tests/test_output_faults.c src/sha256.c src/json.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_output_faults_san
 $CC $SAN_FLAGS tests/test_smbios.c src/smbios.c -o build/test_smbios_san
 $CC $SAN_FLAGS tests/test_json_fuzz.c src/json.c -o build/test_json_fuzz
+$CC $SAN_FLAGS tests/test_json_contract.c src/json.c -lm -o build/test_json_contract_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_core_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_uuid_value_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_canonical_san
@@ -60,6 +61,7 @@ ASAN_OPTIONS=detect_leaks=1 ./build/test_coverage_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_output_faults_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_smbios_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_json_fuzz
+ASAN_OPTIONS=detect_leaks=1 ./build/test_json_contract_san
 ./build/archx-probe collect | python3 -c 'import json,sys; assert json.load(sys.stdin)["platform"] == "linux"'
 ./build/archx-probe identify --app-id 'test"app' --pepper demo | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["device_hash"]) == 64'
 echo "probe tests passed"

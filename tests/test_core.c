@@ -1,5 +1,6 @@
 #include "archx.h"
 #include "signals_linux.h"
+#include "json.h"
 #include <assert.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -54,6 +55,18 @@ int main(void) {
   invalid("{\"app_id\":\"x|y\",\"pepper\":\"a\"}");
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"n\":01}");
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"n\":\"unclosed}");
+  /* The public config entrypoint enforces the parser byte cap, including
+   * whitespace; rejected oversized input never produces a partial core. */
+  char *large_config = malloc(AX_JSON_MAX_INPUT + 1u); assert(large_config);
+  const char *small_config = "{\"app_id\":\"x\",\"pepper\":\"x\"}";
+  size_t small_len = strlen(small_config);
+  memset(large_config, ' ', AX_JSON_MAX_INPUT + 1u);
+  memcpy(large_config, small_config, small_len);
+  ax_core *at_limit = ax_core_new(large_config, AX_JSON_MAX_INPUT); assert(at_limit);
+  ax_core_free(at_limit);
+  assert(!ax_core_new(large_config, AX_JSON_MAX_INPUT + 1u));
+  assert(strstr(ax_last_error(), "not valid JSON"));
+  free(large_config);
   const char config[] = "{\"app_id\":\"test\",\"pepper\":\"secret\",\"store_capacity\":16,\"rate_limit\":{\"capacity\":2,\"refill_per_sec\":0}}";
   char bounded[sizeof config - 1]; memcpy(bounded, config, sizeof bounded);
   ax_core *c = ax_core_new(bounded, sizeof bounded); assert(c);

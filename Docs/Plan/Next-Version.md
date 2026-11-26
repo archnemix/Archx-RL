@@ -106,4 +106,8 @@ The root README links separate native C, Python service, browser protocol, priva
 
 ## C04 provider evaluation
 
-[Crypto-JSON ADR](Crypto-JSON-ADR.md) compares current C code, libsodium, OpenSSL and yyjson, with licensing, source-size limits, operational and migration risks. Native standalone fixtures exercise current crypto and parser behavior; native CI status must be checked. This evaluation does not replace or approve a provider, fix unbounded C parser input, or certify cryptography. #32 remains open pending complete native test evidence and issue-write access.
+[Crypto-JSON ADR](Crypto-JSON-ADR.md) compares current C code, libsodium, OpenSSL and yyjson, with licensing, source-size limits, operational and migration risks. Native standalone fixtures exercise current crypto and parser behavior; native CI status must be checked. This evaluation does not replace or approve a provider, establish a total parser allocation budget, or certify cryptography. #32 remains open pending complete native test evidence and issue-write access.
+
+## B05 JSON input bound
+
+The C parser rejects input larger than 65,536 bytes before allocation or pointer arithmetic and fails safely for null input/output. `tests/test_json_contract.c` checks exact/over limit and null cases; `tests/test_core.c` checks public configuration at and above the limit. [Local full regression](../Test-Results/unreleased/json-input-bound-full-test.log) passed the browser, C/Python and sanitizer suite. This is an intentional compatibility restriction for oversized configurations, not comprehensive allocation-fault coverage: locale/UTF-8 and other failure paths remain open, so #21 is not complete.

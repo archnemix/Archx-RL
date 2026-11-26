@@ -7,6 +7,9 @@
 
 #include <stddef.h>
 
+/* Global byte cap for the internal parser, including whitespace. */
+#define AX_JSON_MAX_INPUT (65536u)
+
 typedef enum { AX_J_STRING, AX_J_NUMBER, AX_J_BOOL, AX_J_NULL, AX_J_OBJECT } ax_json_type;
 
 typedef struct ax_json_value ax_json_value;
@@ -21,7 +24,8 @@ struct ax_json_value {
   size_t        child_count;
 };
 
-/* Parse `len` bytes of JSON into *out (owned). Returns 0 on success. */
+/* Parse up to AX_JSON_MAX_INPUT bytes into *out (owned). Returns 0 on
+ * success; failure clears *out when supplied. NULL input/output are errors. */
 int  ax_json_parse(const char *json, size_t len, ax_json_value **out);
 void ax_json_free(ax_json_value *v);
 

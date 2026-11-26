@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Limit C JSON parser input to 65,536 bytes, including configuration whitespace, and fail cleanly on null or oversized input; larger previously accepted configurations are now rejected.
 - Evaluated portable C crypto/JSON providers and added native standalone known-answer, differential and JSON grammar fixtures; no production provider has been selected or migrated.
 - Added separate component, privacy and deployment-status guides with an accurately scoped README map.
 - Let the synthetic WSGI host fix its operation identifier at construction and test host authorization separately from signal forgery and cross-account quota poisoning.
