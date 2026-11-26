@@ -44,3 +44,29 @@ jobs:
         run: cmake --build build/platform --config Release
       - name: Run synthetic parser and native primitive tests
         run: ctest --test-dir build/platform -C Release --verbose
+      # Pushes only: never execute host survey code from untrusted pull requests.
+      - name: Build native availability survey
+        if: github.event_name == 'push'
+        run: |
+          cmake -S tools/permission_survey -B build/native-survey ${{ matrix.cmake_arch }}
+          cmake --build build/native-survey --config Release
+      - name: Survey Windows runner (sanitized categories only)
+        if: github.event_name == 'push' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $raw = Join-Path $env:RUNNER_TEMP 'native-survey-input.json'
+          try {
+            & build/native-survey/Release/native_permission_survey.exe | Out-File -FilePath $raw -Encoding utf8
+            if ($LASTEXITCODE -ne 0) { throw 'Survey failed' }
+            python tools/permission_survey/validate_native.py windows $raw
+            if ($LASTEXITCODE -ne 0) { throw 'Survey validation failed' }
+          } finally { Remove-Item $raw -ErrorAction SilentlyContinue }
+      - name: Survey macOS runner (sanitized categories only)
+        if: github.event_name == 'push' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -eu
+          raw="$RUNNER_TEMP/native-survey-input.json"
+          trap 'rm -f "$raw"' EXIT
+          build/native-survey/native_permission_survey > "$raw"
+          python3 tools/permission_survey/validate_native.py macos "$raw"

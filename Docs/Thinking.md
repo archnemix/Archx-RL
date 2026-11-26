@@ -92,3 +92,6 @@ Purpose: record concise decisions, problems and outcomes rather than private rea
 - Added opt-in IPsum reputation and Turnstile verification to the Python prototype; external outages and false positives have explicit policies. Cloudflare proxy ranges are not threat lists.
 - Chose server-side keyed device-signal storage, selectable IP storage and optional libsodium sealed-box request bodies. Raw identifiers are still transiently processed; ciphertext is replayable and independently trusted code and key delivery are necessary.
 - Verified synthetic HTTP behavior locally. Live Cloudflare verification and browser encryption remain unverified/unimplemented; the C engine is separate.
+
+## 2026-11-22 — Native availability surveys
+- The experimental native matrix now performs push-only, bounded availability probes with allowlisted output; no raw identifiers or hashes are logged. Firmware and IOKit properties are transiently processed on disposable runners. This is evidence for those hosts only, not a production macOS collector or Apple policy approval.

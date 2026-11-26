@@ -935,6 +935,26 @@
       "purpose": "Sanitized Linux regression for synthetic SMBIOS Type 2 parsing",
       "inputs": "synthetic board/module records and malformed fixtures",
       "outputs": "test results, not live firmware or platform support evidence"
+    },
+    "tools/permission_survey/native_windows.c": {
+      "purpose": "Query Windows firmware signal statuses and registry value type without logging identifiers",
+      "inputs": "native Windows APIs",
+      "outputs": "fixed availability categories"
+    },
+    "tools/permission_survey/native_macos.c": {
+      "purpose": "Check IOKit platform property types without extracting contents",
+      "inputs": "native macOS APIs",
+      "outputs": "fixed availability categories"
+    },
+    "tools/permission_survey/validate_native.py": {
+      "purpose": "Allowlist and sanitize native survey output",
+      "inputs": "native survey JSON",
+      "outputs": "validated categories or generic error"
+    },
+    "tools/permission_survey/CMakeLists.txt": {
+      "purpose": "Build standalone native availability survey",
+      "inputs": "platform compiler and APIs",
+      "outputs": "survey executable"
     }
   }
 }

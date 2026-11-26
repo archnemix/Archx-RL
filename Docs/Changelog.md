@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added push-only native hosted-runner availability surveys with strict sanitized output for a bounded set of Windows and macOS signals; no platform support or privacy approval is implied.
 - Extended the experimental bounded SMBIOS parser with synthetic Type 2 baseboard-or-module serial handling and an explicit multi-board ambiguity status; it is not wired into the public Windows core.
 - Extracted collector-independent C signal representation and canonicalization, retaining Linux behavior and adding synthetic cross-platform fixture targets; this does not add native Windows/macOS core support.
 - Linked each inventoried threat to a specific synthetic regression or explicitly documented limitation, with a documentation traceability check; this is not a security audit or formal risk acceptance.

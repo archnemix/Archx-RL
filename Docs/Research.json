@@ -212,5 +212,16 @@
       "https://www.dmtf.org/sites/default/files/standards/documents/DSP0134_3.8.0.pdf",
       "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemfirmwaretable"
     ]
+  },
+  "native_permission_survey": {
+    "summary": "Windows firmware collection and MachineGuid type query and macOS IOKit property-type checks report availability only; API accessibility is not identity stability, consent or platform-policy authorization. Hosted runners do not establish physical or sandboxed behavior.",
+    "urls": [
+      "https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regopenkeyexw",
+      "https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regqueryvalueexw",
+      "https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemfirmwaretable",
+      "https://developer.apple.com/documentation/iokit/1514293-ioregistryentrycreatecfproperty/",
+      "https://developer.apple.com/documentation/iokit/1514535-ioservicegetmatchingservice",
+      "https://developer.apple.com/app-store/user-privacy-and-data-use/"
+    ]
   }
 }
