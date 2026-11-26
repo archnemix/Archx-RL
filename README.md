@@ -2,7 +2,7 @@
 
 Working guidance and component indexes are in [Docs/](Docs/README.md).
 
-Milestone 1 is a **Linux-only prototype** of a shared C core for device-signal inspection, app-scoped pseudonymous identification, and an in-process token bucket. The C ABI is in [`include/archx.h`](include/archx.h); the Python and Node examples call the same library. A separate browser client encrypts caller-supplied signals; it does not collect native hardware IDs. No mobile collector, cross-machine rate-limit store, or other native OS implementation is included yet.
+Milestone 1 is a **Linux-only prototype** of a shared C core for device-signal inspection, app-scoped pseudonymous identification, and an in-process token bucket. The C ABI is in [`include/archx.h`](include/archx.h); [Python and Node bindings](bindings/README.md) call the same library. A separate browser client encrypts caller-supplied signals; it does not collect native hardware IDs. No mobile collector, cross-machine rate-limit store, or other native OS implementation is included yet.
 
 ## Component and deployment guides
 
@@ -24,7 +24,7 @@ ARCHX_PEPPER='replace-with-a-secret' ./build/archx-probe identify --app-id my-ap
 ./build/archx-probe check user-42 --capacity 5 --refill-per-sec 1
 python3 examples/python/demo.py
 python3 examples/python/match.py
-(cd examples/node && npm install)
+npm ci --prefix bindings/node
 node examples/node/demo.js
 ```
 

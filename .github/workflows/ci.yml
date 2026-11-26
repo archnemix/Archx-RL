@@ -28,7 +28,9 @@ jobs:
           "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt
           echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
           npm ci --prefix demo/browser
+          npm ci --prefix bindings/node
           npm run build --prefix demo/browser
+          echo 'ARCHX_REQUIRE_BINDINGS=1' >> "$GITHUB_ENV"
           if command -v google-chrome >/dev/null 2>&1; then
             echo "ARCHX_TEST_CHROME=$(command -v google-chrome)" >> "$GITHUB_ENV"
           else
@@ -37,6 +39,8 @@ jobs:
           echo 'ARCHX_REQUIRE_BROWSER=1' >> "$GITHUB_ENV"
       - name: Build and test
         run: ./test.sh
+      - name: Install and exercise isolated native binding packages
+        run: sh tests/test_binding_packaging.sh
       - name: Real TLS proxy experiment (private demo only)
         shell: bash
         run: |

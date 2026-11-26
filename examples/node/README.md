@@ -1,3 +1,3 @@
 # Node C API example
 
-Purpose: demonstrate using the C library from Node. Install the example dependencies and build the C library first; see the root README.
+The example uses the shared [Node binding](../../bindings/README.md), not its own FFI declarations. Build the Linux core and run `npm ci --prefix bindings/node`, then run `node examples/node/demo.js`. Its default pepper is public and its output includes a linkable pseudonym; do not use the demo defaults for real identities.

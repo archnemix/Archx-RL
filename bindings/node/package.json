@@ -1,0 +1,9 @@
+{
+  "name": "archx-native-experimental",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Experimental Node binding for the Archx C ABI v1",
+  "main": "index.js",
+  "engines": { "node": ">=20" },
+  "dependencies": { "koffi": "2.16.4" }
+}

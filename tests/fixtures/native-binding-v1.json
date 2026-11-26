@@ -1,0 +1,23 @@
+{
+  "config": {
+    "app_id": "fixture-app",
+    "pepper": "synthetic-test-pepper",
+    "rate_limit": {"capacity": 2, "refill_per_sec": 0},
+    "match": {"mode": "threshold", "min_matches": 1, "signals": {"ip": "required"}}
+  },
+  "profiles": {
+    "192.0.2.1": {"version": 1, "scope": "09efab5a5e4f00bfab861eec4b52e816964f929996a35576a60fac59f3a5f2d0", "signals": {"ip": "62f93cf57207daeca51045d3bd65ae94f4fc4c1f79ed375f2f8022d5636cb566"}},
+    "192.0.2.2": {"version": 1, "scope": "09efab5a5e4f00bfab861eec4b52e816964f929996a35576a60fac59f3a5f2d0", "signals": {"ip": "82173e8567a086aacc0e7983830828f4108c7b86863e22466b166197536cf75b"}},
+    "missing": {"version": 1, "scope": "09efab5a5e4f00bfab861eec4b52e816964f929996a35576a60fac59f3a5f2d0", "signals": {"ip": null}}
+  },
+  "results": {
+    "match": {"result": "match", "matched": 1, "changed": 0, "unavailable": 0, "signals": {"ip": "match"}},
+    "changed": {"result": "no_match", "matched": 0, "changed": 1, "unavailable": 0, "signals": {"ip": "changed"}},
+    "missing": {"result": "inconclusive", "matched": 0, "changed": 0, "unavailable": 1, "signals": {"ip": "unavailable"}}
+  },
+  "checks": [
+    {"decision": "allow", "remaining": 1, "retry_after_ms": 0},
+    {"decision": "allow", "remaining": 0, "retry_after_ms": 0},
+    {"decision": "rate_limited", "remaining": 0, "retry_after_ms": -1}
+  ]
+}

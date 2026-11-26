@@ -5,6 +5,7 @@ build/
 node_modules/
 __pycache__/
 *.pyc
+*.egg-info/
 
 # Local persistent demo state (may contain pseudonymous identifiers)
 *.sqlite

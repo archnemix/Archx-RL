@@ -32,6 +32,16 @@ $CC $FLAGS -Itests/platform tests/test_core_alloc_faults.c tests/platform/fake_p
 ./build/test_linux_signal_validation
 ./build/test_core_alloc_faults
 ./build/test_core
+sh tests/build_binding_fixtures.sh
+python3 tests/test_python_binding.py
+if command -v node >/dev/null 2>&1 && [ -d bindings/node/node_modules/koffi ]; then
+  node tests/test_node_binding.cjs
+elif [ "${ARCHX_REQUIRE_BINDINGS:-0}" = 1 ]; then
+  echo 'Node binding tests require node and npm ci --prefix bindings/node' >&2
+  exit 1
+else
+  echo 'Skipping Node binding tests; install dependencies with npm ci --prefix bindings/node'
+fi
 python3 tests/test_crypto_differential.py
 python3 tests/test_threat_model.py
 python3 tests/test_coverage_docs.py
