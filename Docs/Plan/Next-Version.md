@@ -144,7 +144,7 @@ The pre-index and indexed matching loops were also [compared](../Test-Results/un
 
 ## Issue closure and branch status
 
-Nineteen reviewed issues (#1, #11, #14, #15, #18, #20, #21, #23, #24, #28, #32, #33, #34, #35, #36, #37, #38, #39 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
+Twenty reviewed issues (#1, #11, #14, #15, #18, #20, #21, #23, #24, #27, #28, #32, #33, #34, #35, #36, #37, #38, #39 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
 
 ## D03 bounded window and SQLite cleanup follow-up
 
