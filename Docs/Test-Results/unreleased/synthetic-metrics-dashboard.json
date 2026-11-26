@@ -1,5 +1,5 @@
 {
-  "description": "synthetic process-local demonstration; alert thresholds are illustrative only",
+  "description": "synthetic process-local demonstration with an injected 51ms wait; alert thresholds are illustrative only",
   "snapshot": {
     "schema": 2,
     "scope": "process_local_prototype",
@@ -60,7 +60,7 @@
         0,
         0,
         0,
-        0,
+        1,
         0,
         0,
         0,
@@ -74,6 +74,6 @@
     "storage": true,
     "replay": true,
     "adapter": true,
-    "contention_at_least_50ms": false
+    "contention_at_least_50ms": true
   }
 }

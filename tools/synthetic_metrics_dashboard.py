@@ -49,9 +49,11 @@ def exercise():
         persistent=SQLiteEngine(Path(tmp)/'state.sqlite',policy(),b'synthetic-secret-at-least-32-bytes!!',metrics=metrics)
         with patch.object(persistent,'connect',side_effect=__import__('sqlite3').OperationalError('synthetic private storage fault')):
             assert RequestService(persistent,metrics=metrics).check(body,'203.0.113.1')['decision']=='storage_error'
+    # Inject one synthetic wait to exercise the alert; not a measured latency.
+    metrics.observe_wait(0.051)
     return metrics.snapshot()
 
 if __name__=='__main__':
     snapshot=exercise()
-    print(json.dumps({'description':'synthetic process-local demonstration; alert thresholds are illustrative only',
+    print(json.dumps({'description':'synthetic process-local demonstration with an injected 51ms wait; alert thresholds are illustrative only',
                       'snapshot':snapshot,'illustrative_alerts':alerts(snapshot)},indent=2))

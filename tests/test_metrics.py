@@ -97,7 +97,7 @@ class MetricsTests(unittest.TestCase):
 
     def test_synthetic_failure_dashboard_has_fixed_private_labels(self):
         snap=exercise(); active=alerts(snap)
-        self.assertTrue(all(active[name] for name in ('capacity','storage','replay','adapter')))
+        self.assertTrue(all(active[name] for name in ('capacity','storage','replay','adapter','contention_at_least_50ms')))
         self.assertEqual(snap['events']['replay_rejected'],1)
         self.assertEqual(snap['events']['replay_unavailable'],1)
         self.assertEqual(snap['events']['turnstile_unavailable'],1)
