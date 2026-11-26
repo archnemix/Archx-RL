@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "seed": 4301,
+  "policy": "Python standard preset; min_matches=2 including IP, 10 requests/60s; independent empty store per pair",
+  "sample_size_per_scenario": 200,
+  "scenarios": [
+    {
+      "scenario": "stable",
+      "assumed_pair_label": "same",
+      "n": 200,
+      "outcomes": {
+        "related": 200,
+        "same_related": 200
+      },
+      "conditional_model_event": "same_below",
+      "conditional_model_event_count": 0,
+      "conditional_wilson_95": [
+        0.0,
+        0.0188
+      ]
+    },
+    {
+      "scenario": "shared_nat",
+      "assumed_pair_label": "different",
+      "n": 200,
+      "outcomes": {
+        "below_threshold": 175,
+        "different_below": 175,
+        "different_related": 25,
+        "related": 25
+      },
+      "conditional_model_event": "different_related",
+      "conditional_model_event_count": 25,
+      "conditional_wilson_95": [
+        0.0861,
+        0.178
+      ]
+    },
+    {
+      "scenario": "cloned_vm",
+      "assumed_pair_label": "different",
+      "n": 200,
+      "outcomes": {
+        "different_related": 200,
+        "related": 200
+      },
+      "conditional_model_event": "different_related",
+      "conditional_model_event_count": 200,
+      "conditional_wilson_95": [
+        0.9812,
+        1
+      ]
+    },
+    {
+      "scenario": "reinstall",
+      "assumed_pair_label": "same",
+      "n": 200,
+      "outcomes": {
+        "below_threshold": 15,
+        "related": 185,
+        "same_below": 15,
+        "same_related": 185
+      },
+      "conditional_model_event": "same_below",
+      "conditional_model_event_count": 15,
+      "conditional_wilson_95": [
+        0.046,
+        0.12
+      ]
+    },
+    {
+      "scenario": "permissions",
+      "assumed_pair_label": "same",
+      "n": 200,
+      "outcomes": {
+        "below_threshold": 42,
+        "denied_invalid": 60,
+        "related": 98,
+        "same_below": 42,
+        "same_related": 98
+      },
+      "conditional_model_event": "same_below",
+      "conditional_model_event_count": 42,
+      "conditional_wilson_95": [
+        0.1593,
+        0.2716
+      ]
+    },
+    {
+      "scenario": "hardware_change",
+      "assumed_pair_label": "same",
+      "n": 200,
+      "outcomes": {
+        "below_threshold": 55,
+        "related": 145,
+        "same_below": 55,
+        "same_related": 145
+      },
+      "conditional_model_event": "same_below",
+      "conditional_model_event_count": 55,
+      "conditional_wilson_95": [
+        0.2178,
+        0.3407
+      ]
+    },
+    {
+      "scenario": "full_rotation",
+      "assumed_pair_label": "same",
+      "n": 200,
+      "outcomes": {
+        "below_threshold": 200,
+        "same_below": 200
+      },
+      "conditional_model_event": "same_below",
+      "conditional_model_event_count": 200,
+      "conditional_wilson_95": [
+        0.9812,
+        1
+      ]
+    },
+    {
+      "scenario": "forged_replay",
+      "assumed_pair_label": "different",
+      "n": 200,
+      "outcomes": {
+        "different_related": 200,
+        "related": 200
+      },
+      "conditional_model_event": "different_related",
+      "conditional_model_event_count": 200,
+      "conditional_wilson_95": [
+        0.9812,
+        1
+      ]
+    }
+  ],
+  "uncertainty": "Wilson intervals describe simulated event frequencies only under the specified independent random-draw model; they exclude all uncertainty about real populations and do not validate model assumptions.",
+  "limitations": [
+    "Synthetic labels and change probabilities are assumptions, not verified devices, users or deployment rates.",
+    "Not a representative sample or a real-world false-positive/false-negative estimate.",
+    "Invalid and inconclusive outcomes are reported separately, not classified as negative matches.",
+    "An attacker can forge or replay signal values; rotating all identifiers and IP evades this relation.",
+    "No native collectors, real permissions, clone images, hardware, staging or consented participant data were measured."
+  ]
+}

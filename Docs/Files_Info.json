@@ -1105,6 +1105,16 @@
       "purpose": "Check quota and single-use replay invariants under short multiprocess contention",
       "inputs": "temporary SQLite WAL database and synthetic processes",
       "outputs": "aggregate assertions; not sustained or production testing"
+    },
+    "tools/synthetic_stability_evaluation.py": {
+      "purpose": "Evaluate a controlled synthetic relation/stability model across eight scenarios",
+      "inputs": "synthetic identifiers, seeded assumptions and prototype policy",
+      "outputs": "aggregate outcomes and model-conditional uncertainty; not empirical accuracy"
+    },
+    "tests/test_stability_evaluation.py": {
+      "purpose": "Test synthetic scenario accounting, reproducibility and selected backend parity",
+      "inputs": "synthetic pairs and temporary SQLite files",
+      "outputs": "scenario and uncertainty assertions"
     }
   }
 }
