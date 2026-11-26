@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 from expiry_benchmark import run
+from cleanup_backlog_benchmark import run as run_both_cleanup
 
 
 class ExpiryBenchmarkTests(unittest.TestCase):
@@ -28,6 +29,19 @@ class ExpiryBenchmarkTests(unittest.TestCase):
                 self.assertLessEqual(timing['p99'], timing['max'])
                 self.assertNotIn('192.0.2.1', json.dumps(report))
                 self.assertNotIn('synthetic-benchmark-only', json.dumps(report))
+
+    def test_combined_backlog_measurements(self):
+        for mode in ('memory', 'sqlite'):
+            for size in (1, 64, 65, 150):
+                with self.subTest(mode=mode, size=size):
+                    report = run_both_cleanup(mode, size)
+                    self.assertEqual(report['decisions']['allow'], 1)
+                    self.assertEqual(report['decisions'].get('capacity_exceeded', 0), 2 * ((size - 1) // 64))
+                    self.assertEqual(report['max_windows_removed_per_check'], min(size,64))
+                    self.assertEqual(report['max_observations_removed_per_check'], min(size,64))
+                    self.assertEqual(report['recovery_relation'], 'new')
+                    self.assertNotIn('192.0.2.1', json.dumps(report))
+                    self.assertNotIn('synthetic-expiry-benchmark-secret', json.dumps(report))
 
     def test_invalid_args(self):
         for args in (['--population', '0'], ['--population', '10001'], ['--waves', '0'], ['--waves', '21']):

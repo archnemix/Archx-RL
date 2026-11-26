@@ -294,7 +294,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(results[0],results[1])
         self.assertEqual(results[0]['decision'],'allow')
 
-    def test_intentional_bounded_history_cleanup_difference(self):
+    def test_bounded_window_and_history_backlog_parity(self):
         p=policy(override={'max_requests':1000,'window_seconds':60,'history_seconds':60})
         memory=Engine(p,secret=SECRET,clock=lambda:self.now[0],max_entries=200)
         db=SQLiteEngine(self.path,p,SECRET,clock=lambda:self.now[0],max_entries=200)
@@ -302,14 +302,16 @@ class PersistentTests(unittest.TestCase):
             data={'signals':{'machine_id':synthetic_signal('machine_id',str(i))}}
             for engine in (memory,db): self.assertEqual(engine.check(data,'192.0.2.1')['decision'],'allow')
         self.now[0]+=60
-        data={'signals':{'machine_id':synthetic_signal('machine_id','after-expiry')}}
-        a=memory.check(data,'192.0.2.1');b=db.check(data,'192.0.2.1')
-        self.assertEqual((a['decision'],a['retry_after_seconds']),('capacity_exceeded',1))
-        self.assertEqual((b['decision'],b['relation']),('allow','new'))
-        self.assertEqual(len(memory.observations),6)
-        # A later pass drains the remaining six and must not match expired entries.
-        a=memory.check(data,'192.0.2.1')
-        self.assertEqual((a['decision'],a['relation']),('allow','new'))
+        data={'signals':{'machine_id':synthetic_signal('machine_id','0')}}
+        for _ in range(2):
+            results=[engine.check(data,'192.0.2.1') for engine in (memory,db)]
+            self.assertEqual(results[0],results[1])
+            self.assertEqual((results[0]['decision'],results[0]['retry_after_seconds']),('capacity_exceeded',1))
+        # Only after both backlogs drain may a former observation be matched.
+        results=[engine.check(data,'192.0.2.1') for engine in (memory,db)]
+        self.assertEqual(results[0],results[1])
+        self.assertEqual((results[0]['decision'],results[0]['relation']),('allow','new'))
+        self.assertEqual(len(memory.observations),1)
 
     def test_memory_and_database_modelled_history_and_capacity_agree(self):
         rng = random.Random(223711)

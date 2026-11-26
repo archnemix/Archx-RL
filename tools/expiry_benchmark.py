@@ -31,7 +31,7 @@ def run(population, waves):
         for i in range(population):
             token = target if i == population - 1 else engine.token('machine_id', str(i))
             engine.observations.enroll({'machine_id':token, 'ip':'synthetic-'+str(i)}, now - 1)
-            engine.windows['synthetic-window-'+str(i)] = [now, 1]
+            engine._new_window('synthetic-window-'+str(i), now)[1] = 1
         max_heap = max(max_heap, len(engine.observations.expiries))
         max_records = max(max_records, len(engine.observations))
         while True:
@@ -59,7 +59,7 @@ def run(population, waves):
             'environment':{'system':platform.system(), 'architecture':platform.machine(),
                            'python':platform.python_version()},
             'limitations':['synthetic seeded in-process sequential checks; excludes preload, HTTP, TLS and concurrent load',
-                           'each wave includes a synthetic live rate-window population; latency includes its full scan and all check work',
+                           'each wave includes a synthetic live rate-window population; latency includes indexed window checking and all check work',
                            'runner-specific measurement, not a production capacity result or performance budget',
                            'idle expiry does not run; stale state remains bounded by configured capacity']}
 

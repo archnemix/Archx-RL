@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from signal_validation import SIGNALS, normalize_signal
 from observation_index import ObservationIndex
+from expiry_heap import ExpiryHeap
+
+CLEANUP_BUDGET = 64
 
 DEFAULT_MESSAGES = {
     'rate_limited': 'Too many requests. Please wait and try again.',
@@ -67,10 +70,39 @@ class Engine:
         self.max_entries = max_entries
         self.lock = threading.Lock()
         self.windows = {} # HMAC key -> [window_start, count]
+        self.window_expiries = ExpiryHeap() # one entry per window, no tombstones
         self.observations = ObservationIndex(max_entries) # bounded token snapshots
 
     def message(self, name):
         return self.settings.get('messages', {}).get(name, DEFAULT_MESSAGES[name])
+
+    def _cleanup_busy(self):
+        return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),
+                'retry_after_seconds':1, 'relation':'inconclusive'}
+
+    def _prune_windows(self, now):
+        """Drain at most CLEANUP_BUDGET; callers deny if stale entries remain."""
+        cutoff = now - self.settings['window_seconds']
+        removed = 0
+        while removed < CLEANUP_BUDGET:
+            top = self.window_expiries.peek()
+            if top is None or top[0] > cutoff:
+                return False
+            _, key = self.window_expiries.pop()
+            del self.windows[key]
+            removed += 1
+        top = self.window_expiries.peek()
+        return top is not None and top[0] <= cutoff
+
+    def _new_window(self, key, now):
+        row = [now, 0]
+        self.windows[key] = row
+        self.window_expiries.set(key, now)
+        return row
+
+    def _window(self, key, now):
+        row = self.windows.get(key)
+        return row if row is not None else self._new_window(key, now)
 
     def token(self, name, value):
         return hmac.new(self.secret, ('archx-raw-v2\0'+name+'\0'+value).encode(), hashlib.sha256).hexdigest()
@@ -102,10 +134,10 @@ class Engine:
         key = self.ip_key(ip); window = self.settings['window_seconds']
         with self.lock:
             now = self.clock()
-            self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
+            if self._prune_windows(now): return self._cleanup_busy()
             if key not in self.windows and len(self.windows) >= self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window,'relation':'inconclusive'}
-            row = self.windows.setdefault(key,[now,0]); row[1] += 1
+            row = self._window(key,now); row[1] += 1
             if row[1] > self.settings['max_requests']:
                 return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
         return None
@@ -149,14 +181,14 @@ class Engine:
             # State time must be sampled after waiting for the lock: an earlier
             # timestamp can expire a newly charged window or history too soon.
             now = self.clock()
-            self.windows = {k:v for k,v in self.windows.items() if now-v[0] < window}
-            cleanup_pending = self.observations.prune(now)
+            if self._prune_windows(now): return self._cleanup_busy()
+            cleanup_pending = self.observations.prune(now, CLEANUP_BUDGET)
             missing_keys = sum(1 for key in keys if key not in self.windows)
             if len(self.windows) + missing_keys > self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
             retry = 0
             for key in keys:
-                row = self.windows.setdefault(key, [now,0])
+                row = self._window(key, now)
                 row[1] += 1
                 if row[1] > self.settings['max_requests']:
                     retry = max(retry, math.ceil(window - (now-row[0])))
@@ -166,8 +198,7 @@ class Engine:
             if failure:
                 return failure
             if cleanup_pending:
-                return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),
-                        'retry_after_seconds':1, 'relation':'inconclusive'}
+                return self._cleanup_busy()
             relation, best = self.observations.match(tokens, self.settings['min_matches'])
             earliest = self.observations.enroll(tokens, now + self.settings['history_seconds'])
             if earliest is not None:

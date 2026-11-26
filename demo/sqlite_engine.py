@@ -14,7 +14,7 @@ import stat
 from contextlib import suppress
 from pathlib import Path
 
-from engine import Engine
+from engine import Engine, CLEANUP_BUDGET
 
 SCHEMA = {
     'meta': 'CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)',
@@ -101,10 +101,17 @@ class SQLiteEngine(Engine):
             con.close()
 
     def _prune_windows(self, con, now):
-        con.execute('DELETE FROM windows WHERE start <= ?', (now - self.settings['window_seconds'],))
+        cutoff = now - self.settings['window_seconds']
+        con.execute('DELETE FROM windows WHERE key IN (SELECT key FROM windows WHERE start <= ? ORDER BY start LIMIT ?)',
+                    (cutoff, CLEANUP_BUDGET))
+        return con.execute('SELECT 1 FROM windows WHERE start <= ? LIMIT 1', (cutoff,)).fetchone() is not None
+
+    def _prune_observations(self, con, now):
+        con.execute('DELETE FROM observations WHERE id IN (SELECT id FROM observations WHERE expires <= ? ORDER BY expires LIMIT ?)',
+                    (now, CLEANUP_BUDGET))
+        return con.execute('SELECT 1 FROM observations WHERE expires <= ? LIMIT 1', (now,)).fetchone() is not None
 
     def _charge(self, con, keys, now):
-        self._prune_windows(con, now)
         keys = list(dict.fromkeys(keys))
         if not keys: return None
         marks = ','.join('?' for _ in keys)
@@ -131,7 +138,7 @@ class SQLiteEngine(Engine):
             try:
                 con.execute('BEGIN IMMEDIATE')
                 now = self.clock()
-                result = self._charge(con, [self.ip_key(ip)], now)
+                result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, [self.ip_key(ip)], now)
                 con.commit()
                 return result
             except Exception:
@@ -150,13 +157,17 @@ class SQLiteEngine(Engine):
                 con.execute('BEGIN IMMEDIATE')
                 # A waiting writer must not use a stale pre-transaction time.
                 now = self.clock()
+                if self._prune_windows(con, now):
+                    con.commit()
+                    return self._cleanup_busy()
+                cleanup_pending = self._prune_observations(con, now)
                 keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
                 failure = self._charge(con, keys, now)
                 if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
+                if failure is None and cleanup_pending: failure = self._cleanup_busy()
                 if failure:
                     con.commit()
                     return failure
-                con.execute('DELETE FROM observations WHERE expires <= ?', (now,))
                 # All matching fields must refer to the same prior observation.
                 predicates = ' OR '.join('(name=? AND token=?)' for _ in tokens)
                 params = [x for pair in tokens.items() for x in pair]

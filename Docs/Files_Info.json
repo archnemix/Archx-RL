@@ -1050,6 +1050,16 @@
       "purpose": "Compare synthetic sparse observation matching against historical linear matching",
       "inputs": "bounded synthetic observations and sample count",
       "outputs": "sanitized matching-only timing and parity checks"
+    },
+    "tests/test_expiry_cleanup.py": {
+      "purpose": "Model and test bounded window/history expiration and stale-charge prevention",
+      "inputs": "synthetic state, time, concurrent requests",
+      "outputs": "expiry, budget, parity and fail-closed assertions"
+    },
+    "tools/cleanup_backlog_benchmark.py": {
+      "purpose": "Compare synthetic memory and SQLite expired backlog cleanup",
+      "inputs": "bounded synthetic population",
+      "outputs": "sanitized timing and cleanup-count measurements"
     }
   }
 }

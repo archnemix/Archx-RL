@@ -1,6 +1,6 @@
 # Next-version release backlog
 
-This tracks the requested next version; issues contain the implementation and acceptance requirements. Each issue names @archnemix as a proposed initial owner, subject to confirmation or delegation; GitHub did not set the assignee field, so assignment is not verified. No unperformed work is implied. All remain open pending evidence.
+This tracks the requested next version; issues contain the implementation and acceptance requirements. Each issue names @archnemix as a proposed initial owner, subject to confirmation or delegation; GitHub did not set the assignee field, so assignment is not verified. No unperformed work is implied. GitHub is authoritative for current issue state; historical status notes below may have been superseded.
 
 ## Release gate
 
@@ -59,6 +59,8 @@ Additional release-wide tracks: [test matrix #41](https://github.com/archnemix/A
 Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A08/C02 and native A03/A04; performance/parity D01–D06/B04–B07; operational release A09–A15/B08–B12/C03–C05 and release tests. A16/D07 are later. Completion requires linked evidence, not just a closed issue.
 
 ## Foundation evidence and outstanding verification
+
+Historical evidence snapshots below record status at the time; consult the issue closure and latest follow-up sections for superseding changes.
 
 - **A01:** `SECURITY.md` and `Docs/Threat-Model.md` document trust boundaries and map each listed threat to a named synthetic test or a known limitation; the traceability check and full suite are in [local evidence](../Test-Results/unreleased/threat-model-full-test.log). A documented limitation is not formal risk acceptance. A private reporting channel and maintainer review are not yet verified; the GitHub issue remains open.
 - **B01:** `tests/test_core.c` exercises exhaustion, 200 new-key churn attempts, existing-key checks, targeted reset and 32 concurrent new keys. Full sanitized local output is in [foundation-full-test.log](../Test-Results/unreleased/foundation-full-test.log), with a later [Linux regression](https://github.com/archnemix/Archx-RL/actions/runs/45678625353). The stated issue-level change and tests are implemented; a 2026-11-22 GitHub issue comment and close attempt both failed with “Resource not accessible by integration”, so [#1](https://github.com/archnemix/Archx-RL/issues/1) remains open. Existing entries are not automatically reclaimed; restart resets all C quotas, so release-wide state durability is still unmet.
@@ -122,9 +124,9 @@ C04 native fixture evidence is now recorded in the [provider ADR](Crypto-JSON-AD
 
 The SHA schedule is now explicitly zero-initialized; the seven GCC 12.2 `-O0` uninitialized warnings no longer reproduce, while known-answer/differential and full local tests pass. [Triage details](../Research/Analyzer-Triage.md) record persistent complexity cutoffs. The original `archx.c:263` diagnostic remains unclassified, so #22 is still open.
 
-## D03 high-churn measurement and remaining limitation
+## D03 historical high-churn measurement (before window/SQLite changes)
 
-A synthetic sequential [expiry backlog measurement](../Test-Results/unreleased/expiry-backlog-benchmark.json) ran five independently seeded waves of 5,000 expired observations and 5,000 live rate-window buckets each, using `python3 tools/expiry_benchmark.py --population 5000 --waves 5`. Each check includes the existing full rate-window scan, preparation, bounded history prune and decisions, not just cleanup; preload time is excluded. On that Linux x86-64/Python 3.11 runner, 25,000 expired records drained at at most 64 per check, with 390 fail-closed capacity decisions followed by five `new` recoveries. Reported p50/p95/p99/max were 0.682/0.866/1.093/1.324 ms per check. These measurements are not budgets, concurrent/network performance, or deployment capacity. The index is bounded by configured capacity, not idle-time cleanup. **#36 remains open:** request paths still rebuild the entire window dictionary and SQLite cleanup is transaction-wide, so full-state cleanup has not been replaced across both stores.
+A synthetic sequential [expiry backlog measurement](../Test-Results/unreleased/expiry-backlog-benchmark.json) ran five independently seeded waves of 5,000 expired observations and 5,000 live rate-window buckets each, using `python3 tools/expiry_benchmark.py --population 5000 --waves 5`. Each check includes the existing full rate-window scan, preparation, bounded history prune and decisions, not just cleanup; preload time is excluded. On that Linux x86-64/Python 3.11 runner, 25,000 expired records drained at at most 64 per check, with 390 fail-closed capacity decisions followed by five `new` recoveries. Reported p50/p95/p99/max were 0.682/0.866/1.093/1.324 ms per check. These measurements are not budgets, concurrent/network performance, or deployment capacity. The index is bounded by configured capacity, not idle-time cleanup. At the time of this historical measurement, request paths rebuilt the window dictionary and SQLite cleanup was transaction-wide; see the later D03 follow-up below.
 
 ## D07 C-store collision bound and cost
 
@@ -143,3 +145,9 @@ The pre-index and indexed matching loops were also [compared](../Test-Results/un
 ## Issue closure and branch status
 
 Ten reviewed issues (#1, #18, #20, #28, #32, #33, #34, #35, #37 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
+
+## D03 bounded window and SQLite cleanup follow-up
+
+Both engines now remove at most 64 expired windows per request, using a no-tombstone indexed heap in memory and indexed bounded deletes in SQLite. If a backlog remains, requests fail closed with retry 1 **before charging**. A valid check then removes at most 64 expired observations in either backend; if that backlog remains, it fails closed before matching or enrollment but after applicable charges. Malformed precharges clean windows only. This changes the old SQLite transaction-wide cleanup behavior and removes the prior in-memory full-window rebuild. The clock comparison now uses the SQLite cutoff expression in both engines. Expired windows are never charged and expired observations are never matched, even amid a backlog.
+
+`tests/test_expiry_cleanup.py` checks a seeded linear window oracle, heap invariants, exact boundaries, no charges on an incomplete window backlog and concurrent recovery in both backends. `tests/test_sqlite_engine.py` tests shared window/history backlog parity. In synthetic sequential 5,000-window/5,000-observation backlog measurements, [memory](../Test-Results/unreleased/cleanup-indexed-memory.json) and [SQLite](../Test-Results/unreleased/cleanup-indexed-sqlite.json) each removed at most 64 per category per check, denied 156 checks while draining and recovered with a `new` relation on check 157. Memory p50/p95/p99/max were 0.442/0.711/0.768/0.829 ms; SQLite 1.324/2.261/4.491/4.953 ms. Linux x86-64/Python 3.11.2, synthetic, setup excluded and stale-count queries can warm caches. These are not capacity targets, full end-to-end performance or wall-clock bounds. No idle cleanup runs; scans of popular token postings, SQLite I/O, and lock waits can still take unbounded wall time.
