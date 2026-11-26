@@ -1,0 +1,55 @@
+# Native execution of the experimental Linux x86-64 core and language bindings.
+# Untrusted PRs receive read-only repository access and no project secrets.
+name: Experimental native binding matrix
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: native-binding-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    name: ${{ matrix.os }} Python ${{ matrix.pair.python }} Node ${{ matrix.pair.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        pair:
+          - {python: '3.9', node: '20'}
+          - {python: '3.11', node: '22'}
+          - {python: '3.13', node: '24'}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.pair.python }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.pair.node }}
+      - name: Verify native architecture and versions
+        shell: bash
+        run: |
+          set -eu
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          test "$(uname -m)" = x86_64
+          python3 --version
+          node --version
+          cc --version | head -n 1
+      - name: Build core and synthetic native fixtures
+        run: |
+          ./build.sh
+          sh tests/build_binding_fixtures.sh
+          npm ci --prefix bindings/node
+      - name: Run actual-core shared protocol and native failure tests
+        run: |
+          python3 tests/test_python_binding.py
+          node tests/test_node_binding.cjs
+      - name: Exercise separately installed binding packages
+        run: sh tests/test_binding_packaging.sh
