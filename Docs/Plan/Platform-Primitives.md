@@ -31,3 +31,5 @@ At commit `ab3231a`, [native synthetic run 45808839990](https://github.com/archn
 ## Internal thread-local declaration
 
 The C core error buffer now uses an internal macro selecting C11 `_Thread_local` or MSVC `__declspec(thread)`. A synthetic platform fixture synchronizes eight native threads before verifying isolated slots; Linux core tests additionally create different simultaneous `ax_last_error` values. [Microsoft documentation](https://learn.microsoft.com/en-us/cpp/c-language/thread-local-storage?view=msvc-170) notes potential delay-load interactions. These tests do not execute the full Windows/macOS core or prove TLS works in a native shared library loaded into pre-existing threads; that remains open under C02.
+
+At commit `394e915`, [native conformance run 45817015081](https://github.com/archnemix/Archx-RL/actions/runs/45817015081) passed the synchronized thread-local fixture on Windows Server 2022 x64 and macOS 15 Intel/ARM; [Linux regression 45817014940](https://github.com/archnemix/Archx-RL/actions/runs/45817014940) passed the full suite and simultaneous public core error isolation. This is not evidence for native shared-library loading.
