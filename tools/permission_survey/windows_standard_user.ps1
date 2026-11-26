@@ -21,8 +21,9 @@ try {
     $stage = 'create-account'
     $account = New-LocalUser -Name $accountName -Password $secure -AccountExpires (Get-Date).AddHours(1)
     $accountCreated = $true
-    $stage = 'configure-account'
+    $stage = 'add-users-group'
     Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $account.SID
+    $stage = 'verify-admin-group'
     if (Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.SID -eq $account.SID }) {
         throw 'Unexpected group membership'
     }
