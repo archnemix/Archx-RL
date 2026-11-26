@@ -1,0 +1,19 @@
+# One-time closure of the verified native execution matrix issue.
+name: Close verified native matrix issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close verified native matrix issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 9 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on arena/328e63a8-archx-rl at a90dc87 (not merged to main). The experimental advertised native binding targets are explicitly scoped to GitHub-hosted Ubuntu 22.04 and 24.04 x86-64 with Python/Node 3.9/20, 3.11/22 and 3.13/24. All six jobs executed natively, built and loaded the real C core, ran both shared fixture and native ABI/error ownership suites, and tested isolated Python and Node source-package installs: https://github.com/archnemix/Archx-RL/actions/runs/45878725397. This is not a cross-product or a production support promise; runtime lifecycle and untested versions are explicitly noted in bindings/README.md. Windows/macOS jobs test only separate primitives and do not advertise full native product or bindings. Their implementation/build issues #4, #5, #6, #7 and #30 remain open.'

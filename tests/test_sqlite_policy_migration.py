@@ -11,9 +11,9 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'demo'))
 from engine import policy
 from policy_migration import tighten_policy
-from replay import SQLiteReplay
+from replay import ReplayUnavailable, SQLiteReplay
 from signal_validation import synthetic_signal
-from sqlite_engine import SQLiteEngine
+from sqlite_engine import SQLiteEngine, persistent_checks
 
 SECRET = b'synthetic-migration-secret-0123456789'
 NOW = 1700000000.0
@@ -59,6 +59,73 @@ class PolicyMigrationTests(unittest.TestCase):
         self.assertEqual(self.open(new_policy).check(self.request('four'), '192.0.2.1')['decision'], 'rate_limited')
         # A reverse migration would weaken quotas and is explicitly rejected.
         with self.assertRaises(ValueError): tighten_policy(current, self.old_policy)
+
+    def test_stale_replay_cannot_issue_consume_cleanup_or_initialize(self):
+        stale = SQLiteReplay(self.engine)
+        peer = '192.0.2.9'
+        nonce = stale.issue(peer)
+        before = self.snapshot()
+        target = policy(override={'max_requests': 1})
+        tighten_policy(self.engine, target)
+        for operation in (lambda: stale.issue(peer), lambda: stale.consume(nonce, peer),
+                          stale.cleanup_expired, lambda: SQLiteReplay(self.engine)):
+            with self.subTest(operation=operation), self.assertRaises(ReplayUnavailable):
+                operation()
+        self.assertEqual(self.snapshot(), before)
+        current = SQLiteReplay(self.open(target))
+        self.assertTrue(current.consume(nonce, peer))
+        self.assertFalse(current.consume(nonce, peer))
+
+    def test_replay_waiter_checks_metadata_after_acquiring_writer_lock(self):
+        stale = SQLiteReplay(self.engine)
+        nonce = stale.issue('192.0.2.1')
+        target = policy(override={'max_requests': 1})
+        waiting = threading.Event()
+        done = threading.Event()
+        errors = []
+        original_connect = self.engine.connect
+        class Traced:
+            def __init__(self): self.con = original_connect()
+            def __getattr__(self, name): return getattr(self.con, name)
+            def execute(self, sql, *args):
+                if sql == 'BEGIN IMMEDIATE': waiting.set()
+                return self.con.execute(sql, *args)
+        holder = original_connect()
+        holder.execute('BEGIN IMMEDIATE')
+        def consume():
+            try: stale.consume(nonce, '192.0.2.1')
+            except Exception as exc: errors.append(exc)
+            finally: done.set()
+        try:
+            with mock.patch.object(self.engine, 'connect', side_effect=Traced):
+                thread = threading.Thread(target=consume)
+                thread.start()
+                self.assertTrue(waiting.wait(2))
+                self.assertFalse(done.is_set())
+                # Commit the same metadata change as migration while the stale
+                # replay operation is waiting on the SQLite writer lock.
+                holder.execute("UPDATE meta SET value=? WHERE name='policy_check'",
+                               (persistent_checks(SECRET, target)['policy_check'],))
+                holder.commit()
+                self.assertTrue(done.wait(6))
+                thread.join(2)
+            self.assertEqual(len(errors), 1)
+            self.assertIsInstance(errors[0], ReplayUnavailable)
+            self.assertTrue(SQLiteReplay(self.open(target)).consume(nonce, '192.0.2.1'))
+        finally:
+            holder.close()
+
+    def test_replay_secret_mutation_fails_closed(self):
+        store = SQLiteReplay(self.engine)
+        nonce = store.issue('192.0.2.1')
+        before = self.snapshot()
+        store.secret = b'changed-synthetic-replay-secret'
+        for operation in (lambda: store.issue('192.0.2.1'),
+                          lambda: store.consume(nonce, '192.0.2.1'), store.cleanup_expired):
+            with self.subTest(operation=operation), self.assertRaises(ReplayUnavailable):
+                operation()
+        self.assertEqual(self.snapshot(), before)
+        self.assertTrue(SQLiteReplay(self.engine).consume(nonce, '192.0.2.1'))
 
     def test_rejects_semantic_changes_and_quota_weakening(self):
         invalid = [

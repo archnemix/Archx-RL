@@ -106,7 +106,7 @@ class SQLiteReplay(MemoryReplay):
         try:
             con = self.engine.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 marker = con.execute('SELECT value FROM meta WHERE name=?', (REPLAY_MARKER,)).fetchone()
                 objects = {name:(kind, sql) for kind, name, sql in con.execute(
                     'SELECT type, name, sql FROM sqlite_master WHERE name IN (?,?,?)', tuple(REPLAY_SCHEMA))}
@@ -135,12 +135,22 @@ class SQLiteReplay(MemoryReplay):
         except sqlite3.Error as exc:
             raise ReplayUnavailable('Challenge storage unavailable') from exc
 
+    def _begin_writer(self, con):
+        # Share the engine's transaction-time metadata check. Otherwise a replay
+        # store created before a policy/key change can mutate persistent state
+        # even though the corresponding engine has been invalidated.
+        self.engine._begin_writer(con)
+        if (not isinstance(self.secret, bytes) or
+                not isinstance(self.engine.secret, bytes) or
+                not hmac.compare_digest(self.secret, self.engine.secret)):
+            raise sqlite3.DatabaseError('Persistent replay secret changed')
+
     def cleanup_expired(self):
         """Delete one indexed, bounded batch, propagating storage failure."""
         try:
             con = self.engine.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 now = self.clock()
                 if type(now) not in (int,float) or not math.isfinite(now):
                     raise ValueError('Invalid maintenance clock')
@@ -161,7 +171,7 @@ class SQLiteReplay(MemoryReplay):
         try:
             con = self.engine.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 now = self.clock()
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
                 total = con.execute('SELECT count(*) FROM replay_challenges_v1').fetchone()[0]
@@ -188,7 +198,7 @@ class SQLiteReplay(MemoryReplay):
         try:
             con = self.engine.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 now = self.clock()
                 count = con.execute('DELETE FROM replay_challenges_v1 WHERE token=? AND peer=? AND expires>?', (key, peer_key, now)).rowcount
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
