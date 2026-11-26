@@ -23,3 +23,5 @@ The Type 2 addition has local Linux synthetic/ASan/UBSan evidence in [`windows-b
 ## Hosted availability survey — 2026-11-22
 
 See [`../Test-Results/unreleased/native-permission-survey.md`](../Test-Results/unreleased/native-permission-survey.md) for validated categories and execution privilege on the three hosted runners. This restricted survey does not establish physical-device behavior, distribution approval, or full native support.
+
+The follow-up [hosted standard-user survey](../Test-Results/unreleased/native-permission-survey.md#windows-standard-user-follow-up) observed the same bounded firmware availability categories under a non-elevated local Users-group account and elevated runner. This is not Windows 11, physical-device, persistence or native artifact evidence.

@@ -1,0 +1,4 @@
+Synthetic Linux local regression, 2026-11-22
+Commands: python3 tests/test_sqlite_engine.py; python3 tests/test_observation_index.py
+Result: 27 SQLite tests passed; 9 observation-index tests passed.
+Added shared-clock duplicate refresh and expiry scenario: both memory and SQLite kept one snapshot, matched after the first expiry, then treated it as new after the refreshed expiry. No real identifiers used.

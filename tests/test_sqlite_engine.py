@@ -161,6 +161,24 @@ class PersistentTests(unittest.TestCase):
         for i in range(30): self.assertEqual(e.check(req(str(i)),'192.0.2.1')['decision'],'allow')
         with sqlite3.connect(self.path) as db: count=db.execute('SELECT count(*) FROM observations').fetchone()[0]
         self.assertEqual(count,1)
+    def test_duplicate_refresh_and_expiry_parity_with_memory(self):
+        # The same observations and clock drive both implementations. Expiry
+        # must be refreshed, but each identical snapshot consumes one slot.
+        settings=policy(override={'history_seconds':60,'window_seconds':60,'max_requests':100})
+        memory=Engine(settings,SECRET,clock=lambda:self.now[0])
+        persistent=SQLiteEngine(self.path,settings,SECRET,clock=lambda:self.now[0])
+        def counts():
+            with sqlite3.connect(self.path) as db:
+                return len(memory.observations), db.execute('SELECT count(*) FROM observations').fetchone()[0]
+        start=self.now[0]
+        for offset, expected in [(0,'new'), (30,'related'), (61,'related'), (122,'new')]:
+            self.now[0]=start+offset
+            with self.subTest(offset=offset):
+                actual=[engine.check(req(),'192.0.2.1') for engine in (memory,persistent)]
+                self.assertEqual([r['decision'] for r in actual], ['allow','allow'])
+                self.assertEqual([r['relation'] for r in actual], [expected,expected])
+                self.assertEqual(counts(), (1,1))
+
     def test_connection_setup_failure_closes_connection_and_denies(self):
         e=self.engine()
         broken=mock.Mock()
