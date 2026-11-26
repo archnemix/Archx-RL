@@ -50,6 +50,7 @@ python3 tests/test_browser.py
 python3 tests/test_replay.py
 python3 tests/test_proxy.py
 python3 tests/test_host_integration.py
+python3 tests/test_wsgi_boundary.py
 python3 tests/test_survey.py
 python3 tools/attack_lab.py
 python3 tools/benchmark.py

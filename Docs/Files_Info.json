@@ -1070,6 +1070,16 @@
       "purpose": "Inject Linux fallback-file operation failures",
       "inputs": "synthetic temporary files and deterministic fake entropy",
       "outputs": "no partial output, failure recovery and partial-file denial"
+    },
+    "examples/python/boundary_wsgi.py": {
+      "purpose": "Prototype process-local admission and draining around WSGI applications",
+      "inputs": "host WSGI app, synthetic or validated limits and monotonic clock",
+      "outputs": "WSGI responses or fail-closed overload; not a production server"
+    },
+    "tests/test_wsgi_boundary.py": {
+      "purpose": "Test prototype WSGI request admission, recovery and drain semantics",
+      "inputs": "synthetic routes and concurrent applications",
+      "outputs": "global rate, permit, clock failure and shutdown assertions"
     }
   }
 }

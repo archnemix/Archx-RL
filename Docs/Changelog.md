@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added an experimental process-local WSGI request-admission and draining wrapper; it does not bound server sockets or constitute a production entrypoint.
 - Fail closed on C digest/bucket formatting and fallback-file unlock/close failures; added synthetic formatting, allocation and persistence fault injection.
 - Bound expired window and history cleanup in memory and SQLite; backlog fails closed and stale windows cannot be charged.
 - Added synthetic memory-mutex and SQLite-writer contention profiling with concurrent quota checks and documented constraints for future sharding.
