@@ -41,6 +41,8 @@ jobs:
         run: ./test.sh
       - name: Install and exercise isolated native binding packages
         run: sh tests/test_binding_packaging.sh
+      - name: Install and exercise isolated WSGI integration
+        run: sh tests/test_wsgi_package_install.sh
       - name: Real TLS proxy experiment (private demo only)
         shell: bash
         run: |

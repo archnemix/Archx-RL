@@ -269,7 +269,7 @@ By default, all forwarding headers are ignored. For a **single operator-controll
 
 ### Host integration example
 
-`demo/service.py` exposes `RequestService.check(envelope, peer)` and `status_for(result)`: the host must supply a trustworthy resolved peer, perform strict bounded JSON parsing, and run its protected action **only** for `decision == "allow"`. For sealed mode it must also expose `config()` and `challenge(peer)` using the same peer resolution and shared replay store. Do not allow clients to supply the peer argument or reuse a returned allow decision as authentication. The example below demonstrates enforcement on the same request, not an endorsement of WSGI's development server for production:
+The [single-process WSGI integration](integrations/wsgi/README.md) enforces host authentication/authorization hooks and a gate decision before a protected application, with local request and in-flight bounds; it is not an HTTP server or a production deployment. `demo/service.py` exposes `RequestService.check(envelope, peer)` and `status_for(result)`: the host must supply a trustworthy resolved peer, perform strict bounded JSON parsing, and run its protected action **only** for `decision == "allow"`. For sealed mode it must also expose `config()` and `challenge(peer)` using the same peer resolution and shared replay store. Do not allow clients to supply the peer argument or reuse a returned allow decision as authentication. The example below demonstrates enforcement on the same request, not an endorsement of WSGI's development server for production:
 
 ```sh
 python3 examples/python/gated_wsgi.py
