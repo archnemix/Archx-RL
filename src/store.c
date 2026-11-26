@@ -31,15 +31,20 @@ static size_t hash_key(const uint8_t key[32]) {
 
 static size_t next_pow2(size_t n) {
   size_t p = 16;
-  while (p < n) p <<= 1;
+  while (p < n) {
+    if (p > SIZE_MAX / 2) return 0;
+    p <<= 1;
+  }
   return p;
 }
 
 ax_store *ax_store_new(size_t capacity) {
   if (capacity < 16) capacity = 16;
+  size_t rounded = next_pow2(capacity);
+  if (!rounded || rounded > SIZE_MAX / sizeof(ax_entry)) return NULL;
   ax_store *s = (ax_store *)calloc(1, sizeof *s);
   if (!s) return NULL;
-  s->capacity = next_pow2(capacity);
+  s->capacity = rounded;
   s->entries = (ax_entry *)calloc(s->capacity, sizeof(ax_entry));
   if (!s->entries) { free(s); return NULL; }
   s->lock = ax_platform_mutex_new();
@@ -81,19 +86,25 @@ static void delete_entry(ax_store *s, size_t hole) {
   }
 }
 
-/* Insert a fresh full bucket. Caller holds the lock; key not present. */
-static ax_entry *insert_entry(ax_store *s, const uint8_t key[32], double capacity, int64_t now) {
-  if (s->size >= s->capacity) return NULL;
+/* Find or insert in one probe traversal. Caller holds the lock. Existing
+ * entries remain usable when full; missing keys never evict them. */
+static ax_entry *find_or_insert(ax_store *s, const uint8_t key[32], double capacity, int64_t now) {
   size_t mask = s->capacity - 1;
   size_t i = hash_key(key) & mask;
-  while (s->entries[i].occupied) i = (i + 1) & mask;
-  ax_entry *e = &s->entries[i];
-  memcpy(e->key, key, 32);
-  e->tokens = capacity;
-  e->last_refill_ms = now;
-  e->occupied = 1;
-  s->size++;
-  return e;
+  for (size_t probes = 0; probes < s->capacity; probes++, i = (i + 1) & mask) {
+    ax_entry *e = &s->entries[i];
+    if (e->occupied) {
+      if (memcmp(e->key, key, 32) == 0) return e;
+      continue;
+    }
+    memcpy(e->key, key, 32);
+    e->tokens = capacity;
+    e->last_refill_ms = now;
+    e->occupied = 1;
+    s->size++;
+    return e;
+  }
+  return NULL;
 }
 
 int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
@@ -112,8 +123,7 @@ int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
     ax_platform_mutex_unlock(s->lock);
     return -2;
   }
-  ax_entry *e = find_entry(s, key);
-  if (!e) e = insert_entry(s, key, capacity, now);
+  ax_entry *e = find_or_insert(s, key, capacity, now);
   if (!e) {
     return ax_platform_mutex_unlock(s->lock) == 0 ? -1 : -2;
   }

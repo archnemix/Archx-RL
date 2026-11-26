@@ -100,6 +100,7 @@ int main(void) {
   }
   CHECK(tls_test_value == 99);
   ax_platform_mutex_free(mutex);
+  CHECK(ax_store_new(SIZE_MAX) == NULL);
   ax_store *store = ax_store_new(16);
   CHECK(store);
   test_thread threads[8]; worker_arg args[8];
@@ -138,6 +139,25 @@ int main(void) {
   CHECK(ax_store_reset(store, reset) == 0);
   CHECK(ax_store_token_bucket(store, absent, 100, 0, 1, NULL, NULL) == 1);
   size_t size = 0;
+  CHECK(ax_store_size(store, &size) == 0 && size == 16);
+  ax_store_free(store);
+  /* Same first eight key bytes create a worst-case collision chain. Verify
+   * full-table saturation, backwards-shift deletion and existing balances. */
+  store = ax_store_new(16); CHECK(store);
+  uint8_t collided[17][32] = {{0}};
+  for (int i = 0; i < 17; i++) collided[i][31] = (uint8_t)i;
+  for (int i = 0; i < 16; i++)
+    CHECK(ax_store_token_bucket(store, collided[i], 2, 0, 1, NULL, NULL) == 1);
+  CHECK(ax_store_token_bucket(store, collided[16], 2, 0, 1, NULL, NULL) == -1);
+  for (int i = 0; i < 16; i++) {
+    CHECK(ax_store_token_bucket(store, collided[i], 2, 0, 1, NULL, NULL) == 1);
+    CHECK(ax_store_token_bucket(store, collided[i], 2, 0, 1, NULL, NULL) == 0);
+  }
+  CHECK(ax_store_reset(store, collided[4]) == 0);
+  CHECK(ax_store_token_bucket(store, collided[16], 2, 0, 1, NULL, NULL) == 1);
+  for (int i = 0; i < 16; i++) if (i != 4)
+    CHECK(ax_store_token_bucket(store, collided[i], 2, 0, 1, NULL, NULL) == 0);
+  CHECK(ax_store_token_bucket(store, collided[4], 2, 0, 1, NULL, NULL) == -1);
   CHECK(ax_store_size(store, &size) == 0 && size == 16);
   ax_store_free(store);
   puts("platform entropy/clock/mutex/thread-local/store conformance passed");

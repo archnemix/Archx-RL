@@ -1030,6 +1030,11 @@
       "purpose": "Test expiry benchmark accounting and recovery",
       "inputs": "synthetic backlog sizes",
       "outputs": "bounded batch and stale-match assertions"
+    },
+    "tools/store_collision_benchmark.c": {
+      "purpose": "Synthetic C store collision-chain lookup and reset timing",
+      "inputs": "fixed synthetic colliding token keys",
+      "outputs": "host-specific JSON timing measurements; no real identifiers"
     }
   }
 }

@@ -49,6 +49,7 @@ python3 tools/attack_lab.py
 python3 tools/benchmark.py
 # Exercise memory safety on C paths. Requires a compiler with ASan/UBSan support.
 SAN_FLAGS="$FLAGS -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined"
+$CC $SAN_FLAGS tests/test_platform.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_platform_san
 $CC $SAN_FLAGS tests/test_core.c src/archx.c src/signals_linux.c src/signals.c src/sha256.c src/json.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_core_san
 $CC $SAN_FLAGS tests/test_uuid_value.c src/uuid_value.c -o build/test_uuid_value_san
 $CC $SAN_FLAGS tests/test_canonical.c src/signals.c -o build/test_canonical_san
@@ -58,6 +59,7 @@ $CC $SAN_FLAGS tests/test_json_faults.c src/archx.c src/sha256.c src/store.c src
 $CC $SAN_FLAGS tests/test_smbios.c src/smbios.c -o build/test_smbios_san
 $CC $SAN_FLAGS tests/test_json_fuzz.c src/json.c -o build/test_json_fuzz
 $CC $SAN_FLAGS tests/test_json_contract.c src/json.c -lm -o build/test_json_contract_san
+ASAN_OPTIONS=detect_leaks=1 ./build/test_platform_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_core_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_uuid_value_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_canonical_san

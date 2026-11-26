@@ -2,9 +2,9 @@
  *
  * - Open-addressing table, power-of-two size, 32-byte keys (already
  *   HMAC'd by the caller — raw user keys never land here).
- * - Shard-free and globally mutex-guarded. Lookup and deletion can scan up
- *   to the table capacity, particularly near saturation; no latency bound
- *   or contention profile has been established.
+ * - Shard-free and globally mutex-guarded. Lookup/admission probes at most
+ *   capacity slots; reset may probe capacity and shift at most capacity-1.
+ *   Lock wait, scheduling and wall-clock latency are not bounded.
  * - Capacity is hard-capped. A new key is refused at capacity; an existing
  *   bucket is never silently evicted, including when it has refilled. */
 #ifndef AX_STORE_H

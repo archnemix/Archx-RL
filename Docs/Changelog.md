@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- C bucket admission now probes once instead of twice; collision-chain saturation and reset tests and synthetic bounded-scan measurements document remaining costs.
 - Added a synthetic expiry-backlog measurement and accounting/recovery tests; the remaining rate-window full scan is not fixed.
 - Defensively zero-initialized the SHA schedule; GCC 12.2 no longer emits the prior uninitialized-schedule warnings, though analyzer complexity cutoffs and the historical core diagnostic remain unresolved.
 - Distinguish C JSON parser allocation failure from invalid JSON and propagate it through configuration/profile comparison; fault tests cover each synthetic parser allocation.
