@@ -22,6 +22,11 @@ int ax_platform_monotonic_ms(int64_t *out) {
   *out = ax_test_now; return 0;
 }
 
+int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
+  (void)input; (void)out; (void)out_len;
+  return -1; /* This fake is for store/entropy faults, not IP parsing. */
+}
+
 int ax_platform_random(void *out, size_t len) {
   if (len == 0) return 0;
   if (!out || len > 256 || ax_test_fail_random) return -1;

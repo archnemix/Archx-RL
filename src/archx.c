@@ -15,7 +15,6 @@
 #include "archx.h"
 
 #include <ctype.h>
-#include <arpa/inet.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +24,7 @@
 #include "sha256.h"
 #include "signals_linux.h"
 #include "store.h"
+#include "platform.h"
 #include "thread_local.h"
 
 #define AX_DEFAULT_CAPACITY      100.0
@@ -476,11 +476,9 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   tls_error[0] = '\0';
   if (!core || !out_json) { set_error("ax_profile: invalid arguments"); return AX_ERR_INVALID; }
   *out_json = NULL;
-  char normalized_ip[INET6_ADDRSTRLEN];
+  char normalized_ip[AX_PLATFORM_IP_TEXT_MAX];
   if (ip && core->match_roles[3]) {
-    unsigned char addr[16];
-    int family = strchr(ip, ':') ? AF_INET6 : AF_INET;
-    if (inet_pton(family, ip, addr) != 1 || !inet_ntop(family, addr, normalized_ip, sizeof normalized_ip)) {
+    if (ax_platform_normalize_ip(ip, normalized_ip, sizeof normalized_ip) != 0) {
       set_error("ax_profile_with_ip: invalid IP address"); return AX_ERR_INVALID;
     }
   }

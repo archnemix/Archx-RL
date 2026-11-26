@@ -62,6 +62,17 @@ static THREAD_RESULT tls_worker(void *context) {
 int main(void) {
   int64_t before, after;
   unsigned char random_bytes[256];
+  char ip[AX_PLATFORM_IP_TEXT_MAX];
+  memset(ip, 'x', sizeof ip);
+  CHECK(ax_platform_normalize_ip(NULL, ip, sizeof ip) == -1 && ip[0] == 'x');
+  CHECK(ax_platform_normalize_ip("127.0.0.1", NULL, sizeof ip) == -1);
+  CHECK(ax_platform_normalize_ip("127.0.0.1", ip, 9) == -1 && ip[0] == 'x');
+  CHECK(ax_platform_normalize_ip("127.0.0.1", ip, sizeof ip) == 0 && strcmp(ip, "127.0.0.1") == 0);
+  CHECK(ax_platform_normalize_ip("2001:0db8:0:0:0:0:0:1", ip, sizeof ip) == 0 && strcmp(ip, "2001:db8::1") == 0);
+  strcpy(ip, "unchanged");
+  CHECK(ax_platform_normalize_ip("fe80::1%1", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
+  CHECK(ax_platform_normalize_ip("127.0.0.1:80", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
+  CHECK(ax_platform_normalize_ip("example.invalid", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
   CHECK(ax_platform_random(NULL, 0) == 0);
   CHECK(ax_platform_random(NULL, 1) == -1);
   CHECK(ax_platform_random(random_bytes, sizeof random_bytes + 1) == -1);

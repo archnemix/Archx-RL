@@ -15,7 +15,7 @@ add_executable(archx_platform_conformance ../test_platform.c ../../src/store.c $
 target_include_directories(archx_platform_conformance PRIVATE ../../src)
 if(MSVC)
   target_compile_options(archx_platform_conformance PRIVATE /W4 /WX)
-  target_link_libraries(archx_platform_conformance PRIVATE bcrypt)
+  target_link_libraries(archx_platform_conformance PRIVATE bcrypt ws2_32)
 else()
   target_compile_options(archx_platform_conformance PRIVATE -Wall -Wextra -Wpedantic -Werror)
   target_compile_definitions(archx_platform_conformance PRIVATE _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)

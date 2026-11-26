@@ -1,7 +1,9 @@
 /* POSIX exclusive mutex implementation shared by Linux and macOS adapters. */
 #include "platform.h"
+#include <arpa/inet.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct ax_platform_mutex { pthread_mutex_t native; };
 
@@ -21,4 +23,16 @@ int ax_platform_mutex_lock(ax_platform_mutex *mutex) {
 }
 int ax_platform_mutex_unlock(ax_platform_mutex *mutex) {
   return mutex && pthread_mutex_unlock(&mutex->native) == 0 ? 0 : -1;
+}
+int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
+  struct in6_addr address;
+  char normalized[AX_PLATFORM_IP_TEXT_MAX];
+  if (!input || !out) return -1;
+  int family = strchr(input, ':') ? AF_INET6 : AF_INET;
+  if (inet_pton(family, input, &address) != 1 ||
+      !inet_ntop(family, &address, normalized, sizeof normalized)) return -1;
+  size_t len = strlen(normalized) + 1;
+  if (out_len < len) return -1;
+  memcpy(out, normalized, len);
+  return 0;
 }

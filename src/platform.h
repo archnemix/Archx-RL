@@ -19,4 +19,8 @@ int ax_platform_monotonic_ms(int64_t *out);
 /* Request 1..256 bytes of OS randomness; zero bytes is a no-op. On failure
  * the output must be discarded, including any partially written bytes. */
 int ax_platform_random(void *out, size_t len);
+/* Normalize a numeric IPv4/IPv6 address without DNS, scope IDs or ports.
+ * The output is untouched on failure; output size must include the NUL. */
+#define AX_PLATFORM_IP_TEXT_MAX 46
+int ax_platform_normalize_ip(const char *input, char *out, size_t out_len);
 #endif

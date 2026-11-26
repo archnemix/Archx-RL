@@ -2,10 +2,13 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
 #endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <realtimeapiset.h>
 #include <bcrypt.h>
 #include <stdlib.h>
+#include <string.h>
 #include "platform.h"
 
 struct ax_platform_mutex { SRWLOCK native; };
@@ -38,4 +41,16 @@ int ax_platform_random(void *out, size_t len) {
   if (len == 0) return 0;
   if (!out || len > 256) return -1;
   return BCryptGenRandom(NULL, (PUCHAR)out, (ULONG)len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0 ? 0 : -1;
+}
+int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
+  struct in6_addr address;
+  char normalized[AX_PLATFORM_IP_TEXT_MAX];
+  if (!input || !out) return -1;
+  int family = strchr(input, ':') ? AF_INET6 : AF_INET;
+  if (InetPtonA(family, input, &address) != 1 ||
+      !InetNtopA(family, &address, normalized, (DWORD)sizeof normalized)) return -1;
+  size_t len = strlen(normalized) + 1;
+  if (out_len < len) return -1;
+  memcpy(out, normalized, len);
+  return 0;
 }
