@@ -607,7 +607,7 @@
       "outputs": "internal results, conformance evidence or documentation"
     },
     "tests/platform/CMakeLists.txt": {
-      "purpose": "Build platform primitive tests only",
+      "purpose": "Build platform primitive and portable synthetic canonicalization tests only",
       "inputs": "portable store operations and synthetic test fixtures",
       "outputs": "internal results, conformance evidence or documentation"
     },
@@ -910,6 +910,26 @@
       "purpose": "Sanitized Linux regression including threat documentation traceability",
       "inputs": "documented threat entries and synthetic tests",
       "outputs": "traceability/test results, not formal risk acceptance or security audit"
+    },
+    "src/signals.h": {
+      "purpose": "Internal platform-independent signal representation and canonicalization contract",
+      "inputs": "synthetic or collected signals",
+      "outputs": "signal set and canonicalization declarations"
+    },
+    "src/signals.c": {
+      "purpose": "Canonicalize signal sets without platform collector dependencies",
+      "inputs": "bounded internal signal sets",
+      "outputs": "deterministic canonical output or explicit failure"
+    },
+    "Docs/Test-Results/unreleased/portable-canonical-full-test.log": {
+      "purpose": "Sanitized Linux regression following canonicalization extraction",
+      "inputs": "synthetic fixtures, Linux build and browser tests",
+      "outputs": "local results; not full native platform evidence"
+    },
+    "Docs/Test-Results/unreleased/portable-canonical-cmake.log": {
+      "purpose": "Sanitized Linux CMake canonical fixture and GCC install tests",
+      "inputs": "synthetic fixtures and CMake builds",
+      "outputs": "local results; not native Windows/macOS evidence"
     }
   }
 }

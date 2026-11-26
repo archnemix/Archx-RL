@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Portable canonical signal boundary
+- Move the existing canonical algorithm and signal structs into collector-independent C files without changing output or the public ABI. Keep Linux collection and persistence separate. Reuse synthetic malformed/bounds fixtures as an experimental native CI target with checks active even in release builds; full native cores and platform collections remain open.
+
 ## Issue evidence and threat traceability
 - B01 has implemented saturation and recovery evidence, but GitHub rejected both comment and close actions due to integration permissions. The A01 threat inventory now links named regressions or explicit limitations and has a reference integrity check; a link does not establish mitigation or formal risk acceptance. Maintainer review and private reporting availability are still unverified.
 

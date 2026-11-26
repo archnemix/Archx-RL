@@ -1,0 +1,147 @@
+Internal ctest changing into directory: /home/user/Archx-RL/build/platform-local
+Test project /home/user/Archx-RL/build/platform-local
+    Start 1: synthetic_smbios_fixtures
+1/4 Test #1: synthetic_smbios_fixtures ...............   Passed    0.00 sec
+    Start 2: entropy_clock_mutex_store_conformance
+2/4 Test #2: entropy_clock_mutex_store_conformance ...   Passed    0.00 sec
+    Start 3: synthetic_uuid_fixtures
+3/4 Test #3: synthetic_uuid_fixtures .................   Passed    0.00 sec
+    Start 4: synthetic_canonical_fixtures
+4/4 Test #4: synthetic_canonical_fixtures ............   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) =   0.01 sec
+-- The C compiler identification is GNU 12.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: <temporary-directory>/default/build
+[  8%] Building C object CMakeFiles/archx_objects.dir/src/archx.c.o
+[ 16%] Building C object CMakeFiles/archx_objects.dir/src/sha256.c.o
+[ 25%] Building C object CMakeFiles/archx_objects.dir/src/json.c.o
+[ 33%] Building C object CMakeFiles/archx_objects.dir/src/signals_linux.c.o
+[ 41%] Building C object CMakeFiles/archx_objects.dir/src/signals.c.o
+[ 50%] Building C object CMakeFiles/archx_objects.dir/src/store.c.o
+[ 58%] Building C object CMakeFiles/archx_objects.dir/src/platform_posix.c.o
+[ 66%] Building C object CMakeFiles/archx_objects.dir/src/platform_linux.c.o
+[ 66%] Built target archx_objects
+[ 75%] Linking C shared library libarchx.so
+[ 83%] Linking C static library libarchx.a
+[ 83%] Built target archx_static
+[ 83%] Built target archx_shared
+[ 91%] Building C object CMakeFiles/archx-probe.dir/tools/archx-probe.c.o
+[100%] Linking C executable archx-probe
+[100%] Built target archx-probe
+-- Install configuration: "Release"
+-- Installing: <temporary-directory>/default/prefix/lib/libarchx.so.1
+-- Installing: <temporary-directory>/default/prefix/lib/libarchx.so
+-- Installing: <temporary-directory>/default/prefix/lib/libarchx.a
+-- Installing: <temporary-directory>/default/prefix/bin/archx-probe
+-- Set non-toolchain portion of runtime path of "<temporary-directory>/default/prefix/bin/archx-probe" to "$ORIGIN/../lib"
+-- Installing: <temporary-directory>/default/prefix/include/archx.h
+-- Installing: <temporary-directory>/default/prefix/lib/cmake/Archx/ArchxTargets.cmake
+-- Installing: <temporary-directory>/default/prefix/lib/cmake/Archx/ArchxTargets-release.cmake
+-- Installing: <temporary-directory>/default/prefix/lib/cmake/Archx/ArchxConfig.cmake
+-- The C compiler identification is GNU 12.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: <temporary-directory>/default/consumer
+[ 25%] Building C object CMakeFiles/consumer_core.dir/consumer.c.o
+[ 50%] Building C object CMakeFiles/consumer_static.dir/consumer.c.o
+[ 75%] Linking C executable consumer_static
+[100%] Linking C executable consumer_core
+[100%] Built target consumer_static
+[100%] Built target consumer_core
+Internal ctest changing into directory: <temporary-directory>/default/consumer
+Test project <temporary-directory>/default/consumer
+    Start 1: shared_consumer
+1/2 Test #1: shared_consumer ..................   Passed    0.00 sec
+    Start 2: static_consumer
+2/2 Test #2: static_consumer ..................   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.00 sec
+-- The C compiler identification is GNU 12.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: <temporary-directory>/custom/build
+[  8%] Building C object CMakeFiles/archx_objects.dir/src/archx.c.o
+[ 16%] Building C object CMakeFiles/archx_objects.dir/src/sha256.c.o
+[ 25%] Building C object CMakeFiles/archx_objects.dir/src/json.c.o
+[ 33%] Building C object CMakeFiles/archx_objects.dir/src/signals_linux.c.o
+[ 41%] Building C object CMakeFiles/archx_objects.dir/src/signals.c.o
+[ 50%] Building C object CMakeFiles/archx_objects.dir/src/store.c.o
+[ 58%] Building C object CMakeFiles/archx_objects.dir/src/platform_posix.c.o
+[ 66%] Building C object CMakeFiles/archx_objects.dir/src/platform_linux.c.o
+[ 66%] Built target archx_objects
+[ 75%] Linking C shared library libarchx.so
+[ 83%] Linking C static library libarchx.a
+[ 83%] Built target archx_static
+[ 83%] Built target archx_shared
+[ 91%] Building C object CMakeFiles/archx-probe.dir/tools/archx-probe.c.o
+[100%] Linking C executable archx-probe
+[100%] Built target archx-probe
+-- Install configuration: "Release"
+-- Installing: <temporary-directory>/custom/prefix/lib64/libarchx.so.1
+-- Installing: <temporary-directory>/custom/prefix/lib64/libarchx.so
+-- Installing: <temporary-directory>/custom/prefix/lib64/libarchx.a
+-- Installing: <temporary-directory>/custom/prefix/tools/bin/archx-probe
+-- Set non-toolchain portion of runtime path of "<temporary-directory>/custom/prefix/tools/bin/archx-probe" to "$ORIGIN/../../lib64"
+-- Installing: <temporary-directory>/custom/prefix/include/archx.h
+-- Installing: <temporary-directory>/custom/prefix/lib64/cmake/Archx/ArchxTargets.cmake
+-- Installing: <temporary-directory>/custom/prefix/lib64/cmake/Archx/ArchxTargets-release.cmake
+-- Installing: <temporary-directory>/custom/prefix/lib64/cmake/Archx/ArchxConfig.cmake
+-- The C compiler identification is GNU 12.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: <temporary-directory>/custom/consumer
+[ 25%] Building C object CMakeFiles/consumer_static.dir/consumer.c.o
+[ 50%] Building C object CMakeFiles/consumer_core.dir/consumer.c.o
+[ 75%] Linking C executable consumer_static
+[100%] Linking C executable consumer_core
+[100%] Built target consumer_static
+[100%] Built target consumer_core
+Internal ctest changing into directory: <temporary-directory>/custom/consumer
+Test project <temporary-directory>/custom/consumer
+    Start 1: shared_consumer
+1/2 Test #1: shared_consumer ..................   Passed    0.00 sec
+    Start 2: static_consumer
+2/2 Test #2: static_consumer ..................   Passed    0.00 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.00 sec
+CMake relocated shared/static install and probe tests passed

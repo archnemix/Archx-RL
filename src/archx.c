@@ -1,8 +1,8 @@
 /*
  * archx.c — archx-core implementation (milestone 1: Linux).
  *
- * One core, every language: this file + sha256.c + json.c + signals_linux.c
- * + store.c compile into libarchx.so / libarchx.a. All language wrappers
+ * One core, every language: this file + sha256.c + json.c + signals.c
+ * + signals_linux.c + store.c compile into libarchx.so / libarchx.a. All language wrappers
  * (Python ctypes, Node koffi, ...) call the ABI in include/archx.h.
  *
  * Privacy model:
