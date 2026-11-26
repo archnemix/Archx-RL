@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Defensively zero-initialized the SHA schedule; GCC 12.2 no longer emits the prior uninitialized-schedule warnings, though analyzer complexity cutoffs and the historical core diagnostic remain unresolved.
 - Distinguish C JSON parser allocation failure from invalid JSON and propagate it through configuration/profile comparison; fault tests cover each synthetic parser allocation.
 - Limit C JSON parser input to 65,536 bytes, including configuration whitespace, and fail cleanly on null or oversized input; larger previously accepted configurations are now rejected.
 - Evaluated portable C crypto/JSON providers and added native standalone known-answer, differential and JSON grammar fixtures; no production provider has been selected or migrated.

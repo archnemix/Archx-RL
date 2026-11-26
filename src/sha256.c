@@ -22,7 +22,9 @@ static const uint32_t K[64] = {
 #define SIG1(x)        (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
 
 static void sha256_compress(ax_sha256_ctx *ctx, const uint8_t block[64]) {
-  uint32_t w[64];
+  /* All schedule words are subsequently assigned; zero initialization also
+   * makes the invariant explicit to analyzers and protects future refactors. */
+  uint32_t w[64] = {0};
   for (int i = 0; i < 16; i++) {
     w[i] = ((uint32_t)block[i*4] << 24) | ((uint32_t)block[i*4+1] << 16) |
            ((uint32_t)block[i*4+2] << 8) |  (uint32_t)block[i*4+3];
