@@ -7,10 +7,12 @@ import secrets
 import threading
 import time
 from datetime import datetime, timezone
+from contextlib import contextmanager
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from signal_validation import SIGNALS, normalize_signal
 from observation_index import ObservationIndex
 from expiry_heap import ExpiryHeap
+from metrics import ServiceMetrics
 
 CLEANUP_BUDGET = 64
 
@@ -65,7 +67,9 @@ def policy(preset='basic', override=None):
     return p
 
 class Engine:
-    def __init__(self, settings=None, secret=None, geo=None, clock=None, max_entries=10000):
+    def __init__(self, settings=None, secret=None, geo=None, clock=None, max_entries=10000, metrics=None):
+        if metrics is not None and not isinstance(metrics, ServiceMetrics): raise ValueError('Invalid metrics collector')
+        self.metrics = metrics
         self.settings = settings or policy()
         self.secret = secret or secrets.token_bytes(32)
         self.geo = geo or [] # [(ip_network, [IANA zones])], configured by operator; no auto lookup
@@ -75,6 +79,32 @@ class Engine:
         self.windows = {} # HMAC key -> [window_start, count]
         self.window_expiries = ExpiryHeap() # one entry per window, no tombstones
         self.observations = ObservationIndex(max_entries) # bounded token snapshots
+
+    def _record_wait(self, started):
+        if self.metrics is not None:
+            try:
+                elapsed = time.perf_counter() - started if started is not None else None
+                self.metrics.observe_wait(elapsed)
+            except Exception:
+                pass
+
+    @contextmanager
+    def _serialized(self):
+        started = None
+        if self.metrics is not None:
+            try: started = time.perf_counter()
+            except Exception: pass
+        waited = None
+        try:
+            with self.lock:
+                if started is not None:
+                    try: waited = time.perf_counter() - started
+                    except Exception: pass
+                yield
+        finally:
+            if self.metrics is not None:
+                try: self.metrics.observe_wait(waited)
+                except Exception: pass
 
     def message(self, name):
         return self.settings.get('messages', {}).get(name, DEFAULT_MESSAGES[name])
@@ -139,7 +169,7 @@ class Engine:
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
         key = self.ip_key(ip); window = self.settings['window_seconds']
-        with self.lock:
+        with self._serialized():
             now = self.clock()
             if self._prune_windows(now): return self._cleanup_busy()
             if key not in self.windows and len(self.windows) >= self.max_entries:
@@ -188,7 +218,7 @@ class Engine:
             if _ip_precharged and name == 'ip': continue
             key_limits[value] = min(key_limits.get(value, self._quota(name)), self._quota(name))
         window = self.settings['window_seconds']
-        with self.lock:
+        with self._serialized():
             # State time must be sampled after waiting for the lock: an earlier
             # timestamp can expire a newly charged window or history too soon.
             now = self.clock()

@@ -64,6 +64,9 @@ class RequestService:
         try:
             return {'nonce':self.replay.issue(peer), 'expires_in':self.replay.ttl}
         except ReplayUnavailable:
+            if self.metrics is not None:
+                try: self.metrics.observe_event('replay_unavailable')
+                except Exception: pass
             return self.failure('storage_error', 'replay_unavailable')
 
     def check(self, envelope, peer):
@@ -75,19 +78,20 @@ class RequestService:
             started = time.perf_counter()
         except Exception:
             started = None
-        decision = 'unexpected'
+        decision, reason = 'unexpected', None
         try:
             result = self._check(envelope, peer)
             try:
                 if isinstance(result, dict):
                     decision = result.get('decision')
+                    reason = result.get('reason')
             except Exception:
                 decision = 'unexpected'
             return result
         finally:
             try:
                 seconds = time.perf_counter() - started if started is not None else None
-                self.metrics.observe(decision, seconds)
+                self.metrics.observe(decision, seconds, reason)
             except Exception:
                 pass
 

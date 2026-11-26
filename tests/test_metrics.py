@@ -3,6 +3,9 @@ import http.client
 import json
 import math
 import sys
+import sqlite3
+import tempfile
+import time
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -12,10 +15,13 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'demo'))
 from engine import Engine, policy
-from metrics import BOUNDS, DECISIONS, ServiceMetrics
+from metrics import BOUNDS, DECISIONS, EVENTS, ServiceMetrics
 from service import RequestService
 from server import Handler
 from signal_validation import synthetic_signal
+from sqlite_engine import SQLiteEngine
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+from synthetic_metrics_dashboard import alerts, exercise
 
 
 def payload(seed='valid'):
@@ -34,7 +40,8 @@ class MetricsTests(unittest.TestCase):
         metrics.observe([], math.inf)
         metrics.observe('allow', 10**1000)
         snap = metrics.snapshot()
-        self.assertEqual(set(snap), {'schema','scope','decisions','duration_seconds'})
+        self.assertEqual(set(snap), {'schema','scope','decisions','events','duration_seconds','serialization_wait_seconds'})
+        self.assertEqual(set(snap['events']),set(EVENTS))
         self.assertEqual(set(snap['decisions']), set(DECISIONS))
         self.assertEqual(snap['duration_seconds']['counts'], [1] * (len(BOUNDS) + 1))
         self.assertEqual(snap['duration_seconds']['unknown'], len(markers) + 3)
@@ -87,6 +94,55 @@ class MetricsTests(unittest.TestCase):
         with patch.object(gate, '_check', return_value=value):
             self.assertIs(gate.check({}, '192.0.2.3'), value)
         self.assertEqual(metrics.snapshot()['decisions']['unexpected'], 1)
+
+    def test_synthetic_failure_dashboard_has_fixed_private_labels(self):
+        snap=exercise(); active=alerts(snap)
+        self.assertTrue(all(active[name] for name in ('capacity','storage','replay','adapter')))
+        self.assertEqual(snap['events']['replay_rejected'],1)
+        self.assertEqual(snap['events']['replay_unavailable'],1)
+        self.assertEqual(snap['events']['turnstile_unavailable'],1)
+        for marker in ('192.0.2.1','198.51.100.1','synthetic private storage fault','synthetic-example-secret'):
+            self.assertNotIn(marker,json.dumps(snap))
+        self.assertEqual(sum(snap['duration_seconds']['counts'])+snap['duration_seconds']['unknown'],4)
+        # Dedicated synthetic long-wait example exercises the fixed histogram alert.
+        metrics=ServiceMetrics(); metrics.observe_wait(0.051)
+        self.assertTrue(alerts(metrics.snapshot())['contention_at_least_50ms'])
+
+    def test_instrumented_memory_and_sqlite_contention_and_failure(self):
+        for mode in ('memory','sqlite'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                metrics=ServiceMetrics()
+                settings=policy(override={'max_requests':10})
+                engine=Engine(settings,secret=b'synthetic',metrics=metrics) if mode=='memory' else SQLiteEngine(Path(tmp)/'state.sqlite',settings,b'synthetic-secret-at-least-32-bytes!!',metrics=metrics)
+                holder=None
+                if mode=='memory': engine.lock.acquire()
+                else:
+                    holder=sqlite3.connect(engine.db_path,isolation_level=None)
+                    holder.execute('BEGIN IMMEDIATE')
+                try:
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        future=pool.submit(engine.reject_malformed,'192.0.2.1')
+                        time.sleep(0.08)
+                        if holder: holder.rollback()
+                        else: engine.lock.release()
+                        self.assertIsNone(future.result(timeout=3))
+                finally:
+                    if holder: holder.close()
+                waits=metrics.snapshot()['serialization_wait_seconds']
+                self.assertEqual(sum(waits['counts'])+waits['unknown'],1)
+                self.assertGreaterEqual(sum(waits['counts'][4:]),1)
+                with patch.object(metrics,'observe_wait',side_effect=RuntimeError('metrics failed')):
+                    self.assertIsNone(engine.reject_malformed('192.0.2.2'))
+
+    def test_unrecognized_events_are_not_retained(self):
+        metrics=ServiceMetrics()
+        metrics.observe('invalid',0,'private-marker')
+        metrics.observe_event('192.0.2.14')
+        metrics.observe_wait(float('nan'))
+        snap=metrics.snapshot()
+        self.assertNotIn('private-marker',json.dumps(snap)); self.assertNotIn('192.0.2.14',json.dumps(snap))
+        self.assertEqual(sum(snap['events'].values()),0)
+        self.assertEqual(snap['serialization_wait_seconds']['unknown'],1)
 
     def test_http_handler_uses_opt_in_shared_collector_not_parse_errors(self):
         httpd = ThreadingHTTPServer(('127.0.0.1',0), Handler)

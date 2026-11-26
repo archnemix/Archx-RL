@@ -1,0 +1,79 @@
+{
+  "description": "synthetic process-local demonstration; alert thresholds are illustrative only",
+  "snapshot": {
+    "schema": 2,
+    "scope": "process_local_prototype",
+    "decisions": {
+      "allow": 0,
+      "invalid": 1,
+      "challenge": 0,
+      "rate_limited": 0,
+      "capacity_exceeded": 1,
+      "storage_error": 2,
+      "unexpected": 0
+    },
+    "events": {
+      "replay_rejected": 1,
+      "replay_unavailable": 1,
+      "turnstile_invalid": 0,
+      "turnstile_unavailable": 1,
+      "reputation_blocked": 0,
+      "reputation_unavailable": 0
+    },
+    "duration_seconds": {
+      "upper_bounds": [
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        5.0
+      ],
+      "counts": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "unknown": 0
+    },
+    "serialization_wait_seconds": {
+      "upper_bounds": [
+        0.001,
+        0.005,
+        0.01,
+        0.05,
+        0.1,
+        0.5,
+        1.0,
+        5.0
+      ],
+      "counts": [
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "unknown": 0
+    }
+  },
+  "illustrative_alerts": {
+    "capacity": true,
+    "storage": true,
+    "replay": true,
+    "adapter": true,
+    "contention_at_least_50ms": false
+  }
+}

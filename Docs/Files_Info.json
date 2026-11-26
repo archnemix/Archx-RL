@@ -1090,6 +1090,11 @@
       "purpose": "Measure synthetic shared-IP quota collateral examples",
       "inputs": "synthetic signal values and documentation IP",
       "outputs": "counts without real identifiers or false-positive claims"
+    },
+    "tools/synthetic_metrics_dashboard.py": {
+      "purpose": "Exercise fixed-cardinality synthetic failure snapshots and illustrative alerts",
+      "inputs": "mocked adapters and synthetic requests only",
+      "outputs": "local aggregates; no HTTP exporter or production SLO"
     }
   }
 }

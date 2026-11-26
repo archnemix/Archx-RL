@@ -11,6 +11,7 @@ import math
 import os
 import sqlite3
 import stat
+import time
 from contextlib import suppress
 from pathlib import Path
 
@@ -100,6 +101,14 @@ class SQLiteEngine(Engine):
         finally:
             con.close()
 
+    def _begin_writer(self, con):
+        started = None
+        if self.metrics is not None:
+            try: started = time.perf_counter()
+            except Exception: pass
+        try: return con.execute('BEGIN IMMEDIATE')
+        finally: self._record_wait(started)
+
     def _prune_windows(self, con, now):
         cutoff = now - self.settings['window_seconds']
         con.execute('DELETE FROM windows WHERE key IN (SELECT key FROM windows WHERE start <= ? ORDER BY start LIMIT ?)',
@@ -136,7 +145,7 @@ class SQLiteEngine(Engine):
         try:
             con = self.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 now = self.clock()
                 result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, {self.ip_key(ip):self._quota('ip')}, now)
                 con.commit()
@@ -154,7 +163,7 @@ class SQLiteEngine(Engine):
         try:
             con = self.connect()
             try:
-                con.execute('BEGIN IMMEDIATE')
+                self._begin_writer(con)
                 # A waiting writer must not use a stale pre-transaction time.
                 now = self.clock()
                 if self._prune_windows(con, now):

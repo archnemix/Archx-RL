@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Expanded optional prototype metrics to fixed replay/adapter event counts and engine serialization-wait buckets, with a synthetic local alert example; snapshot schema is now version 2.
 - The prototype Python engines support separate optional IP and device-signal quota thresholds; both use the existing shared window and preserve defaults.
 - Added an experimental process-local WSGI request-admission and draining wrapper; it does not bound server sockets or constitute a production entrypoint.
 - Fail closed on C digest/bucket formatting and fallback-file unlock/close failures; added synthetic formatting, allocation and persistence fault injection.
