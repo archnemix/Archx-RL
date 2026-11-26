@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Linked each inventoried threat to a specific synthetic regression or explicitly documented limitation, with a documentation traceability check; this is not a security audit or formal risk acceptance.
 - Transactionally mark SQLite replay initialization and reject missing/changed replay schema on restart; validated pre-marker stores retain outstanding challenges. Deletion of both marker and table remains indistinguishable from first use.
 - Reject existing incomplete SQLite quota/history schema or missing metadata at startup instead of silently recreating them; initialization now requires a newly created file. This is not rollback or deletion detection.
 - Check sealed-request challenge expiry after acquiring the replay store lock or SQLite writer, preventing pre-wait timestamps from accepting an expired challenge. Wall-clock and restored-state rollback remain unresolved.

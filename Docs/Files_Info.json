@@ -900,6 +900,16 @@
       "purpose": "Sanitized Linux full regression for SQLite replay schema startup checks",
       "inputs": "synthetic challenge data and controlled initialization faults",
       "outputs": "test results; not database integrity or rollback detection evidence"
+    },
+    "tests/test_threat_model.py": {
+      "purpose": "Documentation integrity check for threat inventory test references and known limitations",
+      "inputs": "documented threat entries and synthetic tests",
+      "outputs": "traceability/test results, not formal risk acceptance or security audit"
+    },
+    "Docs/Test-Results/unreleased/threat-model-full-test.log": {
+      "purpose": "Sanitized Linux regression including threat documentation traceability",
+      "inputs": "documented threat entries and synthetic tests",
+      "outputs": "traceability/test results, not formal risk acceptance or security audit"
     }
   }
 }

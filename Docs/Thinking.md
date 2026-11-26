@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Issue evidence and threat traceability
+- B01 has implemented saturation and recovery evidence, but GitHub rejected both comment and close actions due to integration permissions. The A01 threat inventory now links named regressions or explicit limitations and has a reference integrity check; a link does not establish mitigation or formal risk acceptance. Maintainer review and private reporting availability are still unverified.
+
 ## SQLite replay startup marker
 - Create challenge tables and a marker together in one write transaction, validate existing schema, and adopt intact pre-marker stores without deleting challenges. Failed setup rolls back and closes; concurrent initializers serialize. Loss of both marker and tables is indistinguishable from first enablement, and rollback/downgrade or runtime tampering remain unresolved.
 
