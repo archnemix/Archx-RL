@@ -16,6 +16,7 @@ $CC $FLAGS tests/test_json_faults.c src/archx.c src/sha256.c src/store.c src/pla
 $CC $FLAGS tests/test_platform.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_platform
 $CC $FLAGS -Itests/platform tests/test_store_faults.c tests/platform/fake_platform.c src/archx.c src/signals_linux.c src/signals.c src/sha256.c src/json.c src/store.c -lm -lpthread -o build/test_store_faults
 $CC $FLAGS -Itests/platform tests/test_fallback_faults.c tests/platform/fake_platform.c src/sha256.c -o build/test_fallback_faults
+$CC $FLAGS -Itests/platform tests/test_linux_signal_validation.c tests/platform/fake_platform.c src/sha256.c -o build/test_linux_signal_validation
 $CC $FLAGS -Itests/platform tests/test_core_alloc_faults.c tests/platform/fake_platform.c src/sha256.c src/json.c -lm -o build/test_core_alloc_faults
 ./build/test_vectors
 ./build/test_smbios
@@ -28,6 +29,7 @@ $CC $FLAGS -Itests/platform tests/test_core_alloc_faults.c tests/platform/fake_p
 ./build/test_canonical
 ./build/test_store_faults
 ./build/test_fallback_faults
+./build/test_linux_signal_validation
 ./build/test_core_alloc_faults
 ./build/test_core
 python3 tests/test_crypto_differential.py
@@ -62,6 +64,7 @@ python3 tools/benchmark.py
 SAN_FLAGS="$FLAGS -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined"
 $CC $SAN_FLAGS tests/test_platform.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_platform_san
 $CC $SAN_FLAGS -Itests/platform tests/test_fallback_faults.c tests/platform/fake_platform.c src/sha256.c -o build/test_fallback_faults_san
+$CC $SAN_FLAGS -Itests/platform tests/test_linux_signal_validation.c tests/platform/fake_platform.c src/sha256.c -o build/test_linux_signal_validation_san
 $CC $SAN_FLAGS -Itests/platform tests/test_core_alloc_faults.c tests/platform/fake_platform.c src/sha256.c src/json.c -lm -o build/test_core_alloc_faults_san
 $CC $SAN_FLAGS tests/test_core.c src/archx.c src/signals_linux.c src/signals.c src/sha256.c src/json.c src/store.c src/platform_posix.c src/platform_linux.c -lm -lpthread -o build/test_core_san
 $CC $SAN_FLAGS tests/test_uuid_value.c src/uuid_value.c -o build/test_uuid_value_san
@@ -74,6 +77,7 @@ $CC $SAN_FLAGS tests/test_json_fuzz.c src/json.c -o build/test_json_fuzz
 $CC $SAN_FLAGS tests/test_json_contract.c src/json.c -lm -o build/test_json_contract_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_platform_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_fallback_faults_san
+ASAN_OPTIONS=detect_leaks=1 ./build/test_linux_signal_validation_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_core_alloc_faults_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_core_san
 ASAN_OPTIONS=detect_leaks=1 ./build/test_uuid_value_san

@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Hardened Linux C signal input against truncation, malformed machine IDs/UUIDs, embedded NULs and serial placeholders; this can change available signals and derived IDs on upgrade.
 - Added a synthetic mixed-process SQLite contention, WAL and read-only fault profile with invariant smoke tests; it is not a production soak certification.
 - Added a reproducible synthetic signal-stability evaluation protocol and scenario report; model assumptions are not real-world accuracy estimates.
 - Expanded optional prototype metrics to fixed replay/adapter event counts and engine serialization-wait buckets, with a synthetic local alert example; snapshot schema is now version 2.

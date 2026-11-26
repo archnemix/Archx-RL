@@ -30,25 +30,70 @@ static void normalize(char *s) {
   if (start != s) memmove(s, start, strlen(start) + 1);
 }
 
-/* Read first line of `path` into out (normalized). Returns 1 if a
- * non-empty value was read, 0 otherwise. */
+/* Read a complete bounded first line. Partial reads, NULs and a truncated
+ * first line are never accepted as a different identity. */
 static int read_first_line(const char *path, char *out, size_t out_len) {
+  if (!out || out_len == 0) return 0;
+  out[0] = '\0';
   int fd = open(path, O_RDONLY | O_CLOEXEC);
   if (fd < 0) return 0;
   char buf[512];
-  ssize_t n = read(fd, buf, sizeof buf - 1);
-  close(fd);
-  if (n <= 0) return 0;
-  buf[n] = '\0';
-  /* first line only */
-  for (size_t i = 0; i < (size_t)n; i++) {
-    if (buf[i] == '\n') { buf[i] = '\0'; break; }
+  size_t used = 0, length = 0;
+  int complete = 0, valid = 1;
+  while (!complete) {
+    if (used == sizeof buf) { valid = 0; break; }
+    ssize_t n = read(fd, buf + used, sizeof buf - used);
+    if (n < 0 && errno == EINTR) continue;
+    if (n < 0) { valid = 0; break; }
+    if (n == 0) { length = used; complete = 1; break; }
+    size_t end = used + (size_t)n;
+    for (size_t i = used; i < end; i++) {
+      if (buf[i] == '\n') { length = i; complete = 1; break; }
+      if (buf[i] == '\0') { valid = 0; complete = 1; break; }
+    }
+    used = end;
   }
-  if (buf[0] == '\0') return 0;
-  if (strlen(buf) >= out_len) return 0;
-  memcpy(out, buf, strlen(buf) + 1);
+  if (close(fd) != 0) valid = 0;
+  if (!valid || !complete || !length || length >= out_len) return 0;
+  memcpy(out, buf, length); out[length] = '\0';
   normalize(out);
   return out[0] != '\0';
+}
+
+static int lower_hex(char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }
+
+static int valid_machine_id(const char *v) {
+  if (strlen(v) != 32) return 0;
+  int all_zero = 1, all_f = 1;
+  for (size_t i = 0; i < 32; i++) {
+    if (!lower_hex(v[i])) return 0;
+    all_zero &= v[i] == '0'; all_f &= v[i] == 'f';
+  }
+  return !all_zero && !all_f;
+}
+
+static int valid_product_uuid(const char *v) {
+  if (strlen(v) != 36) return 0;
+  int all_zero = 1, all_f = 1;
+  for (size_t i = 0; i < 36; i++) {
+    if (i == 8 || i == 13 || i == 18 || i == 23) { if (v[i] != '-') return 0; continue; }
+    if (!lower_hex(v[i])) return 0;
+    all_zero &= v[i] == '0'; all_f &= v[i] == 'f';
+  }
+  return !all_zero && !all_f;
+}
+
+static int valid_board_serial(const char *v) {
+  size_t n = strlen(v);
+  if (n < 4 || n > 128) return 0;
+  int all_zero = 1;
+  for (size_t i = 0; i < n; i++) {
+    char c = v[i];
+    int alnum = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+    if ((!i && !alnum) || (!alnum && c != ' ' && c != '.' && c != '_' && c != ':' && c != '/' && c != '-')) return 0;
+    all_zero &= c == '0';
+  }
+  return !all_zero;
 }
 
 static void add_signal(ax_signal_set *set, const char *name, const char *value,
@@ -67,7 +112,8 @@ static int looks_placeholder(const char *v) {
   static const char *bad[] = {
     "00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff",
     "00000000000000000000000000000000", "ffffffffffffffffffffffffffffffff",
-    "uninitialized", "to be filled by o.e.m.", "not specified", "none", "0", NULL
+    "uninitialized", "to be filled by o.e.m.", "to be filled by oem", "not specified",
+    "not applicable", "none", "unknown", "n/a", "default string", "system serial number", "oem", "0", NULL
   };
   for (int i = 0; bad[i]; i++) if (strcmp(v, bad[i]) == 0) return 1;
   return 0;
@@ -87,18 +133,18 @@ int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask) {
 
   if (mask & 1u) {
     value[0] = '\0';
-    int ok = read_first_line("/etc/machine-id", value, sizeof value) && !looks_placeholder(value);
-    if (!ok) ok = read_first_line("/var/lib/dbus/machine-id", value, sizeof value) && !looks_placeholder(value);
+    int ok = read_first_line("/etc/machine-id", value, sizeof value) && valid_machine_id(value);
+    if (!ok) ok = read_first_line("/var/lib/dbus/machine-id", value, sizeof value) && valid_machine_id(value);
     add_signal(out, "machine_id", ok ? value : "", 60, ok);
   }
   if (mask & 2u) {
     value[0] = '\0';
-    int ok = read_first_line("/sys/class/dmi/id/product_uuid", value, sizeof value) && !looks_placeholder(value);
+    int ok = read_first_line("/sys/class/dmi/id/product_uuid", value, sizeof value) && valid_product_uuid(value);
     add_signal(out, "product_uuid", ok ? value : "", 25, ok);
   }
   if (mask & 4u) {
     value[0] = '\0';
-    int ok = read_first_line("/sys/class/dmi/id/board_serial", value, sizeof value) && !looks_placeholder(value);
+    int ok = read_first_line("/sys/class/dmi/id/board_serial", value, sizeof value) && !looks_placeholder(value) && valid_board_serial(value);
     add_signal(out, "board_serial", ok ? value : "", 15, ok);
   }
 

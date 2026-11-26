@@ -58,8 +58,11 @@ int main(void) {
   CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.uuid_status == AX_SMBIOS_PLACEHOLDER && !out.uuid[0]);
   memset(data + 16, 0xff, 16);
   CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.uuid_status == AX_SMBIOS_PLACEHOLDER);
-  len = fixture(data, "  To Be Filled By O.E.M. ");
-  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.serial_status == AX_SMBIOS_PLACEHOLDER && !out.serial[0]);
+  const char *vendor_placeholders[] = {"  To Be Filled By O.E.M. ", "To Be Filled By OEM", "N/A", "Uninitialized", "OEM", "Default String"};
+  for (size_t i=0; i<sizeof vendor_placeholders / sizeof vendor_placeholders[0]; i++) {
+    len = fixture(data, vendor_placeholders[i]);
+    CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.serial_status == AX_SMBIOS_PLACEHOLDER && !out.serial[0]);
+  }
   len = fixture(data, "serial"); data[33] = 0xc3;
   CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.serial_status == AX_SMBIOS_INVALID && !out.serial[0]);
   len = fixture(data, "serial"); data[15] = 0;

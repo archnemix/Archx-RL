@@ -4,8 +4,9 @@
 
 static int placeholder(const char *s) {
   static const char *const values[] = {
-    "0", "none", "unknown", "not specified", "not applicable",
-    "to be filled by o.e.m.", "default string", "system serial number"
+    "0", "none", "unknown", "n/a", "not specified", "not applicable",
+    "to be filled by o.e.m.", "to be filled by oem", "default string",
+    "system serial number", "uninitialized", "oem"
   };
   for (size_t i = 0; i < sizeof values / sizeof values[0]; i++)
     if (strcmp(s, values[i]) == 0) return 1;

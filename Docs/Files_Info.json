@@ -1125,6 +1125,11 @@
       "purpose": "Smoke-test SQLite mixed-process quota, replay and read-only failure invariants",
       "inputs": "temporary local SQLite WAL state",
       "outputs": "invariant assertions without timing thresholds"
+    },
+    "tests/test_linux_signal_validation.c": {
+      "purpose": "Synthetic fixture and I/O failure tests for Linux signal normalization",
+      "inputs": "mocked source bytes, short reads, placeholders and failures",
+      "outputs": "bounded and conservative validation assertions; no host identifiers"
     }
   }
 }
