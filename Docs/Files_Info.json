@@ -1005,6 +1005,16 @@
       "purpose": "Check component guide map, links and key disclaimers",
       "inputs": "repository implementation and documentation",
       "outputs": "component guidance or targeted documentation regression"
+    },
+    "Docs/Plan/Crypto-JSON-ADR.md": {
+      "purpose": "Evaluate portable C cryptography and JSON provider candidates and migration gates",
+      "inputs": "current C implementation, synthetic fixtures and upstream sources",
+      "outputs": "interim provider decision and explicit unresolved risks"
+    },
+    "tests/test_json_contract.c": {
+      "purpose": "Exercise current C JSON grammar boundaries on native platforms",
+      "inputs": "synthetic JSON fixtures",
+      "outputs": "accept/reject conformance results"
     }
   }
 }

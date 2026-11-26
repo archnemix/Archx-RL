@@ -44,6 +44,16 @@ jobs:
         run: cmake --build build/platform --config Release
       - name: Run synthetic parser and native primitive tests
         run: ctest --test-dir build/platform -C Release --verbose
+      - name: Differential synthetic SHA/HMAC against native Python
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            export ARCHX_CRYPTO_TEST_LIB="$(cygpath -w "$PWD/build/platform/Release/archx_crypto_fixture.dll")"
+            python tests/test_crypto_differential.py
+          else
+            export ARCHX_CRYPTO_TEST_LIB="$PWD/build/platform/libarchx_crypto_fixture.dylib"
+            python3 tests/test_crypto_differential.py
+          fi
       # Pushes only: never execute host survey code from untrusted pull requests.
       - name: Build native availability survey
         if: github.event_name == 'push'

@@ -103,3 +103,7 @@ The example accepts both host-owned principal resolution and operation authoriza
 ## C05 guide map
 
 The root README links separate native C, Python service, browser protocol, privacy/security and deployment-status guides under `Docs/Guides/`. No production deployment is yet supported; the deployment guide lists release boundaries rather than claiming otherwise. `tests/test_guides.py` verifies local links and key component-boundary disclaimers. This addresses the stated documentation-map scope of #33, not the unresolved release gates; issue-write permission remains necessary to attach evidence and close the issue.
+
+## C04 provider evaluation
+
+[Crypto-JSON ADR](Crypto-JSON-ADR.md) compares current C code, libsodium, OpenSSL and yyjson, with licensing, source-size limits, operational and migration risks. Native standalone fixtures exercise current crypto and parser behavior; native CI status must be checked. This evaluation does not replace or approve a provider, fix unbounded C parser input, or certify cryptography. #32 remains open pending complete native test evidence and issue-write access.

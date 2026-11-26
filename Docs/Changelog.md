@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Evaluated portable C crypto/JSON providers and added native standalone known-answer, differential and JSON grammar fixtures; no production provider has been selected or migrated.
 - Added separate component, privacy and deployment-status guides with an accurately scoped README map.
 - Let the synthetic WSGI host fix its operation identifier at construction and test host authorization separately from signal forgery and cross-account quota poisoning.
 - Added regression checks for the ABI-v1 availability-heuristic explanation and the current score-free demo UI.

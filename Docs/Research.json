@@ -238,5 +238,17 @@
       "https://en.cppreference.com/w/c/language/thread_storage_duration.html",
       "https://learn.microsoft.com/en-us/cpp/c-language/thread-local-storage?view=msvc-170"
     ]
+  },
+  "c_crypto_json_providers": {
+    "summary": "Interim evaluation only: existing unaudited C crypto and JSON remain; libsodium streaming SHA/HMAC and OpenSSL EVP are candidates, yyjson requires a strict bounded compatibility wrapper. Algorithm or grammar changes require explicit migration.",
+    "urls": [
+      "https://doc.libsodium.org/advanced/hmac-sha2",
+      "https://doc.libsodium.org/advanced/sha-2_hash_function",
+      "https://github.com/jedisct1/libsodium/blob/1.0.22-RELEASE/LICENSE",
+      "https://github.com/openssl/openssl/blob/master/LICENSE.txt",
+      "https://docs.openssl.org/3.5/man3/EVP_MAC/",
+      "https://github.com/ibireme/yyjson/blob/0.13.0/LICENSE",
+      "https://ibireme.github.io/yyjson/doc/doxygen/html/building-and-testing.html"
+    ]
   }
 }

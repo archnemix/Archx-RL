@@ -2,11 +2,14 @@
 import ctypes
 import hashlib
 import hmac
+import os
 import random
 import unittest
 from pathlib import Path
 
-lib = ctypes.CDLL(str(Path(__file__).resolve().parents[1] / 'build/libarchx.so'))
+# Native CI loads a standalone synthetic crypto fixture, never a full core.
+default_lib = Path(__file__).resolve().parents[1] / 'build/libarchx.so'
+lib = ctypes.CDLL(os.environ.get('ARCHX_CRYPTO_TEST_LIB', str(default_lib)))
 
 class Context(ctypes.Structure):
     _fields_ = [('h', ctypes.c_uint32 * 8), ('len_bytes', ctypes.c_uint64),
