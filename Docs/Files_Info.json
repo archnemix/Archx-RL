@@ -930,6 +930,11 @@
       "purpose": "Sanitized Linux CMake canonical fixture and GCC install tests",
       "inputs": "synthetic fixtures and CMake builds",
       "outputs": "local results; not native Windows/macOS evidence"
+    },
+    "Docs/Test-Results/unreleased/windows-board-full-test.log": {
+      "purpose": "Sanitized Linux regression for synthetic SMBIOS Type 2 parsing",
+      "inputs": "synthetic board/module records and malformed fixtures",
+      "outputs": "test results, not live firmware or platform support evidence"
     }
   }
 }

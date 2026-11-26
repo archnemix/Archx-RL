@@ -12,6 +12,13 @@ static uint32_t provider(void *context, void *buffer, uint32_t capacity, uint32_
   if (s->mode == 1) { *error = ERROR_ACCESS_DENIED; return 0; }
   if (s->mode == 2) { *error = ERROR_NOT_SUPPORTED; return 0; }
   if (s->mode == 3) return AX_SMBIOS_MAX_RAW + 1u;
+  if (s->mode == 6) {
+    const unsigned char board_fixture[25] = {0,2,6,0,17,0,0,0,2,8,0,0,0,0,0,1,'X',0,0,127,4,0,0,0,0};
+    if (!buffer) return (uint32_t)sizeof board_fixture;
+    if (capacity < sizeof board_fixture) return 0;
+    memcpy(buffer, board_fixture, sizeof board_fixture);
+    return (uint32_t)sizeof board_fixture;
+  }
   if (!buffer) return 14;
   if (s->mode == 4) return capacity + 1;
   if (capacity < 14) return 0;
@@ -31,9 +38,12 @@ int main(void) {
   for (int mode=3; mode<=5; mode++) {
     state.mode=mode; state.calls=0; memset(&out, 0xa5, sizeof out);
     CHECK(ax_windows_collect_firmware_with_provider(provider, &state, &out) == AX_WINDOWS_FIRMWARE_READ_ERROR);
-    CHECK(out.uuid_status == AX_SMBIOS_ABSENT && out.serial_status == AX_SMBIOS_ABSENT && !out.uuid[0] && !out.serial[0]);
+    CHECK(out.uuid_status == AX_SMBIOS_ABSENT && out.serial_status == AX_SMBIOS_ABSENT && out.board_serial_status == AX_SMBIOS_ABSENT && !out.uuid[0] && !out.serial[0] && !out.board_serial[0]);
     if (mode == 3) CHECK(state.calls == 1);
   }
+  state.mode=6; state.calls=0;
+  CHECK(ax_windows_collect_firmware_with_provider(provider, &state, &out) == AX_WINDOWS_FIRMWARE_OK);
+  CHECK(state.calls == 2 && out.board_serial_status == AX_SMBIOS_PRESENT && strcmp(out.board_serial, "x") == 0);
   CHECK(ax_windows_collect_firmware_with_provider(NULL, NULL, &out) == AX_WINDOWS_FIRMWARE_READ_ERROR);
   CHECK(ax_windows_collect_firmware(NULL) == AX_WINDOWS_FIRMWARE_READ_ERROR);
   /* Availability only: do not print, store or assert any actual identifiers. */

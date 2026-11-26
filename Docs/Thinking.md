@@ -2,6 +2,9 @@
 
 Purpose: record concise decisions, problems and outcomes rather than private reasoning.
 
+## Experimental SMBIOS Type 2 evidence
+- Parse the Type 2 serial index with the same bounded, normalized string rules as Type 1. Because SMBIOS may contain multiple baseboard/module records, treat multiple records as ambiguous instead of selecting a potentially wrong physical board; even one record may represent a module. No public Windows identity, real hardware or permission claim follows.
+
 ## Portable canonical signal boundary
 - Move the existing canonical algorithm and signal structs into collector-independent C files without changing output or the public ABI. Keep Linux collection and persistence separate. Reuse synthetic malformed/bounds fixtures as an experimental native CI target with checks active even in release builds; full native cores and platform collections remain open.
 

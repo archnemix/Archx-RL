@@ -21,6 +21,20 @@ static size_t fixture(unsigned char *raw, const char *serial) {
   return pos;
 }
 
+/* One minimal Type 2 and a terminator; values are synthetic. */
+static size_t board_fixture(unsigned char *raw, const char *serial) {
+  memset(raw, 0, 512);
+  raw[1] = 2; raw[2] = 6;
+  raw[8] = 2; raw[9] = 8; raw[15] = 1;
+  size_t pos = 16, n = strlen(serial);
+  memcpy(raw + pos, serial, n); pos += n;
+  raw[pos++] = 0; raw[pos++] = 0;
+  raw[pos++] = 127; raw[pos++] = 4; raw[pos++] = 0; raw[pos++] = 0; raw[pos++] = 0; raw[pos++] = 0;
+  unsigned length = (unsigned)(pos - 8);
+  raw[4] = (unsigned char)length; raw[5] = (unsigned char)(length >> 8);
+  return pos;
+}
+
 int main(void) {
   unsigned char data[512]; ax_smbios_result out;
   size_t len = fixture(data, "  Synthetic-Serial-1  ");
@@ -89,6 +103,50 @@ int main(void) {
   /* A valid table can omit Type 1; this is absence, not a fabricated value. */
   memset(data, 0, sizeof data); data[1]=2; data[2]=6; data[4]=6; data[8]=127; data[9]=4;
   CHECK(ax_smbios_parse_rsmb(data, 14, &out) == 0 && out.uuid_status == AX_SMBIOS_ABSENT);
+  /* Type 2 serial is distinct from Type 1 system serial. */
+  len = board_fixture(data, "  Synthetic-Board-1  ");
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0);
+  CHECK(out.board_serial_status == AX_SMBIOS_PRESENT && strcmp(out.board_serial, "synthetic-board-1") == 0);
+  CHECK(out.serial_status == AX_SMBIOS_ABSENT && out.uuid_status == AX_SMBIOS_ABSENT);
+  data[15] = 0;
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.board_serial_status == AX_SMBIOS_ABSENT && !out.board_serial[0]);
+  data[15] = 2;
+  memset(&out, 0xaa, sizeof out);
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == -1 && out.board_serial_status == AX_SMBIOS_ABSENT && !out.board_serial[0]);
+  data[15] = 1; data[9] = 7;
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == -1 && !out.board_serial[0]);
+  len = board_fixture(data, "  To Be Filled By O.E.M.  ");
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.board_serial_status == AX_SMBIOS_PLACEHOLDER && !out.board_serial[0]);
+  len = board_fixture(data, "board"); data[16] = 0xc3;
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.board_serial_status == AX_SMBIOS_INVALID && !out.board_serial[0]);
+  len = board_fixture(data, long_serial);
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.board_serial_status == AX_SMBIOS_INVALID && !out.board_serial[0]);
+  /* System and board serials remain separate when both records exist. */
+  unsigned char board_data[512];
+  len = fixture(data, "system-synthetic");
+  size_t board_len = board_fixture(board_data, "board-synthetic");
+  size_t single_board_len = board_len - 8 - 6;
+  memmove(data + len - 6 + single_board_len, data + len - 6, 6);
+  memcpy(data + len - 6, board_data + 8, single_board_len);
+  len += single_board_len;
+  data[4] = (unsigned char)(len-8); data[5] = (unsigned char)((len-8)>>8);
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0);
+  CHECK(out.serial_status == AX_SMBIOS_PRESENT && strcmp(out.serial, "system-synthetic") == 0);
+  CHECK(out.board_serial_status == AX_SMBIOS_PRESENT && strcmp(out.board_serial, "board-synthetic") == 0);
+  len = board_fixture(data, "board");
+  size_t type2_len = len - 8 - 6;
+  memmove(data + 8 + 2*type2_len, data + 8 + type2_len, 6);
+  memcpy(data + 8 + type2_len, data + 8, type2_len);
+  len += type2_len;
+  data[4] = (unsigned char)(len-8); data[5] = (unsigned char)((len-8)>>8);
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == 0 && out.board_serial_status == AX_SMBIOS_AMBIGUOUS && !out.board_serial[0]);
+  data[8 + type2_len + 7] = 2; /* Invalid string in another Type 2 is still malformed. */
+  CHECK(ax_smbios_parse_rsmb(data, len, &out) == -1 && out.board_serial_status == AX_SMBIOS_ABSENT && !out.board_serial[0]);
+  len = board_fixture(data, "board");
+  for (size_t i=0; i<len; i++) {
+    memset(&out, 0xaa, sizeof out);
+    CHECK(ax_smbios_parse_rsmb(data, i, &out) == -1 && out.board_serial_status == AX_SMBIOS_ABSENT && !out.board_serial[0]);
+  }
   /* Deterministic malformed bytes smoke, not a coverage-guided fuzz campaign. */
   unsigned state = 7;
   for (unsigned n=0; n<5000; n++) {
@@ -103,6 +161,7 @@ int main(void) {
     if (ax_smbios_parse_rsmb(data, len, &out) == 0) {
       CHECK(memchr(out.uuid, 0, sizeof out.uuid) != NULL);
       CHECK(memchr(out.serial, 0, sizeof out.serial) != NULL);
+      CHECK(memchr(out.board_serial, 0, sizeof out.board_serial) != NULL);
     }
   }
   puts("synthetic SMBIOS parser fixtures passed");

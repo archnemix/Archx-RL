@@ -8,7 +8,10 @@ header = bytes([0, 2, 6, 0])
 uuid = bytes.fromhex('33221100554477668899aabbccddeeff')
 type1 = bytes([1,25,0,0,0,0,0,1]) + uuid + bytes([0]) + b'synthetic-serial\0\0'
 end = bytes([127,4,0,0,0,0])
-table = type1 + end
+type2 = bytes([2,8,0,0,0,0,0,1]) + b'synthetic-board\0\0'
+board_table = type2 + end
+Path('build/fuzz-smbios-corpus/board').write_bytes(header + len(board_table).to_bytes(4,'little') + board_table)
+table = type1 + type2 + end
 Path('build/fuzz-smbios-corpus/valid').write_bytes(header + len(table).to_bytes(4,'little') + table)
 Path('build/fuzz-smbios-corpus/empty').write_bytes(header + len(end).to_bytes(4,'little') + end)
 PY
