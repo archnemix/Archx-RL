@@ -1,0 +1,19 @@
+# One-time issue closure; restricted branch and repository, no checkout or external actions.
+name: Close verified health and drain issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close tested prototype lifecycle issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 27 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on arena/328e63a8-archx-rl at 8b81d2e (not merged into main): an experimental non-queuing, bounded in-flight WSGI admission wrapper supports startup validation, host-supplied readiness probes, optional admitted health routes, stop-accepting and bounded drain waiting. tests/test_wsgi_boundary.py covers startup/probe failures, saturation, lazy responses, shutdown races and real loopback HTTP; denied operations do not run. The separate private demo server has a capped handler count and finite listen backlog. Local browser/sanitizer regression and Linux CI https://github.com/archnemix/Archx-RL/actions/runs/45862660881 passed. Previously admitted work can finish; stuck probes/applications cannot be cancelled. Network/upstream queues, TLS, server shutdown and multi-process coordination are not provided by this WSGI wrapper; supported deployment and overload issues remain open.'
