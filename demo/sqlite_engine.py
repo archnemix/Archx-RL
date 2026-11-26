@@ -111,8 +111,8 @@ class SQLiteEngine(Engine):
                     (now, CLEANUP_BUDGET))
         return con.execute('SELECT 1 FROM observations WHERE expires <= ? LIMIT 1', (now,)).fetchone() is not None
 
-    def _charge(self, con, keys, now):
-        keys = list(dict.fromkeys(keys))
+    def _charge(self, con, key_limits, now):
+        keys = list(key_limits)
         if not keys: return None
         marks = ','.join('?' for _ in keys)
         rows = {key:(start,count) for key,start,count in con.execute(f'SELECT key,start,count FROM windows WHERE key IN ({marks})', keys)}
@@ -123,7 +123,7 @@ class SQLiteEngine(Engine):
         for key in keys:
             start, old = rows.get(key, (now, 0))
             con.execute('INSERT INTO windows(key,start,count) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET count=excluded.count', (key, start, old+1))
-            if old+1 > self.settings['max_requests']:
+            if old+1 > key_limits[key]:
                 retry = max(retry, math.ceil(self.settings['window_seconds'] - (now - start)))
         return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry,'relation':'inconclusive'} if retry else None
 
@@ -138,7 +138,7 @@ class SQLiteEngine(Engine):
             try:
                 con.execute('BEGIN IMMEDIATE')
                 now = self.clock()
-                result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, [self.ip_key(ip)], now)
+                result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, {self.ip_key(ip):self._quota('ip')}, now)
                 con.commit()
                 return result
             except Exception:
@@ -161,8 +161,11 @@ class SQLiteEngine(Engine):
                     con.commit()
                     return self._cleanup_busy()
                 cleanup_pending = self._prune_observations(con, now)
-                keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
-                failure = self._charge(con, keys, now)
+                key_limits = {}
+                for name, value in tokens.items():
+                    if _ip_precharged and name == 'ip': continue
+                    key_limits[value] = min(key_limits.get(value, self._quota(name)), self._quota(name))
+                failure = self._charge(con, key_limits, now)
                 if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
                 if failure is None and cleanup_pending: failure = self._cleanup_busy()
                 if failure:

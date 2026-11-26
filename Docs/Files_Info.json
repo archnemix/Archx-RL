@@ -1080,6 +1080,16 @@
       "purpose": "Test prototype WSGI request admission, recovery and drain semantics",
       "inputs": "synthetic routes and concurrent applications",
       "outputs": "global rate, permit, clock failure and shutdown assertions"
+    },
+    "tests/test_separate_quotas.py": {
+      "purpose": "Test configurable IP/device limits and persistent-policy compatibility",
+      "inputs": "synthetic requests and temporary SQLite stores",
+      "outputs": "parity, invalid-policy, restart and NAT-simulation assertions"
+    },
+    "tools/nat_quota_simulation.py": {
+      "purpose": "Measure synthetic shared-IP quota collateral examples",
+      "inputs": "synthetic signal values and documentation IP",
+      "outputs": "counts without real identifiers or false-positive claims"
     }
   }
 }

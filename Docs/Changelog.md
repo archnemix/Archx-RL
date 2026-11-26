@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- The prototype Python engines support separate optional IP and device-signal quota thresholds; both use the existing shared window and preserve defaults.
 - Added an experimental process-local WSGI request-admission and draining wrapper; it does not bound server sockets or constitute a production entrypoint.
 - Fail closed on C digest/bucket formatting and fallback-file unlock/close failures; added synthetic formatting, allocation and persistence fault injection.
 - Bound expired window and history cleanup in memory and SQLite; backlog fails closed and stale windows cannot be charged.

@@ -43,7 +43,7 @@ def policy(preset='basic', override=None):
          'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False, 'history_seconds':86400}
     if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
-        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages','ip_storage'}
+        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages','ip_storage','ip_max_requests','device_max_requests'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')
         p.update(override)
     for key in ('required','conditional'):
@@ -52,6 +52,9 @@ def policy(preset='basic', override=None):
     if set(p['required']) & set(p['conditional']): raise ValueError('Signal roles overlap')
     for key, low, high in [('min_matches',1,1+len(p['required'])+len(p['conditional'])),('window_seconds',1,86400),('history_seconds',60,31536000),('max_requests',1,10000),('max_clock_skew_seconds',0,86400),('timezone_tolerance_minutes',0,180)]:
         if type(p[key]) is not int or not low <= p[key] <= high: raise ValueError('Invalid '+key)
+    for key in ('ip_max_requests','device_max_requests'):
+        if key in p and (type(p[key]) is not int or not 1 <= p[key] <= 10000):
+            raise ValueError('Invalid ' + key)
     if not isinstance(p['timezone_enforce'], bool): raise ValueError('Invalid timezone enforcement')
     if p.get('ip_storage','hash') not in ('hash','raw'): raise ValueError('IP storage must be hash or raw; device signals are always hashed')
     if 'messages' in p:
@@ -107,6 +110,10 @@ class Engine:
     def token(self, name, value):
         return hmac.new(self.secret, ('archx-raw-v2\0'+name+'\0'+value).encode(), hashlib.sha256).hexdigest()
 
+    def _quota(self, name):
+        setting = 'ip_max_requests' if name == 'ip' else 'device_max_requests'
+        return self.settings.get(setting, self.settings['max_requests'])
+
     def ip_key(self, ip):
         return 'raw-ip:' + str(ip) if self.settings.get('ip_storage','hash') == 'raw' else self.token('ip',str(ip))
 
@@ -138,7 +145,7 @@ class Engine:
             if key not in self.windows and len(self.windows) >= self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window,'relation':'inconclusive'}
             row = self._window(key,now); row[1] += 1
-            if row[1] > self.settings['max_requests']:
+            if row[1] > self._quota('ip'):
                 return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
         return None
 
@@ -175,7 +182,11 @@ class Engine:
         _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
         # The service precharges the IP before expensive verification. Direct callers
         # use the default and charge all buckets together under one lock.
-        keys = [value for name, value in tokens.items() if not (_ip_precharged and name == 'ip')]
+        # A digest collision, however unlikely, charges once at the stricter limit.
+        key_limits = {}
+        for name, value in tokens.items():
+            if _ip_precharged and name == 'ip': continue
+            key_limits[value] = min(key_limits.get(value, self._quota(name)), self._quota(name))
         window = self.settings['window_seconds']
         with self.lock:
             # State time must be sampled after waiting for the lock: an earlier
@@ -183,14 +194,14 @@ class Engine:
             now = self.clock()
             if self._prune_windows(now): return self._cleanup_busy()
             cleanup_pending = self.observations.prune(now, CLEANUP_BUDGET)
-            missing_keys = sum(1 for key in keys if key not in self.windows)
+            missing_keys = sum(1 for key in key_limits if key not in self.windows)
             if len(self.windows) + missing_keys > self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
             retry = 0
-            for key in keys:
+            for key, limit in key_limits.items():
                 row = self._window(key, now)
                 row[1] += 1
-                if row[1] > self.settings['max_requests']:
+                if row[1] > limit:
                     retry = max(retry, math.ceil(window - (now-row[0])))
             if retry:
                 return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry, 'relation':'inconclusive'}

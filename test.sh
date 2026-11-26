@@ -36,6 +36,7 @@ python3 tests/test_coverage_docs.py
 python3 tests/test_guides.py
 python3 tests/test_matching.py
 python3 tests/test_demo.py
+python3 tests/test_separate_quotas.py
 python3 tests/test_observation_index.py
 python3 tests/test_metrics.py
 python3 tests/test_gate_benchmark.py
