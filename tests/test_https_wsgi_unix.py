@@ -81,6 +81,8 @@ error_log {root}/error.log notice;
 events {{ worker_connections 64; }}
 http {{
     access_log off;
+    client_max_body_size 8k;
+    client_body_timeout 3s;
     server {{
         listen 127.0.0.1:{cls.port} ssl;
         server_name localhost;
@@ -154,6 +156,47 @@ http {{
                 self.assertEqual(self.post(source,[],f'unix-baseline-{i}'),200)
                 self.assertEqual(self.post(source,headers,f'unix-spoof-{i}'),429)
         self.assertEqual(self.post('127.0.0.30',[],'unix-independent'),200)
+
+    def test_oversized_https_body_is_rejected_before_origin(self):
+        conn = http.client.HTTPSConnection('localhost', self.port, timeout=3,
+                context=ssl.create_default_context(cafile=str(self.cert)),
+                source_address=('127.0.0.41', 0))
+        try:
+            conn.request('POST', '/protected', body=b'x' * 8193,
+                         headers={'Content-Type': 'application/json'})
+            response = conn.getresponse()
+            self.assertEqual(response.status, 413)
+            response.read()
+        finally:
+            conn.close()
+        # The rejected oversized request never charged this client's gate quota.
+        self.assertEqual(self.post('127.0.0.41', [], 'oversized-recovery'), 200)
+
+    def test_body_idle_timeout_is_not_an_absolute_deadline(self):
+        # Nginx buffers this body and resets its idle timeout on each read. The
+        # deliberately slow synthetic request takes longer than the configured
+        # timeout but succeeds, exposing a missing absolute-time bound.
+        body = json.dumps({'signals': {'machine_id': synthetic_signal('machine_id', 'slow-body')}}).encode()
+        context = ssl.create_default_context(cafile=str(self.cert))
+        raw = socket.create_connection(('127.0.0.1', self.port), timeout=8,
+                                       source_address=('127.0.0.42', 0))
+        try:
+            with context.wrap_socket(raw, server_hostname='localhost') as tls:
+                tls.sendall(('POST /protected HTTP/1.1\r\nHost: localhost\r\n'
+                             'Content-Type: application/json\r\nContent-Length: %d\r\n'
+                             'Connection: close\r\n\r\n' % len(body)).encode('ascii'))
+                start = time.monotonic()
+                for i in range(9):
+                    tls.sendall(body[len(body) * i // 9:len(body) * (i + 1) // 9])
+                    if i < 8:
+                        time.sleep(0.5)
+                self.assertGreater(time.monotonic() - start, 3)
+                response = http.client.HTTPResponse(tls)
+                response.begin()
+                self.assertEqual(response.status, 200)
+                response.read()
+        finally:
+            raw.close()
 
     def test_same_service_user_can_bypass_proxy(self):
         # The trusted service UID can open its own socket and spoof headers;
