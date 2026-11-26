@@ -1,0 +1,410 @@
+{
+  "schema": 1,
+  "description": "timed synthetic single-host multiprocess experiment; not a deployment or fault-durability certification",
+  "environment": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "python": "3.11.2",
+    "sqlite": "3.40.1"
+  },
+  "requested_seconds": 30.0,
+  "total_wall_seconds": 30.426,
+  "workers": [
+    {
+      "kind": "writer",
+      "counts": {
+        "allow": 21,
+        "rate_limited": 3312
+      },
+      "operations": 3333,
+      "elapsed_seconds": 30.001,
+      "cpu_seconds": 2.707,
+      "p50_ms": 1.269,
+      "p95_ms": 8.462,
+      "p99_ms": 109.954,
+      "max_ms": 3149.57,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          3214,
+          36,
+          15,
+          20,
+          11,
+          20,
+          11,
+          6,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "writer",
+      "counts": {
+        "allow": 10,
+        "rate_limited": 4246
+      },
+      "operations": 4256,
+      "elapsed_seconds": 30.004,
+      "cpu_seconds": 3.293,
+      "p50_ms": 1.227,
+      "p95_ms": 8.391,
+      "p99_ms": 82.862,
+      "max_ms": 2144.806,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          4111,
+          37,
+          18,
+          31,
+          20,
+          26,
+          6,
+          7,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "reader",
+      "counts": {
+        "reads": 121013
+      },
+      "operations": 121013,
+      "elapsed_seconds": 30.018,
+      "cpu_seconds": 21.117,
+      "p50_ms": 0.145,
+      "p95_ms": 0.638,
+      "p99_ms": 2.646,
+      "max_ms": 29.981,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "writer",
+      "counts": {
+        "allow": 69,
+        "rate_limited": 5651
+      },
+      "operations": 5720,
+      "elapsed_seconds": 30.033,
+      "cpu_seconds": 4.403,
+      "p50_ms": 1.234,
+      "p95_ms": 8.217,
+      "p99_ms": 39.321,
+      "max_ms": 2859.71,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          5543,
+          64,
+          12,
+          44,
+          23,
+          22,
+          8,
+          4,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "replay",
+      "counts": {
+        "rejected": 32,
+        "consumed": 68
+      },
+      "operations": 100,
+      "elapsed_seconds": 30.036,
+      "cpu_seconds": 0.091,
+      "p50_ms": 9.39,
+      "p95_ms": 335.409,
+      "p99_ms": 741.245,
+      "max_ms": 1038.24,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "reader",
+      "counts": {
+        "reads": 122317
+      },
+      "operations": 122317,
+      "elapsed_seconds": 30.045,
+      "cpu_seconds": 21.579,
+      "p50_ms": 0.149,
+      "p95_ms": 0.563,
+      "p99_ms": 2.556,
+      "max_ms": 22.655,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "fault",
+      "counts": {
+        "storage_error": 297,
+        "replay_unavailable": 297
+      },
+      "operations": 297,
+      "elapsed_seconds": 30.078,
+      "cpu_seconds": 0.239,
+      "p50_ms": 0.753,
+      "p95_ms": 1.07,
+      "p99_ms": 2.197,
+      "max_ms": 2.917,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          294,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "writer",
+      "counts": {
+        "rate_limited": 4438
+      },
+      "operations": 4438,
+      "elapsed_seconds": 30.105,
+      "cpu_seconds": 3.063,
+      "p50_ms": 1.104,
+      "p95_ms": 7.271,
+      "p99_ms": 82.714,
+      "max_ms": 2243.823,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          4309,
+          43,
+          14,
+          22,
+          9,
+          24,
+          11,
+          6,
+          0
+        ],
+        "unknown": 0
+      }
+    },
+    {
+      "kind": "replay",
+      "counts": {
+        "consumed": 32,
+        "rejected": 68
+      },
+      "operations": 100,
+      "elapsed_seconds": 30.136,
+      "cpu_seconds": 0.073,
+      "p50_ms": 9.54,
+      "p95_ms": 636.253,
+      "p99_ms": 1339.132,
+      "max_ms": 1643.991,
+      "serialization_wait": {
+        "upper_bounds": [
+          0.001,
+          0.005,
+          0.01,
+          0.05,
+          0.1,
+          0.5,
+          1.0,
+          5.0
+        ],
+        "counts": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "unknown": 0
+      }
+    }
+  ],
+  "aggregate": {
+    "reader": {
+      "reads": 243330
+    },
+    "replay": {
+      "rejected": 100,
+      "consumed": 100
+    },
+    "writer": {
+      "allow": 100,
+      "rate_limited": 17647
+    },
+    "fault": {
+      "storage_error": 297,
+      "replay_unavailable": 297
+    }
+  },
+  "writer_attempts": 17747,
+  "window_counts": [
+    17747,
+    17747
+  ],
+  "pending_before_recovery": 1,
+  "reserved_consumed_after_fault": true,
+  "reserved_replay_after_recovery": false,
+  "journal": "WAL",
+  "wal_size_bytes_before_checkpoint": 75330112,
+  "passive_checkpoint_while_pinned": [
+    0,
+    18284,
+    0
+  ],
+  "passive_checkpoint_after_release": [
+    0,
+    18284,
+    18284
+  ],
+  "query_plans": {
+    "window_cleanup": [
+      "SEARCH windows USING INDEX windows_start (start<?)"
+    ],
+    "history_cleanup": [
+      "SEARCH observations USING COVERING INDEX observations_expires (expires<?)"
+    ],
+    "signal_lookup": [
+      "SEARCH signals USING COVERING INDEX signals_lookup (name=? AND token=?)"
+    ],
+    "replay_expiry": [
+      "SEARCH replay_challenges_v1 USING INDEX replay_challenges_expiry (expires<?)"
+    ]
+  },
+  "limitations": [
+    "one temporary local WAL store with fixed synthetic keys and clock and one deliberately pinned read snapshot; no production load claims",
+    "writer operations each open a new engine connection; replay and read operations also churn connections",
+    "read-only injected write failure is not disk full, power loss, fsync failure or process death",
+    "the SQLite busy timeout is not an end-to-end deadline; readers and writers may outlive the requested interval"
+  ]
+}

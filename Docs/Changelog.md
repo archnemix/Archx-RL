@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added a synthetic mixed-process SQLite contention, WAL and read-only fault profile with invariant smoke tests; it is not a production soak certification.
 - Added a reproducible synthetic signal-stability evaluation protocol and scenario report; model assumptions are not real-world accuracy estimates.
 - Expanded optional prototype metrics to fixed replay/adapter event counts and engine serialization-wait buckets, with a synthetic local alert example; snapshot schema is now version 2.
 - The prototype Python engines support separate optional IP and device-signal quota thresholds; both use the existing shared window and preserve defaults.

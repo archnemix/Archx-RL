@@ -144,7 +144,7 @@ The pre-index and indexed matching loops were also [compared](../Test-Results/un
 
 ## Issue closure and branch status
 
-Thirteen reviewed issues (#1, #11, #18, #20, #21, #28, #32, #33, #34, #35, #36, #37 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
+Fourteen reviewed issues (#1, #11, #15, #18, #20, #21, #28, #32, #33, #34, #35, #36, #37 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
 
 ## D03 bounded window and SQLite cleanup follow-up
 
@@ -185,3 +185,7 @@ These synthetic cases do not establish invariants under arbitrary process death,
 ## A14 synthetic evaluation protocol
 
 The [synthetic stability protocol](../Research/Stability-Evaluation-Protocol.md) and [results](../Test-Results/unreleased/synthetic-stability-evaluation.json) cover NAT, cloned VMs, reinstalls, permissions, hardware changes, full rotation and forged signals, plus stable controls. It reports 200 synthetic pairs per scenario, explicit modeled assumptions, conditional uncertainty and separate invalid/inconclusive outcomes. Tests validate deterministic accounting and selected memory/SQLite parity. This satisfies the narrow synthetic-protocol scope, not a real-device evaluation or population accuracy claim; a representative empirical study, production review and independently trusted host controls remain outstanding.
+
+## D06 timed multiprocess SQLite profile
+
+A 30-second [synthetic profile](../Research/SQLite-Contention-Profile.md) combines four SQLite hot-key writers, two readers, two competing replay consumers and injected read-only write failures, with a deliberately pinned WAL snapshot. Both quota counters matched all 17,747 writer attempts, exactly 100 were allowed, and 100 replay tokens each had one successful consume and one rejection. A faulted reserved token was still consumable once after recovery. Query plans, connection-per-operation behavior, worker CPU and latency, `BEGIN IMMEDIATE` wait buckets, WAL growth, checkpoint counts, and prior cleanup measurements are documented. The short one-second invariant smoke and existing transaction rollback/busy/schema tests cover only targeted failures. This fulfills the narrow synthetic profile scope, not multi-hour soak, power-loss durability, real workload capacity, multi-host behavior or a production latency budget.

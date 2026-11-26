@@ -1115,6 +1115,16 @@
       "purpose": "Test synthetic scenario accounting, reproducibility and selected backend parity",
       "inputs": "synthetic pairs and temporary SQLite files",
       "outputs": "scenario and uncertainty assertions"
+    },
+    "tools/sqlite_soak_profile.py": {
+      "purpose": "Profile synthetic mixed-process SQLite contention and injected storage failures",
+      "inputs": "temporary WAL database, synthetic hot keys, replay tokens and controlled workers",
+      "outputs": "aggregate timing, plans, WAL checkpoints and invariant evidence; not production capacity"
+    },
+    "tests/test_sqlite_soak_profile.py": {
+      "purpose": "Smoke-test SQLite mixed-process quota, replay and read-only failure invariants",
+      "inputs": "temporary local SQLite WAL state",
+      "outputs": "invariant assertions without timing thresholds"
     }
   }
 }
