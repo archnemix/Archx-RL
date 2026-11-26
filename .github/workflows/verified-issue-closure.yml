@@ -1,0 +1,19 @@
+# One-time closure of the verified WSGI host-integration issue; no checkout or external actions.
+name: Close verified host integration issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close tested WSGI integration issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 10 --repo archnemix/Archx-RL --reason completed --comment 'Implemented on arena/328e63a8-archx-rl at e2df513 (not merged into main): a separate single-process WSGI package enforces host principal/authorization and gate decisions before invoking a protected application, with finite local request and in-flight admission and no demo routes. Synthetic tests cover actual RequestService allow/deny, all error categories, nonboolean hooks, lazy and concurrent close, saturation/recovery, fixed responses, raw-signal log capture and loopback WSGI; isolated source-package installation is tested. Local full browser/sanitizer regression and Linux CI https://github.com/archnemix/Archx-RL/actions/runs/45876705143 passed. Its supported contract is narrowly process-local application enforcement, not a production HTTP server: network limits, trusted identity/proxy, TLS, stalled work, multi-process coordination and deployment remain separate open issues #19, #25 and #29.'
