@@ -1,0 +1,1320 @@
+{
+  "schema": 1,
+  "environment": {
+    "system": "Linux",
+    "architecture": "x86_64",
+    "python": "3.11.2",
+    "cpu_model": "Intel(R) Xeon(R) Processor @ 2.60GHz",
+    "logical_cpus": 2
+  },
+  "capacity": 64,
+  "requests_per_case": 20,
+  "cases": [
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 12137.14,
+      "elapsed_seconds": 0.00165,
+      "process_cpu_seconds": 0.00165,
+      "latency_ms": {
+        "p50": 0.063,
+        "p95": 0.142,
+        "p99": 0.224,
+        "max": 0.224
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 96455.27,
+      "elapsed_seconds": 0.00021,
+      "process_cpu_seconds": 0.00021,
+      "latency_ms": {
+        "p50": 0.009,
+        "p95": 0.013,
+        "p99": 0.024,
+        "max": 0.024
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 58410.36,
+      "elapsed_seconds": 0.00034,
+      "process_cpu_seconds": 0.00034,
+      "latency_ms": {
+        "p50": 0.015,
+        "p95": 0.029,
+        "p99": 0.031,
+        "max": 0.031
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 3858.67,
+      "elapsed_seconds": 0.00518,
+      "process_cpu_seconds": 0.00518,
+      "latency_ms": {
+        "p50": 0.239,
+        "p95": 0.335,
+        "p99": 0.428,
+        "max": 0.428
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 529.41,
+      "elapsed_seconds": 0.03778,
+      "process_cpu_seconds": 0.03951,
+      "latency_ms": {
+        "p50": 1.793,
+        "p95": 2.419,
+        "p99": 2.507,
+        "max": 2.507
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 539.36,
+      "elapsed_seconds": 0.03708,
+      "process_cpu_seconds": 0.03867,
+      "latency_ms": {
+        "p50": 1.863,
+        "p95": 2.035,
+        "p99": 2.078,
+        "max": 2.078
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 548.3,
+      "elapsed_seconds": 0.03648,
+      "process_cpu_seconds": 0.03823,
+      "latency_ms": {
+        "p50": 1.823,
+        "p95": 1.983,
+        "p99": 2.199,
+        "max": 2.199
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 260.22,
+      "elapsed_seconds": 0.07686,
+      "process_cpu_seconds": 0.08024,
+      "latency_ms": {
+        "p50": 3.847,
+        "p95": 4.098,
+        "p99": 4.221,
+        "max": 4.221
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 16811.22,
+      "elapsed_seconds": 0.00119,
+      "process_cpu_seconds": 0.00119,
+      "latency_ms": {
+        "p50": 0.054,
+        "p95": 0.09,
+        "p99": 0.103,
+        "max": 0.103
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 84191.38,
+      "elapsed_seconds": 0.00024,
+      "process_cpu_seconds": 0.00024,
+      "latency_ms": {
+        "p50": 0.009,
+        "p95": 0.018,
+        "p99": 0.034,
+        "max": 0.034
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 64737.7,
+      "elapsed_seconds": 0.00031,
+      "process_cpu_seconds": 0.00031,
+      "latency_ms": {
+        "p50": 0.015,
+        "p95": 0.018,
+        "p99": 0.024,
+        "max": 0.024
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 4305.16,
+      "elapsed_seconds": 0.00465,
+      "process_cpu_seconds": 0.00465,
+      "latency_ms": {
+        "p50": 0.219,
+        "p95": 0.263,
+        "p99": 0.318,
+        "max": 0.318
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 514.16,
+      "elapsed_seconds": 0.0389,
+      "process_cpu_seconds": 0.04038,
+      "latency_ms": {
+        "p50": 1.995,
+        "p95": 2.056,
+        "p99": 2.072,
+        "max": 2.072
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 486.21,
+      "elapsed_seconds": 0.04113,
+      "process_cpu_seconds": 0.04291,
+      "latency_ms": {
+        "p50": 1.98,
+        "p95": 2.576,
+        "p99": 2.622,
+        "max": 2.622
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 478.96,
+      "elapsed_seconds": 0.04176,
+      "process_cpu_seconds": 0.04413,
+      "latency_ms": {
+        "p50": 2.033,
+        "p95": 2.509,
+        "p99": 2.559,
+        "max": 2.559
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "half",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 233.43,
+      "elapsed_seconds": 0.08568,
+      "process_cpu_seconds": 0.08872,
+      "latency_ms": {
+        "p50": 4.223,
+        "p95": 4.766,
+        "p99": 4.901,
+        "max": 4.901
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 26010.54,
+      "elapsed_seconds": 0.00077,
+      "process_cpu_seconds": 0.00077,
+      "latency_ms": {
+        "p50": 0.035,
+        "p95": 0.051,
+        "p99": 0.078,
+        "max": 0.078
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 104269.31,
+      "elapsed_seconds": 0.00019,
+      "process_cpu_seconds": 0.00019,
+      "latency_ms": {
+        "p50": 0.009,
+        "p95": 0.012,
+        "p99": 0.018,
+        "max": 0.018
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 55476.5,
+      "elapsed_seconds": 0.00036,
+      "process_cpu_seconds": 0.00036,
+      "latency_ms": {
+        "p50": 0.016,
+        "p95": 0.027,
+        "p99": 0.03,
+        "max": 0.03
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 4387.57,
+      "elapsed_seconds": 0.00456,
+      "process_cpu_seconds": 0.00456,
+      "latency_ms": {
+        "p50": 0.215,
+        "p95": 0.255,
+        "p99": 0.301,
+        "max": 0.301
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 515.14,
+      "elapsed_seconds": 0.03882,
+      "process_cpu_seconds": 0.04048,
+      "latency_ms": {
+        "p50": 1.951,
+        "p95": 2.168,
+        "p99": 2.172,
+        "max": 2.172
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 521.45,
+      "elapsed_seconds": 0.03835,
+      "process_cpu_seconds": 0.03988,
+      "latency_ms": {
+        "p50": 1.856,
+        "p95": 2.155,
+        "p99": 2.951,
+        "max": 2.951
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 411.69,
+      "elapsed_seconds": 0.04858,
+      "process_cpu_seconds": 0.04905,
+      "latency_ms": {
+        "p50": 2.329,
+        "p95": 2.895,
+        "p99": 3.565,
+        "max": 3.565
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "memory",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 220.73,
+      "elapsed_seconds": 0.09061,
+      "process_cpu_seconds": 0.08954,
+      "latency_ms": {
+        "p50": 4.333,
+        "p95": 6.209,
+        "p99": 6.39,
+        "max": 6.39
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 282.06,
+      "elapsed_seconds": 0.07091,
+      "process_cpu_seconds": 0.03616,
+      "latency_ms": {
+        "p50": 3.511,
+        "p95": 3.916,
+        "p99": 4.272,
+        "max": 4.272
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 698.53,
+      "elapsed_seconds": 0.02863,
+      "process_cpu_seconds": 0.01439,
+      "latency_ms": {
+        "p50": 1.413,
+        "p95": 1.615,
+        "p99": 1.732,
+        "max": 1.732
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 608.12,
+      "elapsed_seconds": 0.03289,
+      "process_cpu_seconds": 0.01667,
+      "latency_ms": {
+        "p50": 1.602,
+        "p95": 1.958,
+        "p99": 1.968,
+        "max": 1.968
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 138.78,
+      "elapsed_seconds": 0.14411,
+      "process_cpu_seconds": 0.07427,
+      "latency_ms": {
+        "p50": 7.319,
+        "p95": 8.218,
+        "p99": 8.482,
+        "max": 8.482
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 178.44,
+      "elapsed_seconds": 0.11208,
+      "process_cpu_seconds": 0.07607,
+      "latency_ms": {
+        "p50": 5.532,
+        "p95": 6.084,
+        "p99": 6.479,
+        "max": 6.479
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 226.29,
+      "elapsed_seconds": 0.08838,
+      "process_cpu_seconds": 0.06697,
+      "latency_ms": {
+        "p50": 4.307,
+        "p95": 5.329,
+        "p99": 5.359,
+        "max": 5.359
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 237.33,
+      "elapsed_seconds": 0.08427,
+      "process_cpu_seconds": 0.06561,
+      "latency_ms": {
+        "p50": 4.175,
+        "p95": 4.641,
+        "p99": 4.971,
+        "max": 4.971
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "empty",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 0,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 79.88,
+      "elapsed_seconds": 0.25039,
+      "process_cpu_seconds": 0.1673,
+      "latency_ms": {
+        "p50": 12.522,
+        "p95": 14.671,
+        "p99": 14.766,
+        "max": 14.766
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 206.97,
+      "elapsed_seconds": 0.09663,
+      "process_cpu_seconds": 0.04912,
+      "latency_ms": {
+        "p50": 4.253,
+        "p95": 6.647,
+        "p99": 7.099,
+        "max": 7.099
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 533.63,
+      "elapsed_seconds": 0.03748,
+      "process_cpu_seconds": 0.01673,
+      "latency_ms": {
+        "p50": 1.8,
+        "p95": 2.33,
+        "p99": 2.435,
+        "max": 2.435
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 557.97,
+      "elapsed_seconds": 0.03584,
+      "process_cpu_seconds": 0.01737,
+      "latency_ms": {
+        "p50": 1.734,
+        "p95": 2.142,
+        "p99": 2.22,
+        "max": 2.22
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 123.94,
+      "elapsed_seconds": 0.16137,
+      "process_cpu_seconds": 0.08061,
+      "latency_ms": {
+        "p50": 7.934,
+        "p95": 8.931,
+        "p99": 10.199,
+        "max": 10.199
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 158.51,
+      "elapsed_seconds": 0.12618,
+      "process_cpu_seconds": 0.08712,
+      "latency_ms": {
+        "p50": 6.239,
+        "p95": 7.018,
+        "p99": 7.036,
+        "max": 7.036
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 239.52,
+      "elapsed_seconds": 0.0835,
+      "process_cpu_seconds": 0.06621,
+      "latency_ms": {
+        "p50": 4.141,
+        "p95": 4.54,
+        "p99": 5.522,
+        "max": 5.522
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 242.22,
+      "elapsed_seconds": 0.08257,
+      "process_cpu_seconds": 0.0628,
+      "latency_ms": {
+        "p50": 4.106,
+        "p95": 5.488,
+        "p99": 5.551,
+        "max": 5.551
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "half",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 31,
+      "requests": 20,
+      "outcomes": {
+        "allow": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 78.51,
+      "elapsed_seconds": 0.25476,
+      "process_cpu_seconds": 0.178,
+      "latency_ms": {
+        "p50": 12.615,
+        "p95": 13.841,
+        "p99": 14.355,
+        "max": 14.355
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "allow",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 481.8,
+      "elapsed_seconds": 0.04151,
+      "process_cpu_seconds": 0.02502,
+      "latency_ms": {
+        "p50": 2.03,
+        "p95": 2.505,
+        "p99": 2.653,
+        "max": 2.653
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "rate_limited",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 449.38,
+      "elapsed_seconds": 0.04451,
+      "process_cpu_seconds": 0.01894,
+      "latency_ms": {
+        "p50": 2.249,
+        "p95": 2.823,
+        "p99": 2.949,
+        "max": 2.949
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "invalid",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 639.78,
+      "elapsed_seconds": 0.03126,
+      "process_cpu_seconds": 0.01561,
+      "latency_ms": {
+        "p50": 1.58,
+        "p95": 1.722,
+        "p99": 1.791,
+        "max": 1.791
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "direct",
+      "traffic": "sealed",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 183.33,
+      "elapsed_seconds": 0.10909,
+      "process_cpu_seconds": 0.05811,
+      "latency_ms": {
+        "p50": 5.596,
+        "p95": 6.375,
+        "p99": 6.854,
+        "max": 6.854
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": null,
+      "configured_listen_backlog": null,
+      "listen_queue_samples": null,
+      "listen_queue_max_observed": null,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "allow",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 208.36,
+      "elapsed_seconds": 0.09599,
+      "process_cpu_seconds": 0.07563,
+      "latency_ms": {
+        "p50": 4.898,
+        "p95": 5.161,
+        "p99": 5.281,
+        "max": 5.281
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "rate_limited",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "rate_limited": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 241.99,
+      "elapsed_seconds": 0.08265,
+      "process_cpu_seconds": 0.06494,
+      "latency_ms": {
+        "p50": 4.074,
+        "p95": 4.641,
+        "p99": 4.816,
+        "max": 4.816
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "invalid",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "invalid": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 207.78,
+      "elapsed_seconds": 0.09626,
+      "process_cpu_seconds": 0.06554,
+      "latency_ms": {
+        "p50": 4.233,
+        "p95": 8.083,
+        "p99": 9.873,
+        "max": 9.873
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 20,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    },
+    {
+      "mode": "sqlite",
+      "state": "saturated",
+      "transport": "http",
+      "traffic": "sealed",
+      "preloaded_observations": 63,
+      "requests": 20,
+      "outcomes": {
+        "capacity_exceeded": 20
+      },
+      "errors": 0,
+      "throughput_per_second": 94.83,
+      "elapsed_seconds": 0.21091,
+      "process_cpu_seconds": 0.15552,
+      "latency_ms": {
+        "p50": 10.008,
+        "p95": 12.555,
+        "p99": 12.8,
+        "max": 12.8
+      },
+      "generator_max_outstanding": 1,
+      "handler_peak_at_start": 1,
+      "configured_listen_backlog": 64,
+      "listen_queue_samples": 40,
+      "listen_queue_max_observed": 0,
+      "recovery_after_synthetic_expiry": "allow"
+    }
+  ],
+  "process_peak_rss_kib": 28220,
+  "limitations": [
+    "single-process closed-loop sequential synthetic workload; no real users or external providers",
+    "HTTP is local plaintext loopback, not TLS, proxy or production host",
+    "sealed case includes challenge retrieval, encryption and check per measured operation",
+    "RSS is whole-process lifetime high-water and CPU includes client, server and generator",
+    "Linux listen-queue depth is sampled only at handler start, not continuously; sampling overhead affects timings and may miss peaks",
+    "application/upstream queues are not measured; generator holds one outstanding request",
+    "no reference hardware agreement or production capacity/latency budget"
+  ]
+}

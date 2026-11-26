@@ -43,6 +43,7 @@ python3 tests/test_stability_evaluation.py
 python3 tests/test_observation_index.py
 python3 tests/test_metrics.py
 python3 tests/test_gate_benchmark.py
+python3 tests/test_traffic_matrix.py
 python3 tests/test_expiry_benchmark.py
 python3 tests/test_expiry_cleanup.py
 python3 tests/test_idle_cleanup.py

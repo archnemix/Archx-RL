@@ -1140,6 +1140,16 @@
       "purpose": "Test synthetic idle cleanup, worker failures and live-state preservation",
       "inputs": "temporary stores, fake clock and synthetic worker failures",
       "outputs": "bounded expiration and fault assertions"
+    },
+    "tools/traffic_matrix_benchmark.py": {
+      "purpose": "Benchmark synthetic state and transport decision combinations",
+      "inputs": "temporary memory/SQLite state, loopback HTTP and sealed synthetic payloads",
+      "outputs": "timings, process resources, sampled queue depth and recovery; not production capacity"
+    },
+    "tests/test_traffic_matrix.py": {
+      "purpose": "Validate synthetic traffic benchmark coverage and accounting",
+      "inputs": "synthetic cases and loopback server",
+      "outputs": "decision, queue caveat, expiry recovery and argument assertions"
     }
   }
 }
