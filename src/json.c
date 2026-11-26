@@ -12,15 +12,17 @@
 typedef struct {
   const char *p, *end;
   int depth;
+  int out_of_memory;
 } parser;
 
 static void skip_ws(parser *ps) {
   while (ps->p < ps->end && (*ps->p == ' ' || *ps->p == '\n' || *ps->p == '\r' || *ps->p == '\t')) ps->p++;
 }
 
-static ax_json_value *new_value(ax_json_type t) {
+static ax_json_value *new_value(parser *ps, ax_json_type t) {
   ax_json_value *v = calloc(1, sizeof *v);
   if (v) v->type = t;
+  else ps->out_of_memory = 1;
   return v;
 }
 
@@ -41,7 +43,7 @@ static char *parse_string_raw(parser *ps) {
   ps->p++;
   size_t cap = 32, n = 0;
   char *buf = malloc(cap);
-  if (!buf) return NULL;
+  if (!buf) { ps->out_of_memory = 1; return NULL; }
   int closed = 0;
   while (ps->p < ps->end) {
     char c = *ps->p++;
@@ -75,11 +77,11 @@ static char *parse_string_raw(parser *ps) {
           /* encode as UTF-8 (BMP only; surrogate pairs out of scope) */
           if (cp < 0x80) { c = (char)cp; }
           else if (cp < 0x800) {
-            if (n + 2 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { free(buf); return NULL; } buf = nb; }
+            if (n + 2 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { ps->out_of_memory = 1; free(buf); return NULL; } buf = nb; }
             buf[n++] = (char)(0xC0 | (cp >> 6));
             c = (char)(0x80 | (cp & 0x3F));
           } else {
-            if (n + 3 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { free(buf); return NULL; } buf = nb; }
+            if (n + 3 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { ps->out_of_memory = 1; free(buf); return NULL; } buf = nb; }
             buf[n++] = (char)(0xE0 | (cp >> 12));
             buf[n++] = (char)(0x80 | ((cp >> 6) & 0x3F));
             c = (char)(0x80 | (cp & 0x3F));
@@ -89,7 +91,7 @@ static char *parse_string_raw(parser *ps) {
         default: free(buf); return NULL;
       }
     }
-    if (n + 1 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { free(buf); return NULL; } buf = nb; }
+    if (n + 1 >= cap) { cap *= 2; char *nb = realloc(buf, cap); if (!nb) { ps->out_of_memory = 1; free(buf); return NULL; } buf = nb; }
     buf[n++] = c;
   }
   if (!closed) { free(buf); return NULL; }
@@ -99,7 +101,7 @@ static char *parse_string_raw(parser *ps) {
 
 static ax_json_value *parse_object(parser *ps) {
   ps->p++; /* { */
-  ax_json_value *obj = new_value(AX_J_OBJECT);
+  ax_json_value *obj = new_value(ps, AX_J_OBJECT);
   if (!obj) return NULL;
   skip_ws(ps);
   if (ps->p < ps->end && *ps->p == '}') { ps->p++; return obj; }
@@ -142,7 +144,7 @@ static ax_json_value *parse_value(parser *ps) {
     return v;
   }
   if (c == '"') {
-    ax_json_value *v = new_value(AX_J_STRING);
+    ax_json_value *v = new_value(ps, AX_J_STRING);
     if (!v) return NULL;
     v->str = parse_string_raw(ps);
     if (!v->str) { ax_json_free(v); return NULL; }
@@ -172,28 +174,28 @@ static ax_json_value *parse_value(parser *ps) {
     char tmp[128]; memcpy(tmp, start, len); tmp[len] = '\0';
     double d = strtod(tmp, NULL);
     if (!isfinite(d)) return NULL;
-    ax_json_value *v = new_value(AX_J_NUMBER);
+    ax_json_value *v = new_value(ps, AX_J_NUMBER);
     if (!v) return NULL;
     v->num = d;
     return v;
   }
   if (ps->end - ps->p >= 4 && memcmp(ps->p, "true", 4) == 0) {
     ps->p += 4;
-    ax_json_value *v = new_value(AX_J_BOOL);
+    ax_json_value *v = new_value(ps, AX_J_BOOL);
     if (!v) return NULL;
     v->boolean = 1;
     return v;
   }
   if (ps->end - ps->p >= 5 && memcmp(ps->p, "false", 5) == 0) {
     ps->p += 5;
-    ax_json_value *v = new_value(AX_J_BOOL);
+    ax_json_value *v = new_value(ps, AX_J_BOOL);
     if (!v) return NULL;
     v->boolean = 0;
     return v;
   }
   if (ps->end - ps->p >= 4 && memcmp(ps->p, "null", 4) == 0) {
     ps->p += 4;
-    return new_value(AX_J_NULL);
+    return new_value(ps, AX_J_NULL);
   }
   return NULL;
 }
@@ -202,9 +204,9 @@ int ax_json_parse(const char *json, size_t len, ax_json_value **out) {
   if (!out) return -1;
   *out = NULL;
   if (!json || len > AX_JSON_MAX_INPUT) return -1;
-  parser ps = { json, json + len, 0 };
+  parser ps = { json, json + len, 0, 0 };
   ax_json_value *v = parse_value(&ps);
-  if (!v) return -1;
+  if (!v) return ps.out_of_memory ? AX_JSON_NOMEM : AX_JSON_INVALID;
   skip_ws(&ps);
   if (ps.p != ps.end) { ax_json_free(v); return -1; } /* trailing garbage */
   *out = v;

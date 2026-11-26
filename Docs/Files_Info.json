@@ -1015,6 +1015,11 @@
       "purpose": "Exercise current C JSON grammar boundaries on native platforms",
       "inputs": "synthetic JSON fixtures",
       "outputs": "accept/reject conformance results"
+    },
+    "tests/test_json_faults.c": {
+      "purpose": "Inject deterministic parser allocation failures and test public error propagation",
+      "inputs": "synthetic JSON documents and fake signal collector",
+      "outputs": "failure cleanup and error propagation regression"
     }
   }
 }

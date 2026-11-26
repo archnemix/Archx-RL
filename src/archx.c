@@ -80,8 +80,10 @@ ax_core *ax_core_new(const char *config_json, size_t config_len) {
   }
 
   ax_json_value *root = NULL;
-  if (ax_json_parse(config_json, config_len, &root) != 0) {
-    set_error("ax_core_new: config is not valid JSON");
+  int parsed = ax_json_parse(config_json, config_len, &root);
+  if (parsed != 0) {
+    set_error(parsed == AX_JSON_NOMEM ? "ax_core_new: out of memory parsing config" :
+              "ax_core_new: config is not valid JSON");
     return NULL;
   }
 
@@ -484,9 +486,14 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
   }
   *out_json = NULL;
   ax_json_value *a = NULL, *b = NULL;
-  if (ax_json_parse(baseline, baseline_len, &a) || ax_json_parse(current, current_len, &b) ||
-      !validate_profile(core, a) || !validate_profile(core, b)) {
-    ax_json_free(a); ax_json_free(b); set_error("ax_compare: invalid or incompatible profile"); return AX_ERR_INVALID;
+  int parsed = ax_json_parse(baseline, baseline_len, &a);
+  if (!parsed) parsed = ax_json_parse(current, current_len, &b);
+  if (parsed || !validate_profile(core, a) || !validate_profile(core, b)) {
+    ax_json_free(a); ax_json_free(b);
+    if (parsed == AX_JSON_NOMEM) {
+      set_error("ax_compare: out of memory parsing profile"); return AX_ERR_NOMEM;
+    }
+    set_error("ax_compare: invalid or incompatible profile"); return AX_ERR_INVALID;
   }
   const ax_json_value *as = ax_json_get(a, "signals"), *bs = ax_json_get(b, "signals");
   char details[512] = ""; size_t pos = 0;

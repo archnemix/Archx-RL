@@ -111,3 +111,9 @@ The root README links separate native C, Python service, browser protocol, priva
 ## B05 JSON input bound
 
 The C parser rejects input larger than 65,536 bytes before allocation or pointer arithmetic and fails safely for null input/output. `tests/test_json_contract.c` checks exact/over limit and null cases; `tests/test_core.c` checks public configuration at and above the limit. [Local full regression](../Test-Results/unreleased/json-input-bound-full-test.log) passed the browser, C/Python and sanitizer suite. This is an intentional compatibility restriction for oversized configurations, not comprehensive allocation-fault coverage: locale/UTF-8 and other failure paths remain open, so #21 is not complete.
+
+## B05 parser allocation faults
+
+`tests/test_json_faults.c` injects failure at each parser malloc/calloc/realloc in synthetic nested strings, config and both profile parses. `ax_core_new` reports a parsing allocation error and `ax_compare` returns `AX_ERR_NOMEM` with no result; tracked allocations return to zero and valid operations recover after each injection. [Local full browser and sanitizer regression](../Test-Results/unreleased/json-oom-full-test.log) passed. This covers parser allocation paths, not every core/store/persistence/output failure, and #21 remains open.
+
+C04 native fixture evidence is now recorded in the [provider ADR](Crypto-JSON-ADR.md). The issue-level evaluation and fixture scope is addressed, but a 2026-11-22 issue-close attempt failed with GitHub integration access denied. Provider adoption, project license, package sizes, independent review and migration remain release work.

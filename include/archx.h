@@ -102,7 +102,8 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
 /* Compare two trusted profiles under the core's configured match policy.
  * Returns JSON with result match / no_match / inconclusive and per-signal
  * match / changed / unavailable. Does not establish identity or authentication.
- * Profiles from a different app or pepper are rejected. */
+ * Profiles from a different app or pepper are rejected. A parser allocation
+ * failure returns AX_ERR_NOMEM rather than an invalid-profile result. */
 ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_len,
                      const char *current, size_t current_len, char **out_json, size_t *out_len);
 

@@ -24,8 +24,11 @@ struct ax_json_value {
   size_t        child_count;
 };
 
+#define AX_JSON_INVALID (-1)
+#define AX_JSON_NOMEM   (-2)
 /* Parse up to AX_JSON_MAX_INPUT bytes into *out (owned). Returns 0 on
- * success; failure clears *out when supplied. NULL input/output are errors. */
+ * success, AX_JSON_NOMEM for allocation failure or AX_JSON_INVALID for
+ * invalid input; failure clears *out when supplied. NULL arguments are errors. */
 int  ax_json_parse(const char *json, size_t len, ax_json_value **out);
 void ax_json_free(ax_json_value *v);
 
