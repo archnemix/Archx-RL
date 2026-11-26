@@ -1130,6 +1130,16 @@
       "purpose": "Synthetic fixture and I/O failure tests for Linux signal normalization",
       "inputs": "mocked source bytes, short reads, placeholders and failures",
       "outputs": "bounded and conservative validation assertions; no host identifiers"
+    },
+    "demo/maintenance.py": {
+      "purpose": "Optional experimental process-local idle cleanup scheduler",
+      "inputs": "memory or SQLite prototype engine and bounded interval",
+      "outputs": "best-effort status and bounded maintenance calls; no backup or WAL erasure"
+    },
+    "tests/test_idle_cleanup.py": {
+      "purpose": "Test synthetic idle cleanup, worker failures and live-state preservation",
+      "inputs": "temporary stores, fake clock and synthetic worker failures",
+      "outputs": "bounded expiration and fault assertions"
     }
   }
 }

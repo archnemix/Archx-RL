@@ -127,6 +127,19 @@ class Engine:
         top = self.window_expiries.peek()
         return top is not None and top[0] <= cutoff
 
+    def cleanup_expired(self):
+        """Run one bounded idle maintenance batch; may raise on clock/lock failure.
+
+        This does not clear live limits or delete backups, replay state or WAL.
+        The caller must explicitly schedule/retry it and monitor failures.
+        """
+        with self._serialized():
+            now = self.clock()
+            if type(now) not in (int, float) or not math.isfinite(now):
+                raise ValueError('Invalid maintenance clock')
+            return {'windows_pending': self._prune_windows(now),
+                    'observations_pending': self.observations.prune(now, CLEANUP_BUDGET)}
+
     def _new_window(self, key, now):
         row = [now, 0]
         self.windows[key] = row

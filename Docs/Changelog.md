@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added opt-in experimental idle cleanup for expired prototype windows and observations; replay, backups, legacy tables and WAL are not erased.
 - Hardened Linux C signal input against truncation, malformed machine IDs/UUIDs, embedded NULs and serial placeholders; this can change available signals and derived IDs on upgrade.
 - Added a synthetic mixed-process SQLite contention, WAL and read-only fault profile with invariant smoke tests; it is not a production soak certification.
 - Added a reproducible synthetic signal-stability evaluation protocol and scenario report; model assumptions are not real-world accuracy estimates.

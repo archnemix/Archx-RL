@@ -109,6 +109,24 @@ class SQLiteEngine(Engine):
         try: return con.execute('BEGIN IMMEDIATE')
         finally: self._record_wait(started)
 
+    def cleanup_expired(self):
+        """One atomic indexed maintenance batch; errors propagate to the caller."""
+        con = self.connect()
+        try:
+            self._begin_writer(con)
+            now = self.clock()
+            if type(now) not in (int, float) or not math.isfinite(now):
+                raise ValueError('Invalid maintenance clock')
+            result = {'windows_pending': self._prune_windows(con, now),
+                      'observations_pending': self._prune_observations(con, now)}
+            con.commit()
+            return result
+        except BaseException:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
     def _prune_windows(self, con, now):
         cutoff = now - self.settings['window_seconds']
         con.execute('DELETE FROM windows WHERE key IN (SELECT key FROM windows WHERE start <= ? ORDER BY start LIMIT ?)',

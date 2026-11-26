@@ -144,7 +144,7 @@ The pre-index and indexed matching loops were also [compared](../Test-Results/un
 
 ## Issue closure and branch status
 
-Fourteen reviewed issues (#1, #11, #15, #18, #20, #21, #28, #32, #33, #34, #35, #36, #37 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
+Sixteen reviewed issues (#1, #11, #15, #18, #20, #21, #23, #28, #32, #33, #34, #35, #36, #37, #39 and #40) have been closed on GitHub with comments identifying their test evidence and limitations. The direct GitHub CLI integration still cannot modify issue state, so an explicitly authorized, branch-restricted one-time Actions workflow requested only `issues: write` using the automatic `GITHUB_TOKEN`; the workflow is removed after use. These fixes are on `arena/328e63a8-archx-rl`, **not merged into main**. Closing the issues does not certify production readiness or resolve the remaining release gates. Other issue closures and issue labels must not be inferred from this list.
 
 ## D03 bounded window and SQLite cleanup follow-up
 
@@ -193,3 +193,7 @@ A 30-second [synthetic profile](../Research/SQLite-Contention-Profile.md) combin
 ## B07 source-specific signal normalization
 
 [Signal-normalization notes](../Research/Signal-Normalization.md) describe conservative Linux C, experimental Windows SMBIOS/macOS UUID and Python raw-v2 rules, known differences and evidence. The Linux C collector now rejects incomplete/embedded-NUL reads, I/O and close failures, malformed/placeholder machine IDs and UUIDs, invalid/non-ASCII/placeholder board strings, and excessive lengths. This can make formerly accepted inputs unreadable and change derived identifiers; there is no migration. Synthetic fixture tests cover short and interrupted reads, I/O faults, truncation, vendor placeholders, absence and malformed/Unicode data. SMBIOS synthetic fixtures exercise UUID byte order, ambiguity and truncation. No syntax check proves source authenticity, a stable person/device, real-vendor coverage, platform support or privacy authorization.
+
+## A13 experimental idle expiry (partial)
+
+An opt-in [idle cleanup worker](../Guides/Idle-Cleanup.md) can schedule bounded window and observation expiry in memory or SQLite even without requests. It preserves live records, serializes against requests, reports latest success/failure and does not log exception text. Tests cover exact expiry, bounded batches, concurrency, SQLite rollback and stalled shutdown. The worker is not automatically enabled, is process-local, and cannot cancel a stalled database call. It does not clean replay challenges, legacy tables, WAL, backups, snapshots or physical storage. #14 remains open until the complete retention/deletion and backup/WAL requirements are addressed; no secure erasure is claimed.
