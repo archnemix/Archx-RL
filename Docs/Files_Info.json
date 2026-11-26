@@ -975,6 +975,36 @@
       "purpose": "Guard ABI-v1 availability heuristic explanations and current score-free demo UI",
       "inputs": "public header, README and frontend source",
       "outputs": "targeted documentation and UI regression results"
+    },
+    "Docs/Guides/Native-Core.md": {
+      "purpose": "Describe the Linux C ABI and in-process limiter",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
+    },
+    "Docs/Guides/Policy-Service.md": {
+      "purpose": "Describe the separate Python request-policy engines",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
+    },
+    "Docs/Guides/Browser-Protocol.md": {
+      "purpose": "Describe browser-supplied signals and sealed protocol",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
+    },
+    "Docs/Guides/Privacy-Security.md": {
+      "purpose": "Describe prototype privacy and security boundaries",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
+    },
+    "Docs/Guides/Deployment.md": {
+      "purpose": "Describe deployment status and unreleased boundaries",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
+    },
+    "tests/test_guides.py": {
+      "purpose": "Check component guide map, links and key disclaimers",
+      "inputs": "repository implementation and documentation",
+      "outputs": "component guidance or targeted documentation regression"
     }
   }
 }

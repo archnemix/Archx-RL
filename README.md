@@ -4,6 +4,14 @@ Working guidance and component indexes are in [Docs/](Docs/README.md).
 
 Milestone 1 is a **Linux-only prototype** of a shared C core for device-signal inspection, app-scoped pseudonymous identification, and an in-process token bucket. The C ABI is in [`include/archx.h`](include/archx.h); the Python and Node examples call the same library. A separate browser client encrypts caller-supplied signals; it does not collect native hardware IDs. No mobile collector, cross-machine rate-limit store, or other native OS implementation is included yet.
 
+## Component and deployment guides
+
+- [Native C core](Docs/Guides/Native-Core.md): Linux C ABI and its in-process limiter.
+- [Python policy service](Docs/Guides/Policy-Service.md): separate request engines, memory and SQLite.
+- [Browser protocol](Docs/Guides/Browser-Protocol.md): caller-supplied signals and sealed requests, not native hardware collection.
+- [Privacy and security](Docs/Guides/Privacy-Security.md): trust, data and residual risks.
+- [Deployment status](Docs/Guides/Deployment.md): no supported production profile yet and the outstanding release boundaries.
+
 ## Build and try
 
 Requires Linux, a C11 compiler, `make`-independent POSIX build tools and pthreads. No external C dependencies.

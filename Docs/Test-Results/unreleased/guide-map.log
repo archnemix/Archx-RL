@@ -1,0 +1,3 @@
+Synthetic Linux local documentation regression, 2026-11-22
+Command: python3 tests/test_guides.py
+Result: 2 tests passed. The README map, local links and key component-boundary disclaimers were checked. This is not a security review or a deployment approval.

@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added separate component, privacy and deployment-status guides with an accurately scoped README map.
 - Let the synthetic WSGI host fix its operation identifier at construction and test host authorization separately from signal forgery and cross-account quota poisoning.
 - Added regression checks for the ABI-v1 availability-heuristic explanation and the current score-free demo UI.
 - Documented the Python memory/SQLite behavior contract and tested shared charging, retry, saturation and explicit cleanup differences.

@@ -99,3 +99,7 @@ ABI v1 deliberately retains the `confidence` field for compatibility, with heade
 ## B02 host authorization boundary
 
 The example accepts both host-owned principal resolution and operation authorization, with a host-configured operation fixed at construction. `tests/test_host_integration.py` checks spoofed identities and operation headers, non-boolean/error denial, ignored rotating account fields, and an authorized attacker using forged signals to exhaust a victim bucket. The issue-level hook and limitation tests are addressed; #18 remains open because the integration cannot update issues. This is an illustrative local WSGI example, not an authenticated or bounded production host.
+
+## C05 guide map
+
+The root README links separate native C, Python service, browser protocol, privacy/security and deployment-status guides under `Docs/Guides/`. No production deployment is yet supported; the deployment guide lists release boundaries rather than claiming otherwise. `tests/test_guides.py` verifies local links and key component-boundary disclaimers. This addresses the stated documentation-map scope of #33, not the unresolved release gates; issue-write permission remains necessary to attach evidence and close the issue.
