@@ -6,7 +6,7 @@ The memory engine is process-local and restarts clear its state. SQLite can pres
 
 The [synthetic WSGI example](../../examples/python/gated_wsgi.py) demonstrates enforcing the gate on the protected request and supports host-owned principal/operation hooks. It is not a reviewed production integration. See the [README host example](../../README.md#host-integration-example) and [deployment status](Deployment.md) for constraints.
 
-The prototype policy optionally sets `ip_max_requests` and `device_max_requests` independently, both within one shared `window_seconds`; absent overrides use `max_requests`. Raising the IP threshold reduces some shared-network denial but can allow more abuse; self-reported device signals are forgeable and are not authentication. Changing persistent quota settings changes the SQLite policy fingerprint and existing databases are refused rather than silently reset. Progressive challenges and authorized host recovery are still unimplemented.
+The prototype policy optionally sets `ip_max_requests` and `device_max_requests` independently, both within one shared `window_seconds`; absent overrides use `max_requests`. Raising the IP threshold reduces some shared-network denial but can allow more abuse; self-reported device signals are forgeable and are not authentication. Changing persistent quota settings changes the SQLite policy fingerprint and existing databases are refused rather than silently reset. An opt-in soft IP challenge and an explicitly privileged shared-IP reset are experimental; see [Shared-IP Recovery](Shared-IP-Recovery.md) for security and abuse caveats.
 
 ## Optional local metrics
 

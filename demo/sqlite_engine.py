@@ -138,7 +138,7 @@ class SQLiteEngine(Engine):
                     (now, CLEANUP_BUDGET))
         return con.execute('SELECT 1 FROM observations WHERE expires <= ? LIMIT 1', (now,)).fetchone() is not None
 
-    def _charge(self, con, key_limits, now):
+    def _charge(self, con, key_limits, now, ip_key=None):
         keys = list(key_limits)
         if not keys: return None
         marks = ','.join('?' for _ in keys)
@@ -147,15 +147,36 @@ class SQLiteEngine(Engine):
         if count + sum(k not in rows for k in keys) > self.max_entries:
             return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':self.settings['window_seconds'],'relation':'inconclusive'}
         retry = 0
+        ip_challenge = False
         for key in keys:
             start, old = rows.get(key, (now, 0))
             con.execute('INSERT INTO windows(key,start,count) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET count=excluded.count', (key, start, old+1))
             if old+1 > key_limits[key]:
                 retry = max(retry, math.ceil(self.settings['window_seconds'] - (now - start)))
-        return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry,'relation':'inconclusive'} if retry else None
+            soft = self.settings.get('ip_challenge_after')
+            if key == ip_key and soft is not None and old+1 > soft: ip_challenge = True
+        if retry: return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry,'relation':'inconclusive'}
+        return self._ip_challenge() if ip_challenge else None
 
     def _storage_error(self):
         return {'decision':'storage_error','message':self.message('storage_error'),'retry_after_seconds':1,'relation':'inconclusive'}
+
+    def reset_ip_window(self, peer):
+        """Explicit operator action affecting every client sharing the peer IP."""
+        ip = ipaddress.ip_address(peer)
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
+        key = self.ip_key(ip)
+        con = self.connect()
+        try:
+            self._begin_writer(con)
+            changed = con.execute('DELETE FROM windows WHERE key=?', (key,)).rowcount != 0
+            con.commit()
+            return changed
+        except BaseException:
+            con.rollback()
+            raise
+        finally:
+            con.close()
 
     def reject_malformed(self, peer):
         ip = ipaddress.ip_address(peer)
@@ -165,7 +186,7 @@ class SQLiteEngine(Engine):
             try:
                 self._begin_writer(con)
                 now = self.clock()
-                result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, {self.ip_key(ip):self._quota('ip')}, now)
+                result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, {self.ip_key(ip):self._quota('ip')}, now, self.ip_key(ip))
                 con.commit()
                 return result
             except Exception:
@@ -192,7 +213,7 @@ class SQLiteEngine(Engine):
                 for name, value in tokens.items():
                     if _ip_precharged and name == 'ip': continue
                     key_limits[value] = min(key_limits.get(value, self._quota(name)), self._quota(name))
-                failure = self._charge(con, key_limits, now)
+                failure = self._charge(con, key_limits, now, None if _ip_precharged else tokens['ip'])
                 if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
                 if failure is None and cleanup_pending: failure = self._cleanup_busy()
                 if failure:

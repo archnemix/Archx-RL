@@ -48,6 +48,17 @@ class ExpiryHeap:
             self.heap[pos] = item
         self._down(self._up(pos))
 
+    def remove(self, key):
+        """Remove one indexed key in logarithmic time; return whether present."""
+        pos = self.positions.pop(key, None)
+        if pos is None: return False
+        last = self.heap.pop()
+        if pos < len(self.heap):
+            self.heap[pos] = last
+            self.positions[last[1]] = pos
+            self._down(self._up(pos))
+        return True
+
     def pop(self):
         if not self.heap: raise IndexError('empty expiry heap')
         earliest = self.heap[0]

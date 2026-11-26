@@ -1,0 +1,62 @@
+{
+  "memory": {
+    "mode": "memory",
+    "scenarios": [
+      {
+        "operator_reset_every_five": false,
+        "requests": 30,
+        "decisions": {
+          "allow": 3,
+          "challenge": 2,
+          "rate_limited": 25
+        },
+        "resets": 0
+      },
+      {
+        "operator_reset_every_five": true,
+        "requests": 30,
+        "decisions": {
+          "allow": 18,
+          "challenge": 12
+        },
+        "resets": 5
+      }
+    ],
+    "limitations": [
+      "all inputs are fabricated; legitimate status, population rates and review approval are assumptions",
+      "reset clears a shared IP bucket for everyone, including attackers, and does not clear device buckets",
+      "challenge is a host-facing denial, not automatic verification or an authentication proof",
+      "not a real-world false-positive rate, production security result or operating procedure"
+    ]
+  },
+  "sqlite": {
+    "mode": "sqlite",
+    "scenarios": [
+      {
+        "operator_reset_every_five": false,
+        "requests": 30,
+        "decisions": {
+          "allow": 3,
+          "challenge": 2,
+          "rate_limited": 25
+        },
+        "resets": 0
+      },
+      {
+        "operator_reset_every_five": true,
+        "requests": 30,
+        "decisions": {
+          "allow": 18,
+          "challenge": 12
+        },
+        "resets": 5
+      }
+    ],
+    "limitations": [
+      "all inputs are fabricated; legitimate status, population rates and review approval are assumptions",
+      "reset clears a shared IP bucket for everyone, including attackers, and does not clear device buckets",
+      "challenge is a host-facing denial, not automatic verification or an authentication proof",
+      "not a real-world false-positive rate, production security result or operating procedure"
+    ]
+  }
+}

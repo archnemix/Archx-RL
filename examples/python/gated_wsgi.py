@@ -17,7 +17,8 @@ from engine import Engine, policy
 from service import RequestService, parse_json, status_for
 
 
-def create_application(gate, on_allow=None, *, resolve_principal=None, authorize=None, operation="synthetic.read"):
+def create_application(gate, on_allow=None, *, resolve_principal=None, authorize=None, operation="synthetic.read",
+                       approve_recovery=None, audit_recovery=None):
     # A trusted host chooses the operation at construction, never per request.
     if (not isinstance(operation, str) or not 1 <= len(operation) <= 128 or
             any(ord(c) < 32 or ord(c) == 127 for c in operation)):
@@ -26,6 +27,10 @@ def create_application(gate, on_allow=None, *, resolve_principal=None, authorize
         raise ValueError('Both host authorization hooks must be supplied together')
     if resolve_principal is not None and (not callable(resolve_principal) or not callable(authorize)):
         raise ValueError('Host authorization hooks must be callable')
+    if (approve_recovery is None) != (audit_recovery is None):
+        raise ValueError('Both recovery approval and audit hooks are required')
+    if approve_recovery is not None and (resolve_principal is None or not callable(approve_recovery) or not callable(audit_recovery)):
+        raise ValueError('Recovery requires host authentication, authorization, approval and audit')
     on_allow = on_allow or (lambda: {'resource':'synthetic protected response'})
 
     def respond(start_response, status, result):
@@ -47,6 +52,26 @@ def create_application(gate, on_allow=None, *, resolve_principal=None, authorize
             result = gate.challenge(peer)
             status = 404 if result is None else status_for(result) if 'decision' in result else 200
             if result is None: result = {'error':'not_found'}
+        elif method == 'POST' and path == '/recovery' and approve_recovery is not None:
+            # Explicit host review and audit, not proof from a signal or IP.
+            # This clears the shared peer bucket only, never device buckets.
+            # A real host also needs CSRF protection and independent rate limits.
+            try:
+                principal = resolve_principal(environ)
+                authorized = False if principal is None else authorize(principal, 'synthetic.recovery')
+                if authorized is not True:
+                    status = 403 if authorized is False else 503
+                    return respond(start_response, status, {'error':'forbidden' if status == 403 else 'authorization_unavailable'})
+                approved = approve_recovery(principal, 'synthetic.recovery')
+                if approved is not True:
+                    status = 403 if approved is False else 503
+                    return respond(start_response, status, {'error':'forbidden' if status == 403 else 'recovery_unavailable'})
+                if audit_recovery(principal, 'synthetic.recovery') is not True:
+                    return respond(start_response, 503, {'error':'recovery_unavailable'})
+                gate.engine.reset_ip_window(peer)
+            except Exception:
+                return respond(start_response, 503, {'error':'recovery_unavailable'})
+            return respond(start_response, 200, {'status':'recovery_processed'})
         elif method == 'POST' and path == '/protected':
             # The host, not Archx, must authenticate this principal. It must
             # never populate trusted context from a client-controlled header.

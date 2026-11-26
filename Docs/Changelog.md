@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Added opt-in progressive IP challenges and explicitly privileged peer-window recovery for the Python prototype; the example is not a production recovery service.
 - Added a synthetic 48-case direct/loopback traffic and state benchmark matrix; timings and sampled queues are not production capacity claims.
 - Added opt-in experimental idle cleanup for expired prototype windows and observations; replay, backups, legacy tables and WAL are not erased.
 - Hardened Linux C signal input against truncation, malformed machine IDs/UUIDs, embedded NULs and serial placeholders; this can change available signals and derived IDs on upgrade.

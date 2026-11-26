@@ -18,6 +18,7 @@ CLEANUP_BUDGET = 64
 
 DEFAULT_MESSAGES = {
     'rate_limited': 'Too many requests. Please wait and try again.',
+    'rate_challenge': 'Additional verification is required. Contact the service for help.',
     'missing_required': 'This service requires device information that your device did not provide. Contact the service provider for help.',
     'invalid_request': 'We could not process this request. Please check your information and try again.',
     'timezone_mismatch': 'Check your timezone or network location, then retry.',
@@ -45,7 +46,7 @@ def policy(preset='basic', override=None):
          'max_clock_skew_seconds':300, 'timezone_tolerance_minutes':30, 'timezone_enforce':False, 'history_seconds':86400}
     if override is not None:
         if not isinstance(override, dict): raise ValueError('Policy must be an object')
-        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages','ip_storage','ip_max_requests','device_max_requests'}
+        allowed = {'required','conditional','min_matches','window_seconds','max_requests','max_clock_skew_seconds','timezone_tolerance_minutes','timezone_enforce','history_seconds','messages','ip_storage','ip_max_requests','device_max_requests','ip_challenge_after'}
         if set(override) - allowed: raise ValueError('Unknown policy setting')
         p.update(override)
     for key in ('required','conditional'):
@@ -57,6 +58,8 @@ def policy(preset='basic', override=None):
     for key in ('ip_max_requests','device_max_requests'):
         if key in p and (type(p[key]) is not int or not 1 <= p[key] <= 10000):
             raise ValueError('Invalid ' + key)
+    if 'ip_challenge_after' in p and (type(p['ip_challenge_after']) is not int or not 1 <= p['ip_challenge_after'] < p.get('ip_max_requests', p['max_requests'])):
+        raise ValueError('Invalid ip_challenge_after')
     if not isinstance(p['timezone_enforce'], bool): raise ValueError('Invalid timezone enforcement')
     if p.get('ip_storage','hash') not in ('hash','raw'): raise ValueError('IP storage must be hash or raw; device signals are always hashed')
     if 'messages' in p:
@@ -157,8 +160,26 @@ class Engine:
         setting = 'ip_max_requests' if name == 'ip' else 'device_max_requests'
         return self.settings.get(setting, self.settings['max_requests'])
 
+    def _ip_challenge(self):
+        return {'decision':'challenge','reason':'rate_challenge','message':self.message('rate_challenge'),'relation':'inconclusive'}
+
     def ip_key(self, ip):
         return 'raw-ip:' + str(ip) if self.settings.get('ip_storage','hash') == 'raw' else self.token('ip',str(ip))
+
+    def reset_ip_window(self, peer):
+        """Explicit operator action; reset one shared IP bucket, not device quotas.
+
+        The caller must authenticate, authorize and audit this sensitive action.
+        It affects all clients sharing that IP and may enable abuse.
+        """
+        ip = ipaddress.ip_address(peer)
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
+        key = self.ip_key(ip)
+        with self._serialized():
+            if key not in self.windows: return False
+            del self.windows[key]
+            self.window_expiries.remove(key)
+            return True
 
     def timezone_status(self, ip, zone, stamp, now):
         if stamp is not None:
@@ -190,6 +211,8 @@ class Engine:
             row = self._window(key,now); row[1] += 1
             if row[1] > self._quota('ip'):
                 return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':math.ceil(window-(now-row[0])), 'relation':'inconclusive'}
+            soft = self.settings.get('ip_challenge_after')
+            if soft is not None and row[1] > soft: return self._ip_challenge()
         return None
 
     def prepare(self, raw, peer):
@@ -241,13 +264,18 @@ class Engine:
             if len(self.windows) + missing_keys > self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window, 'relation':'inconclusive'}
             retry = 0
+            ip_challenge = False
             for key, limit in key_limits.items():
                 row = self._window(key, now)
                 row[1] += 1
                 if row[1] > limit:
                     retry = max(retry, math.ceil(window - (now-row[0])))
+                soft = self.settings.get('ip_challenge_after')
+                if not _ip_precharged and key == tokens['ip'] and soft is not None and row[1] > soft:
+                    ip_challenge = True
             if retry:
                 return {'decision':'rate_limited','message':self.message('rate_limited'),'retry_after_seconds':retry, 'relation':'inconclusive'}
+            if ip_challenge: return self._ip_challenge()
             failure = self.decision_before_matching(missing, zone, clock_status)
             if failure:
                 return failure

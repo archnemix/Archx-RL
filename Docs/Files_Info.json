@@ -1150,6 +1150,16 @@
       "purpose": "Validate synthetic traffic benchmark coverage and accounting",
       "inputs": "synthetic cases and loopback server",
       "outputs": "decision, queue caveat, expiry recovery and argument assertions"
+    },
+    "tools/progressive_nat_simulation.py": {
+      "purpose": "Model synthetic shared-IP progressive challenge and operator reset outcomes",
+      "inputs": "synthetic identities, a documentation IP and explicitly assumed review",
+      "outputs": "aggregate request counts; no real identity or production safety claim"
+    },
+    "tests/test_progressive_recovery.py": {
+      "purpose": "Test prototype challenge progression and privileged peer-window recovery",
+      "inputs": "synthetic memory/SQLite data and mocked host authorization/audit",
+      "outputs": "authorization, heap, policy, reset and failure assertions"
     }
   }
 }

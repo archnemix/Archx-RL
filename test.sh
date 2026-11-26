@@ -39,6 +39,7 @@ python3 tests/test_guides.py
 python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_separate_quotas.py
+python3 tests/test_progressive_recovery.py
 python3 tests/test_stability_evaluation.py
 python3 tests/test_observation_index.py
 python3 tests/test_metrics.py
