@@ -53,6 +53,7 @@ python3 tests/test_contention_benchmark.py
 python3 tests/test_boundaries.py
 python3 tests/test_sqlite_engine.py
 python3 tests/test_sqlite_policy_migration.py
+python3 tests/test_sqlite_restore_risk.py
 python3 tests/test_sqlite_multiprocess_probe.py
 python3 tests/test_sqlite_soak_profile.py
 python3 tests/test_state_clock.py
