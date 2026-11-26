@@ -95,3 +95,7 @@ Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A0
 ## B12 legacy-score explanation
 
 ABI v1 deliberately retains the `confidence` field for compatibility, with header and README explaining the availability-weight heuristic and fallback marker. `tests/test_coverage.c` covers every synthetic signal combination and fallback; `tests/test_coverage_docs.py` checks those explanations and that the current demo UI does not present the field. This addresses the stated #28 compatibility/explanation scope, not a calibrated identity or fraud model. A future UI or versioned multi-platform schema still needs review. The GitHub issue remains open because issue-write access is denied.
+
+## B02 host authorization boundary
+
+The example accepts both host-owned principal resolution and operation authorization, with a host-configured operation fixed at construction. `tests/test_host_integration.py` checks spoofed identities and operation headers, non-boolean/error denial, ignored rotating account fields, and an authorized attacker using forged signals to exhaust a victim bucket. The issue-level hook and limitation tests are addressed; #18 remains open because the integration cannot update issues. This is an illustrative local WSGI example, not an authenticated or bounded production host.

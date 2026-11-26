@@ -17,7 +17,11 @@ from engine import Engine, policy
 from service import RequestService, parse_json, status_for
 
 
-def create_application(gate, on_allow=None, *, resolve_principal=None, authorize=None):
+def create_application(gate, on_allow=None, *, resolve_principal=None, authorize=None, operation="synthetic.read"):
+    # A trusted host chooses the operation at construction, never per request.
+    if (not isinstance(operation, str) or not 1 <= len(operation) <= 128 or
+            any(ord(c) < 32 or ord(c) == 127 for c in operation)):
+        raise ValueError('Invalid host operation')
     if (resolve_principal is None) != (authorize is None):
         raise ValueError('Both host authorization hooks must be supplied together')
     if resolve_principal is not None and (not callable(resolve_principal) or not callable(authorize)):
@@ -49,7 +53,7 @@ def create_application(gate, on_allow=None, *, resolve_principal=None, authorize
             if resolve_principal is not None:
                 try:
                     principal = resolve_principal(environ)
-                    approved = False if principal is None else authorize(principal, 'synthetic.read')
+                    approved = False if principal is None else authorize(principal, operation)
                 except Exception:
                     return respond(start_response, 503, {'error':'authorization_unavailable'})
                 if approved is not True:

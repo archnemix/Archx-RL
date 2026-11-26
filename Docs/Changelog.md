@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Let the synthetic WSGI host fix its operation identifier at construction and test host authorization separately from signal forgery and cross-account quota poisoning.
 - Added regression checks for the ABI-v1 availability-heuristic explanation and the current score-free demo UI.
 - Documented the Python memory/SQLite behavior contract and tested shared charging, retry, saturation and explicit cleanup differences.
 - Replaced the GCC-specific C error-buffer thread-local declaration with a C11/MSVC abstraction and added simultaneous isolation tests; this alone does not port the native core.

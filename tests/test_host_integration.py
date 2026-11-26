@@ -65,6 +65,52 @@ class HostIntegrationTests(unittest.TestCase):
         self.assertEqual(actions, ['called'])
         self.assertEqual(authorizations, [('different-principal', 'synthetic.read'), ('trusted-principal', 'synthetic.read')])
 
+    def test_operation_identity_is_host_configured_not_client_controlled(self):
+        actions=[]; seen=[]
+        gate=RequestService(Engine(policy(override={'max_requests':10}),secret=b'host-test'))
+        def authorize(principal,operation):
+            seen.append((principal,operation))
+            return principal == 'trusted' and operation == 'invoice.read'
+        app=create_application(gate,lambda:actions.append('called') or {'ok':True},
+            resolve_principal=lambda env:env.get('host.authenticated_principal'),
+            authorize=authorize,operation='invoice.read')
+        raw=json.dumps({'signals':{'machine_id':synthetic_signal('machine_id','operation')}}).encode()
+        env={'REMOTE_ADDR':'192.0.2.1','REQUEST_METHOD':'POST','PATH_INFO':'/protected',
+             'CONTENT_TYPE':'application/json','CONTENT_LENGTH':str(len(raw)),'wsgi.input':io.BytesIO(raw),
+             'host.authenticated_principal':'trusted','HTTP_X_OPERATION':'invoice.delete'}
+        statuses=[]; b''.join(app(env,lambda status,headers:statuses.append(status)))
+        self.assertEqual(statuses,['200 OK']);self.assertEqual(seen,[('trusted','invoice.read')]);self.assertEqual(actions,['called'])
+        for invalid in ('', 'x'*129, 'read\nadmin', None, 1):
+            with self.subTest(operation=invalid):
+                with self.assertRaises(ValueError): create_application(gate,operation=invalid)
+
+    def test_host_authorization_and_cross_account_poisoning_are_separate(self):
+        # Entitlement is host-owned; accepted fabricated signals still poison
+        # the shared machine bucket even when account/principal changes.
+        actions=[]
+        gate=RequestService(Engine(policy(override={'max_requests':1}),secret=b'host-test'))
+        app=create_application(gate,lambda: actions.append('executed') or {'ok':True},
+            resolve_principal=lambda env:env.get('host.authenticated_principal'),
+            authorize=lambda principal,operation: principal in ('attacker','victim') and operation == 'synthetic.read')
+        signal=synthetic_signal('machine_id','victim-shared')
+        def send(principal, ip, account):
+            payload=json.dumps({'account':account,'signals':{'machine_id':signal}}).encode()
+            environ={'REMOTE_ADDR':ip,'REQUEST_METHOD':'POST','PATH_INFO':'/protected',
+                     'CONTENT_TYPE':'application/json','CONTENT_LENGTH':str(len(payload)),
+                     'wsgi.input':io.BytesIO(payload),'HTTP_X_AUTHENTICATED_PRINCIPAL':'victim'}
+            if principal is not None: environ['host.authenticated_principal']=principal
+            statuses=[]
+            body=b''.join(app(environ,lambda status,headers:statuses.append(status)))
+            return statuses[0],json.loads(body)
+        self.assertEqual(send(None,'192.0.2.1','victim')[0],'403 Forbidden')
+        self.assertEqual(send('unauthorized','192.0.2.1','victim')[0],'403 Forbidden')
+        self.assertEqual(actions,[])
+        self.assertEqual(send('attacker','192.0.2.1','attacker-account')[0],'200 OK')
+        victim=send('victim','192.0.2.2','rotated-account')
+        self.assertEqual(victim[0],'429 Too Many Requests')
+        self.assertEqual(victim[1]['decision'],'rate_limited')
+        self.assertEqual(actions,['executed'])
+
     def test_loopback_spoofed_principal_header_is_not_host_context(self):
         actions=[]
         engine=Engine(policy(),secret=b'host-test')

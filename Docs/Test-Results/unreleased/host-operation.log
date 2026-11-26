@@ -1,0 +1,4 @@
+Synthetic Linux local regression, 2026-11-22
+Command: build/secure-venv/bin/python tests/test_host_integration.py
+Result: 9 tests passed, including sealed single-use, host-configured operation, spoofed headers, unauthorized denial and cross-account victim poisoning demonstration. No real identifiers used.
+The host remains responsible for authentication, authorization and bounded deployment; forged signals are not authenticated.
