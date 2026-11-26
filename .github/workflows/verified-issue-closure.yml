@@ -1,0 +1,19 @@
+# One-time issue closure; restricted branch and repository, no checkout or third-party actions.
+name: Close verified stability protocol issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close tested synthetic evaluation issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 15 --repo archnemix/Archx-RL --reason completed --comment 'Implemented the synthetic evaluation protocol on arena/328e63a8-archx-rl at cb7d6cd (not merged into main): Docs/Research/Stability-Evaluation-Protocol.md, tools/synthetic_stability_evaluation.py and the aggregate result Docs/Test-Results/unreleased/synthetic-stability-evaluation.json. Eight modeled scenarios contain 200 isolated synthetic pairs each and cover NAT, cloned VMs, reinstall, permission changes, hardware changes, forgery and full rotation. The report states its conditional model uncertainty and assumptions; denied outcomes remain distinct. Tests validate deterministic counts and selected memory/SQLite parity; the full local browser/sanitizer suite and Linux CI https://github.com/archnemix/Archx-RL/actions/runs/45858603078 passed. Model probabilities and pair labels are assumed, not population estimates; actual collectors, consented devices, representative empirical accuracy, and production validation remain untested.'
