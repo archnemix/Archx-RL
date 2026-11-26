@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           python3 -m venv "$RUNNER_TEMP/archx-test-venv"
-          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt
+          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-proxy.txt
           echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
           npm ci --prefix demo/browser
           npm ci --prefix bindings/node
@@ -50,6 +50,7 @@ jobs:
           sudo apt-get install -y nginx
           nginx -v
           ARCHX_TEST_NGINX="$(command -v nginx)" python3 tests/test_https_proxy.py
+          ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_https_wsgi_unix.py
       - name: Fuzz SMBIOS parser smoke
         run: ./tests/fuzz_smbios.sh
       - name: Verify Linux GCC and Clang CMake installation and consumers

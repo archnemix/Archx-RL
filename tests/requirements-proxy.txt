@@ -1,0 +1,2 @@
+# Test-only WSGI server for synthetic Unix-socket HTTPS experiment.
+waitress==3.0.2
