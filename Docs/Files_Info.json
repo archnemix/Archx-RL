@@ -960,6 +960,11 @@
       "purpose": "Run Windows survey as an ephemeral standard local user on a disposable GitHub runner",
       "inputs": "native survey executable and hosted runner",
       "outputs": "validated availability categories and cleanup"
+    },
+    "src/thread_local.h": {
+      "purpose": "Select compiler-appropriate static thread-local storage for internal C state",
+      "inputs": "compiler C11 or MSVC thread-local support",
+      "outputs": "AX_THREAD_LOCAL declaration macro"
     }
   }
 }

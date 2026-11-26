@@ -37,6 +37,7 @@ endif()
 enable_testing()
 add_test(NAME synthetic_smbios_fixtures COMMAND archx_smbios_fixtures)
 add_test(NAME entropy_clock_mutex_store_conformance COMMAND archx_platform_conformance)
+set_tests_properties(entropy_clock_mutex_store_conformance PROPERTIES TIMEOUT 30)
 
 if(WIN32)
   add_executable(archx_windows_firmware ../test_windows_firmware.c ../../src/signals_windows.c ../../src/smbios.c)

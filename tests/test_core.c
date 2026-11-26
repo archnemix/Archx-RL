@@ -24,7 +24,29 @@ static void *insert_unique(void *data) {
   if (!arg->allowed) assert(strstr(ax_last_error(), "capacity exceeded"));
   return NULL;
 }
+typedef struct { pthread_barrier_t *barrier; int first; } tls_error_arg;
+static void *check_tls_error(void *data) {
+  tls_error_arg *arg = data;
+  if (arg->first) {
+    assert(!ax_core_new(NULL, 0));
+  } else {
+    assert(!ax_core_new("{", 1));
+  }
+  int result = pthread_barrier_wait(arg->barrier);
+  assert(result == 0 || result == PTHREAD_BARRIER_SERIAL_THREAD);
+  assert(strstr(ax_last_error(), arg->first ? "NULL or empty" : "not valid JSON"));
+  return NULL;
+}
 int main(void) {
+  /* Simultaneous distinct errors must not overwrite another thread's state. */
+  pthread_barrier_t error_barrier; assert(!pthread_barrier_init(&error_barrier, NULL, 2));
+  tls_error_arg error_args[2] = {{&error_barrier, 0}, {&error_barrier, 1}};
+  pthread_t error_threads[2];
+  assert(!ax_core_new(NULL, 0));
+  for (int i=0; i<2; i++) assert(!pthread_create(&error_threads[i], NULL, check_tls_error, &error_args[i]));
+  for (int i=0; i<2; i++) assert(!pthread_join(error_threads[i], NULL));
+  assert(strstr(ax_last_error(), "NULL or empty"));
+  assert(!pthread_barrier_destroy(&error_barrier));
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"store_capacity\":-1}");
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"store_capacity\":1e999}");
   invalid("{\"app_id\":\"x\",\"pepper\":\"a\",\"rate_limit\":{\"capacity\":\"bad\"}}");

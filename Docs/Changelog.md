@@ -3,6 +3,7 @@
 Purpose: summarize changes by real release; no release version has been asserted here.
 
 ## Unreleased
+- Replaced the GCC-specific C error-buffer thread-local declaration with a C11/MSVC abstraction and added simultaneous isolation tests; this alone does not port the native core.
 - Added a shared memory/SQLite duplicate-snapshot refresh and expiry scenario.
 - Added a hosted-runner-only disposable Windows standard-user survey with token checks; this does not establish full native support.
 - Added push-only native hosted-runner availability surveys with strict sanitized output for a bounded set of Windows and macOS signals; no platform support or privacy approval is implied.

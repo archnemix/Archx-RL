@@ -25,6 +25,7 @@
 #include "sha256.h"
 #include "signals_linux.h"
 #include "store.h"
+#include "thread_local.h"
 
 #define AX_DEFAULT_CAPACITY      100.0
 #define AX_DEFAULT_REFILL_PER_SEC 10.0
@@ -47,7 +48,7 @@ struct ax_core {
 };
 
 /* Thread-local last-error string (the only global mutable state). */
-static __thread char tls_error[256];
+static AX_THREAD_LOCAL char tls_error[256];
 
 static void set_error(const char *msg) {
   snprintf(tls_error, sizeof tls_error, "%s", msg ? msg : "unknown error");

@@ -1,6 +1,7 @@
 /* Portable store/clock/mutex conformance, not native collector support. */
 #include "platform.h"
 #include "store.h"
+#include "thread_local.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +12,7 @@ typedef HANDLE test_thread;
 #define THREAD_RETURN return 0
 #else
 #include <pthread.h>
+#include <time.h>
 typedef pthread_t test_thread;
 #define THREAD_RESULT void *
 #define THREAD_RETURN return NULL
@@ -30,6 +32,33 @@ static THREAD_RESULT worker(void *context) {
   THREAD_RETURN;
 }
 
+/* Keep all threads alive with their distinct values until every worker wrote.
+ * Each worker only touches its own thread-local slot. */
+static AX_THREAD_LOCAL int tls_test_value;
+typedef struct { ax_platform_mutex *mutex; int *ready; int id; int failed; } tls_arg;
+static THREAD_RESULT tls_worker(void *context) {
+  tls_arg *arg = (tls_arg *)context;
+  if (tls_test_value != 0) arg->failed = 1;
+  tls_test_value = arg->id;
+  if (ax_platform_mutex_lock(arg->mutex)) { arg->failed = 1; THREAD_RETURN; }
+  (*arg->ready)++;
+  if (ax_platform_mutex_unlock(arg->mutex)) { arg->failed = 1; THREAD_RETURN; }
+  for (;;) {
+    if (ax_platform_mutex_lock(arg->mutex)) { arg->failed = 1; THREAD_RETURN; }
+    int ready = *arg->ready;
+    if (ax_platform_mutex_unlock(arg->mutex)) { arg->failed = 1; THREAD_RETURN; }
+    if (ready == 8) break;
+#ifdef _WIN32
+    Sleep(1);
+#else
+    struct timespec pause = {0, 1000000};
+    nanosleep(&pause, NULL);
+#endif
+  }
+  if (tls_test_value != arg->id) arg->failed = 1;
+  THREAD_RETURN;
+}
+
 int main(void) {
   int64_t before, after;
   unsigned char random_bytes[256];
@@ -46,6 +75,30 @@ int main(void) {
   CHECK(ax_platform_mutex_lock(NULL) == -1 && ax_platform_mutex_unlock(NULL) == -1);
   ax_platform_mutex *mutex = ax_platform_mutex_new();
   CHECK(mutex && ax_platform_mutex_lock(mutex) == 0 && ax_platform_mutex_unlock(mutex) == 0);
+  ax_platform_mutex_free(mutex);
+  int ready = 0;
+  test_thread tls_threads[8]; tls_arg tls_args[8];
+  mutex = ax_platform_mutex_new(); CHECK(mutex);
+  tls_test_value = 99;
+  for (int i=0; i<8; i++) {
+    tls_args[i] = (tls_arg){mutex, &ready, i+1, 0};
+#ifdef _WIN32
+    tls_threads[i] = CreateThread(NULL, 0, tls_worker, &tls_args[i], 0, NULL);
+    CHECK(tls_threads[i] != NULL);
+#else
+    CHECK(pthread_create(&tls_threads[i], NULL, tls_worker, &tls_args[i]) == 0);
+#endif
+  }
+  for (int i=0; i<8; i++) {
+#ifdef _WIN32
+    CHECK(WaitForSingleObject(tls_threads[i], INFINITE) == WAIT_OBJECT_0);
+    CHECK(CloseHandle(tls_threads[i]));
+#else
+    CHECK(pthread_join(tls_threads[i], NULL) == 0);
+#endif
+    CHECK(!tls_args[i].failed);
+  }
+  CHECK(tls_test_value == 99);
   ax_platform_mutex_free(mutex);
   ax_store *store = ax_store_new(16);
   CHECK(store);
@@ -87,6 +140,6 @@ int main(void) {
   size_t size = 0;
   CHECK(ax_store_size(store, &size) == 0 && size == 16);
   ax_store_free(store);
-  puts("platform entropy/clock/mutex/store conformance passed");
+  puts("platform entropy/clock/mutex/thread-local/store conformance passed");
   return 0;
 }
