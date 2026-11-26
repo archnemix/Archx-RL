@@ -355,9 +355,8 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
   } else if (signals_used > 0) {
     tier = "partial";
   } else {
-    /* No OS signal readable (container, locked-down sysfs): fall back to a
-     * generated random ID persisted per-user. Confidence stays low — this
-     * is a per-install pseudonym, not a hardware anchor. */
+    /* No OS signal readable: use a persisted per-user random ID. ABI v1
+     * uses a fixed marker of 10, not an identity probability or coverage. */
     char fallback[80];
     if (ax_signals_fallback_id(fallback, sizeof fallback) != 0) {
       set_error("ax_identify: no readable signals and fallback ID unavailable");

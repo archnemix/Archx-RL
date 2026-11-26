@@ -24,6 +24,7 @@ $CC $FLAGS -Itests/platform tests/test_store_faults.c tests/platform/fake_platfo
 ./build/test_core
 python3 tests/test_crypto_differential.py
 python3 tests/test_threat_model.py
+python3 tests/test_coverage_docs.py
 python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_observation_index.py

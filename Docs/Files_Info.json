@@ -970,6 +970,11 @@
       "purpose": "Define memory and SQLite request-engine behavior and explicit differences",
       "inputs": "engine implementations and shared synthetic tests",
       "outputs": "bounded prototype behavior contract and limitations"
+    },
+    "tests/test_coverage_docs.py": {
+      "purpose": "Guard ABI-v1 availability heuristic explanations and current score-free demo UI",
+      "inputs": "public header, README and frontend source",
+      "outputs": "targeted documentation and UI regression results"
     }
   }
 }

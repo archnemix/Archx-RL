@@ -1,0 +1,4 @@
+Synthetic Linux local regression, 2026-11-22
+C11 tests/test_coverage.c fixture linked with the core and synthetic collector: passed all eight availability combinations, including ABI-v1 fallback marker.
+python3 tests/test_coverage_docs.py: two targeted public-explanation and current-demo-UI checks passed.
+These checks do not assess identity accuracy, fraud probability or future clients.
