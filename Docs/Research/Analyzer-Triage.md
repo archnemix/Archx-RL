@@ -26,4 +26,19 @@ The `archx.c:263` report is **unresolved, not reproduced** with this GCC and the
 
 On 2026-11-22, the same local GCC 12.2.0 was run at `-O0` and `-O2` after explicitly zero-initializing the 64-word schedule. The first 16 words and then every later word are still assigned as before; this adds defensive initialization rather than suppressing diagnostics. At `-O0`, the original source emitted seven uninitialized-value diagnostics and the zero-initialized source emitted none; at `-O2`, current SHA and core units emitted no warnings. With `-Wanalyzer-too-complex`, the current SHA unit still reported 11 analysis-complexity warnings, and the core unit reported 13; the absence of an uninitialized warning does not make the analyzer exhaustive. These counts are compiler/configuration-specific, not proof of security.
 
-The FIPS/RFC known-answer vectors and 469-case deterministic Python differential test passed after the change. The [local full browser/sanitizer regression](../Test-Results/unreleased/analyzer-zero-init-full-test.log) also passed. The reported historical `archx.c:263` warning remains unclassified because its original source revision, compiler and diagnostic were not provided and current runs do not reproduce it. No general suppression was added, and issue #22 remains open until that historical diagnostic can be identified or explicitly resolved by its owner.
+The FIPS/RFC known-answer vectors and 469-case deterministic Python differential test passed after the change. The [local full browser/sanitizer regression](../Test-Results/unreleased/analyzer-zero-init-full-test.log) also passed. `tests/test_gcc_analyzer.sh` now compiles the current core and SHA units at `-O0` and `-O2`, making uninitialized-value analyzer reports errors without suppressing other warnings. Linux CI runs it. Analyzer versions may differ and complexity cutoffs remain.
+
+## Minimized historical output-contract reproduction
+
+`tests/fixtures/legacy_emit_repro.c` isolates the original helper's unbounded `strlen` followed by allocation and copying. A three-byte input without a terminator, compiled with GCC 12.2.0 and AddressSanitizer, reports a stack-buffer-overflow read in `strlen`:
+
+```sh
+gcc -std=c11 -O0 -g -fsanitize=address -fno-omit-frame-pointer \
+    tests/fixtures/legacy_emit_repro.c -o /tmp/archx-legacy-emit
+ASAN_OPTIONS=detect_leaks=0:halt_on_error=1 /tmp/archx-legacy-emit
+# Expected: sanitizer reports stack-buffer-overflow and exits nonzero.
+```
+
+This is a **conditional helper-contract defect**: the reproduction does not establish that a public API path could supply this input, and it does not reproduce or identify the unspecified historical GCC warning. The current helper instead searches for the terminator within the provided length and fails closed if none exists. `tests/test_output_faults.c` passes that same three-byte case to the actual current helper, exercises exact boundaries, allocation and formatting failures, and runs under ASan/UBSan as part of `test.sh`.
+
+The historical `archx.c:263` GCC warning itself remains unclassified because its original source revision, compiler and diagnostic were not provided; current runs do not reproduce it. If the original diagnostic is later recovered, it needs separate comparison with this work. No broad suppression was added, and neither analyzer silence nor this conditional reproduction is proof of the absence or presence of a remotely reachable vulnerability.
