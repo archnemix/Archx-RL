@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'tests/test_gcc_analyzer.sh'
+      - 'src/archx.c'
 permissions:
   contents: read
 jobs:

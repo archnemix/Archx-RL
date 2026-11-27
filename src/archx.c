@@ -313,7 +313,7 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
     return AX_ERR_INTERNAL;
   }
 
-  char buf[2048];
+  char buf[2048] = {0};
   size_t pos = 0;
   buf[0] = '\0';
   if (append_str(buf, sizeof buf, &pos, "{\"platform\":\"") ||
@@ -368,7 +368,7 @@ ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *
   if (ax_platform_collect_signals(&set) != 0) {
     set_error("ax_collect_capabilities: signal collection failed"); return AX_ERR_INTERNAL;
   }
-  char buf[1024];
+  char buf[1024] = {0};
   int n = snprintf(buf, sizeof buf,
     "{\"schema\":\"archx.capabilities\",\"version\":1,\"platform\":\"linux\",\"signals\":{"
     "\"machine_id\":{\"kind\":\"os_install\",\"status\":\"%s\"},"
@@ -456,7 +456,7 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
   char device_hash[65];
   ax_hex_encode(digest, sizeof digest, device_hash);
 
-  char buf[1024];
+  char buf[1024] = {0};
   size_t pos = 0;
   buf[0] = '\0';
   char piece[256];
@@ -499,7 +499,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   for (size_t i = 0; i < AX_DEFAULT_MATCH_SIGNALS; i++) if (core->match_roles[i]) mask |= 1u << i;
   ax_signal_set set;
   if (ax_platform_collect_selected(&set, mask)) { set_error("ax_profile: collection failed"); return AX_ERR_INTERNAL; }
-  char scope[65], buf[1024]; size_t pos = 0;
+  char scope[65], buf[1024] = {0}; size_t pos = 0;
   if (match_digest(core, "scope", "linux", scope)) { set_error("ax_profile: digest formatting failed"); return AX_ERR_INTERNAL; }
   int n = snprintf(buf, sizeof buf, "{\"version\":1,\"scope\":\"%s\",\"signals\":{", scope);
   if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
@@ -589,7 +589,7 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
   }
   const char *result = required_changed || matches + unavailable < core->min_matches ? "no_match" :
                        required_missing || matches < core->min_matches ? "inconclusive" : "match";
-  char buf[1024];
+  char buf[1024] = {0};
   int n = snprintf(buf, sizeof buf, "{\"result\":\"%s\",\"matched\":%d,\"changed\":%d,\"unavailable\":%d,\"signals\":{%s}}",
                    result, matches, changed, unavailable, details);
   ax_json_free(a); ax_json_free(b);
