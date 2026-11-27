@@ -15,9 +15,12 @@ analyze() {
     cat "$work/$name.log"
     # CI annotations preserve concise diagnostics if full logs are unavailable.
     if [ "${GITHUB_ACTIONS:-}" = true ]; then
-      grep -E 'error:|warning:' "$work/$name.log" | head -10 | while IFS= read -r line; do
-        printf '::error::%s\n' "$line"
-      done
+      python3 - "$work/$name.log" <<'PY'
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text(errors='replace')[:20000]
+text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+print('::error::' + text)
+PY
     fi
     return 1
   fi
