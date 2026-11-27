@@ -1,0 +1,177 @@
+"""Experimental Linux-only, single-process ingress primitives.
+
+The host supplies authentication, authorization and its protected WSGI app.
+Never use this without the proxy/Unix-socket trust and operational limitations
+in the adjacent deployment guide. This module does not expose demo routes.
+"""
+import fcntl
+import os
+from pathlib import Path
+import re
+import stat
+import threading
+
+from . import ProtectedApplication
+
+_SAFE_PATH = re.compile(r'/[A-Za-z0-9_./-]+\Z', re.ASCII)
+_SAFE_NAME = re.compile(r'[A-Za-z0-9_-][A-Za-z0-9_.-]{0,63}\Z', re.ASCII)
+
+
+def _path(value):
+    if type(value) is not str or not _SAFE_PATH.fullmatch(value) or '//' in value:
+        raise ValueError('Expected a safe absolute path')
+    if any(part in ('.', '..') for part in value.split('/')):
+        raise ValueError('Relative path components are not allowed')
+    return value
+
+
+def _integer(value, minimum, maximum):
+    if type(value) is not int or not minimum <= value <= maximum:
+        raise ValueError('Invalid ingress bound')
+    return value
+
+
+def nginx_config(*, socket_path, certificate, private_key, port, public=False,
+                 rate=10, burst=20, max_active=16):
+    """Render a standalone one-worker nginx configuration, not a full deployment.
+
+    Inputs are deliberately restricted to avoid nginx config injection. Public
+    network listening is an explicit opt-in, and requires independent review.
+    """
+    socket_path, certificate, private_key = map(_path, (socket_path, certificate, private_key))
+    if len(os.fsencode(socket_path)) > 100:
+        raise ValueError('Unix socket path is too long')
+    port = _integer(port, 1024, 65535)
+    rate = _integer(rate, 1, 1000)
+    burst = _integer(burst, 1, 1000)
+    max_active = _integer(max_active, 1, 64)
+    if type(public) is not bool:
+        raise ValueError('Public listen flag must be boolean')
+    host = '0.0.0.0' if public else '127.0.0.1'
+    return f'''worker_processes 1;
+error_log stderr warn;
+pid nginx.pid;
+events {{ worker_connections 256; }}
+http {{
+    access_log off;
+    client_max_body_size 8k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 2 8k;
+    limit_req_zone $server_name zone=archx_global_rate:1m rate={rate}r/s;
+    limit_conn_zone $server_name zone=archx_global_connections:1m;
+    server {{
+        listen {host}:{port} ssl default_server backlog=32;
+        server_name _;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_certificate {certificate};
+        ssl_certificate_key {private_key};
+        location / {{
+            limit_req zone=archx_global_rate burst={burst} nodelay;
+            limit_req_status 429;
+            limit_conn archx_global_connections {max_active};
+            limit_conn_status 503;
+            proxy_request_buffering on;
+            proxy_buffering on;
+            proxy_http_version 1.0;
+            proxy_set_header Connection close;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header Forwarded "";
+            proxy_set_header X-Real-IP "";
+            proxy_set_header X-Forwarded-Host "";
+            proxy_set_header X-Forwarded-Proto "";
+            proxy_set_header X-Forwarded-Port "";
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 15s;
+            proxy_read_timeout 15s;
+            proxy_next_upstream off;
+            proxy_pass http://unix:{socket_path}:;
+        }}
+    }}
+}}
+'''
+
+
+def serve_unix(application, socket_path):
+    """Run one Waitress process on a private, exclusively-owned Unix socket.
+
+    Must run in a fresh non-root process; the nginx worker must use the same
+    trusted UID. This local UID and the host application are trusted. The
+    containing directory and every ancestor must be controlled by the operator.
+    """
+    if not isinstance(application, ProtectedApplication) or application.max_inflight > 4:
+        raise ValueError('A ProtectedApplication with at most four in-flight slots is required')
+    socket_path = _path(socket_path)
+    if len(os.fsencode(socket_path)) > 100:
+        raise ValueError('Unix socket path is too long')
+    parent, name = os.path.split(socket_path)
+    if not _SAFE_NAME.fullmatch(name) or str(Path(parent).resolve()) != parent:
+        raise ValueError('Invalid or symlinked socket path')
+    if os.geteuid() == 0 or threading.active_count() != 1:
+        raise ValueError('Origin requires a fresh non-root process')
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    dirfd = os.open(parent, flags)
+    lockfd = None
+    server = None
+    dispatcher = None
+    created = None
+    try:
+        info = os.fstat(dirfd)
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+            raise ValueError('Socket directory must be private and owned by the service UID')
+        lockfd = os.open('.archx-origin.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=dirfd)
+        lockstat = os.fstat(lockfd)
+        if (not stat.S_ISREG(lockstat.st_mode) or lockstat.st_uid != os.geteuid() or
+                lockstat.st_mode & 0o077 or lockstat.st_nlink != 1):
+            raise ValueError('Unsafe origin lock file')
+        try:
+            fcntl.flock(lockfd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError('Another origin owns the socket directory') from None
+        try:
+            os.stat(name, dir_fd=dirfd, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise ValueError('Socket path already exists; inspect before removing it')
+        from importlib.metadata import version
+        if version('waitress') != '3.0.2':
+            raise ValueError('This prototype requires Waitress 3.0.2')
+        from waitress.server import create_server
+        from waitress.task import ThreadedTaskDispatcher
+        dispatcher = ThreadedTaskDispatcher()
+        dispatcher.set_thread_count(4)
+        # Waitress binds before chmod; use a restrictive umask in this dedicated
+        # process to avoid an initially world-accessible Unix socket. The pinned
+        # private dispatcher hook allows cleanup even when binding fails.
+        old_umask = os.umask(0o077)
+        try:
+            server = create_server(application, _dispatcher=dispatcher, unix_socket=socket_path, unix_socket_perms='600',
+                threads=4, connection_limit=64, backlog=32, recv_bytes=8192,
+                max_request_header_size=8192, max_request_body_size=8192,
+                channel_request_lookahead=0, trusted_proxy='localhost',
+                trusted_proxy_headers='x-forwarded-for', clear_untrusted_proxy_headers=True,
+                channel_timeout=15, cleanup_interval=1, expose_tracebacks=False)
+        finally:
+            os.umask(old_umask)
+        created = os.stat(name, dir_fd=dirfd, follow_symlinks=False)
+        if not stat.S_ISSOCK(created.st_mode) or created.st_uid != os.geteuid() or stat.S_IMODE(created.st_mode) != 0o600:
+            raise ValueError('Unexpected socket ownership or permissions')
+        server.run()
+    finally:
+        if dispatcher is not None:
+            dispatcher.shutdown()
+        if server is not None:
+            server.close()
+        if created is not None:
+            try:
+                current = os.stat(name, dir_fd=dirfd, follow_symlinks=False)
+                if stat.S_ISSOCK(current.st_mode) and (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino):
+                    os.unlink(name, dir_fd=dirfd)
+            except FileNotFoundError:
+                pass
+        if lockfd is not None:
+            os.close(lockfd)
+        os.close(dirfd)

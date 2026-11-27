@@ -51,6 +51,7 @@ jobs:
           nginx -v
           ARCHX_TEST_NGINX="$(command -v nginx)" python3 tests/test_https_proxy.py
           ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_https_wsgi_unix.py
+          ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_experimental_ingress.py
       - name: Fuzz SMBIOS parser smoke
         run: ./tests/fuzz_smbios.sh
       - name: Fuzz C JSON, config and profile smoke

@@ -39,10 +39,14 @@ app = ProtectedApplication(protected, resolve_principal=lambda env:'synthetic-te
     authorize=lambda p,op:p == 'synthetic-test-principal' and op == 'synthetic.read',
     evaluate=evaluate, operation='synthetic.read', max_inflight=2,
     requests_per_second=100, burst=100)
-# Only for a private test socket. Unix sockets have Waitress peer 'localhost';
-# the filesystem, not that string, must restrict which processes can connect.
-serve(app, unix_socket=os.environ['ARCHX_TEST_SOCKET'], unix_socket_perms='600',
-      threads=2, connection_limit=8, backlog=8, max_request_header_size=8192,
-      max_request_body_size=8192, trusted_proxy='localhost',
-      trusted_proxy_headers='x-forwarded-for', clear_untrusted_proxy_headers=True,
-      channel_timeout=3, cleanup_interval=1)
+# Only for synthetic tests. The filesystem, not Waitress's 'localhost' peer
+# string, must restrict which processes can connect to the Unix socket.
+if os.environ.get('ARCHX_TEST_EXPERIMENTAL_INGRESS') == '1':
+    from archx_wsgi.ingress import serve_unix
+    serve_unix(app, os.environ['ARCHX_TEST_SOCKET'])
+else:
+    serve(app, unix_socket=os.environ['ARCHX_TEST_SOCKET'], unix_socket_perms='600',
+          threads=2, connection_limit=8, backlog=8, max_request_header_size=8192,
+          max_request_body_size=8192, trusted_proxy='localhost',
+          trusted_proxy_headers='x-forwarded-for', clear_untrusted_proxy_headers=True,
+          channel_timeout=3, cleanup_interval=1)
