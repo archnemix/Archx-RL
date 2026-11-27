@@ -83,19 +83,42 @@ http {{
     access_log off;
     client_max_body_size 8k;
     client_body_timeout 3s;
+    limit_req_zone $server_name zone=global_requests:1m rate=1r/s;
+    limit_conn_zone $server_name zone=global_connections:1m;
     server {{
         listen 127.0.0.1:{cls.port} ssl;
         server_name localhost;
         ssl_certificate {root}/cert.pem;
         ssl_certificate_key {root}/key.pem;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header X-Real-IP "";
+        proxy_set_header X-Forwarded-Host "";
+        proxy_set_header X-Forwarded-Proto "";
+        proxy_set_header X-Forwarded-Port "";
         location / {{
             proxy_pass http://unix:{cls.sockpath}:;
-            proxy_set_header X-Forwarded-For $remote_addr;
-            proxy_set_header Forwarded "";
-            proxy_set_header X-Real-IP "";
-            proxy_set_header X-Forwarded-Host "";
-            proxy_set_header X-Forwarded-Proto "";
-            proxy_set_header X-Forwarded-Port "";
+        }}
+        # Test-only paths, not a recommended or complete ingress configuration.
+        location /bounded/ {{
+            limit_req zone=global_requests burst=2 nodelay;
+            limit_req_status 429;
+            error_page 429 = @test_rate_limited;
+            proxy_pass http://unix:{cls.sockpath}:;
+        }}
+        location @test_rate_limited {{
+            add_header X-Test-Overload nginx always;
+            return 429 'synthetic overload';
+        }}
+        location /connection/ {{
+            limit_conn global_connections 2;
+            limit_conn_status 503;
+            error_page 503 = @test_conn_limited;
+            proxy_pass http://unix:{cls.sockpath}:;
+        }}
+        location @test_conn_limited {{
+            add_header X-Test-Overload nginx always;
+            return 503 'synthetic overload';
         }}
     }}
 }}
@@ -156,6 +179,67 @@ http {{
                 self.assertEqual(self.post(source,[],f'unix-baseline-{i}'),200)
                 self.assertEqual(self.post(source,headers,f'unix-spoof-{i}'),429)
         self.assertEqual(self.post('127.0.0.30',[],'unix-independent'),200)
+
+    def test_global_ingress_quota_covers_mixed_paths_and_recovers(self):
+        def request(method, path, source, seed):
+            conn = http.client.HTTPSConnection('localhost', self.port, timeout=4,
+                    context=ssl.create_default_context(cafile=str(self.cert)), source_address=(source, 0))
+            body = (json.dumps({'signals': {'machine_id': synthetic_signal('machine_id', seed)}}).encode()
+                    if method == 'POST' else None)
+            try:
+                conn.request(method, path, body=body,
+                             headers={'Content-Type': 'application/json'} if body else {})
+                response = conn.getresponse()
+                result = (response.status, response.getheader('X-Test-Overload'))
+                response.read()
+                return result
+            finally: conn.close()
+        # Different peers and route/methods still share the same nginx zone.
+        self.assertEqual(request('GET', '/bounded/', '127.0.0.70', 'index')[0], 400)
+        self.assertEqual(request('GET', '/bounded/challenge', '127.0.0.71', 'challenge')[0], 400)
+        self.assertEqual(request('POST', '/bounded/protected', '127.0.0.72', 'mixed-post')[0], 200)
+        results = [request('GET', '/bounded/other', f'127.0.0.{73+i}', f'other-{i}') for i in range(6)]
+        self.assertIn((429, 'nginx'), results)
+        # Let the leaky-bucket debt drain before asserting recovery.
+        time.sleep(3.5)
+        self.assertEqual(request('GET', '/bounded/recovered', '127.0.0.85', 'recovered'), (400, None))
+
+    def test_ingress_caps_slow_body_connections_and_recovers(self):
+        context = ssl.create_default_context(cafile=str(self.cert))
+        held = []
+        try:
+            for source in ('127.0.0.90', '127.0.0.91'):
+                raw = socket.create_connection(('127.0.0.1', self.port), timeout=4, source_address=(source, 0))
+                tls = context.wrap_socket(raw, server_hostname='localhost')
+                held.append(tls)
+                tls.sendall(b'POST /connection/slow HTTP/1.1\r\nHost: localhost\r\n'
+                            b'Content-Type: application/json\r\nContent-Length: 100\r\n\r\n{')
+            def probe(source):
+                conn = http.client.HTTPSConnection('localhost', self.port, timeout=4,
+                        context=context, source_address=(source, 0))
+                try:
+                    conn.request('GET', '/connection/check')
+                    response = conn.getresponse()
+                    result = (response.status, response.getheader('X-Test-Overload'))
+                    response.read()
+                    return result
+                finally: conn.close()
+            deadline = time.monotonic() + 2
+            while True:
+                result = probe('127.0.0.92')
+                if result == (503, 'nginx'): break
+                if time.monotonic() >= deadline: self.fail(f'two slow request bodies did not saturate ingress limit: {result}')
+                time.sleep(0.05)
+        finally:
+            for tls in held: tls.close()
+        # A closed slow body must release its counted connection; origin may
+        # return invalid/rate-limited, but the proxy must no longer reject it.
+        deadline = time.monotonic() + 5
+        while True:
+            result = probe('127.0.0.93')
+            if result[1] != 'nginx' and result[0] in (400, 429): break
+            if time.monotonic() >= deadline: self.fail('ingress did not recover after slow clients closed')
+            time.sleep(0.05)
 
     def test_oversized_https_body_is_rejected_before_origin(self):
         conn = http.client.HTTPSConnection('localhost', self.port, timeout=3,
