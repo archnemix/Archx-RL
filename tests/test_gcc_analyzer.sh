@@ -6,11 +6,27 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 cc=${CC:-gcc}
 "$cc" --version | head -n 1
+analyze() {
+  name=$1
+  shift
+  if "$@" > "$work/$name.log" 2>&1; then
+    cat "$work/$name.log"
+  else
+    cat "$work/$name.log"
+    # CI annotations preserve concise diagnostics if full logs are unavailable.
+    if [ "${GITHUB_ACTIONS:-}" = true ]; then
+      grep -E 'error:|warning:' "$work/$name.log" | head -10 | while IFS= read -r line; do
+        printf '::error::%s\n' "$line"
+      done
+    fi
+    return 1
+  fi
+}
 for opt in 0 2; do
-  "$cc" -std=c11 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE \
+  analyze "archx-$opt" "$cc" -std=c11 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE \
     -Wall -Wextra -Wpedantic -fanalyzer -Werror=analyzer-use-of-uninitialized-value \
     -O"$opt" -Iinclude -Isrc -c src/archx.c -o "$work/archx-$opt.o"
-  "$cc" -std=c11 -Wall -Wextra -Wpedantic -fanalyzer \
+  analyze "sha-$opt" "$cc" -std=c11 -Wall -Wextra -Wpedantic -fanalyzer \
     -Werror=analyzer-use-of-uninitialized-value -O"$opt" -Isrc \
     -c src/sha256.c -o "$work/sha-$opt.o"
 done
