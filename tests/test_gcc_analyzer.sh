@@ -17,9 +17,11 @@ analyze() {
     if [ "${GITHUB_ACTIONS:-}" = true ]; then
       python3 - "$work/$name.log" <<'PY'
 import pathlib, sys
-text = pathlib.Path(sys.argv[1]).read_text(errors='replace')[:20000]
-text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-print('::error::' + text)
+text = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+# Emit bounded sections from both ends: hosted annotations have size limits.
+for part in (text[:3000], text[-3000:]):
+    part = part.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+    print('::error::' + part)
 PY
     fi
     return 1
