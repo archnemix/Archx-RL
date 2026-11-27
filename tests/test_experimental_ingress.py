@@ -196,6 +196,27 @@ class IngressTests(unittest.TestCase):
         time.sleep(3.5)
         self.assertEqual(self.request('GET', '/recovery', '127.0.0.40'), 400)
 
+    def test_same_uid_can_forge_origin_peer(self):
+        # Document the local trust boundary: access as the origin UID can
+        # bypass nginx and its forwarding-header overwrite.
+        import json
+        sys.path.insert(0, str(ROOT / 'demo'))
+        from signal_validation import synthetic_signal
+        class UnixConnection(http.client.HTTPConnection):
+            def connect(inner):
+                inner.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                inner.sock.settimeout(5)
+                inner.sock.connect(str(self.socket_path))
+        for i in (1, 2):
+            conn = UnixConnection('localhost', timeout=5)
+            raw = json.dumps({'signals': {'machine_id': synthetic_signal('machine_id', f'direct-{i}')}}).encode()
+            try:
+                conn.request('POST', '/protected', raw, {'X-Forwarded-For': f'192.0.2.{200+i}'})
+                response = conn.getresponse()
+                self.assertEqual(response.status, 200)
+                response.read()
+            finally: conn.close()
+
     def test_size_and_client_header_spoof(self):
         time.sleep(3.5)
         self.assertEqual(self.request('POST', '/large', '127.0.0.41', body=b'x'*8193), 413)
@@ -208,6 +229,9 @@ class IngressTests(unittest.TestCase):
             return json.dumps({'signals': {'machine_id': synthetic_signal('machine_id', seed)}}).encode()
         self.assertEqual(self.request('POST', '/protected', '127.0.0.42', body=body('one')), 200)
         # Drain the proxy bucket so a 429 here can only come from the origin.
+        time.sleep(3.5)
+        self.assertEqual(self.request('POST', '/protected', '127.0.0.42',
+                         headers={'X-Forwarded-For': '192.0.2.41'}, body=body('single')), 429)
         time.sleep(3.5)
         self.assertEqual(self.request('POST', '/protected', '127.0.0.42',
                          headers={'X-Forwarded-For': '192.0.2.42, 192.0.2.43'}, body=body('two')), 429)
