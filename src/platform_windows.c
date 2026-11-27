@@ -42,6 +42,19 @@ int ax_platform_random(void *out, size_t len) {
   if (!out || len > 256) return -1;
   return BCryptGenRandom(NULL, (PUCHAR)out, (ULONG)len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == 0 ? 0 : -1;
 }
+int ax_platform_secret_env(const char *name, char *out, size_t out_len) {
+  char value[AX_PLATFORM_SECRET_ENV_MAX] = {0};
+  size_t length = 0;
+  int result = -1;
+  if (!name || !*name || !out) return -1;
+  if (getenv_s(&length, value, sizeof value, name) == 0 && length > 1 &&
+      length <= sizeof value && length <= out_len) {
+    memcpy(out, value, length);
+    result = 0;
+  }
+  SecureZeroMemory(value, sizeof value);
+  return result;
+}
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
   struct in6_addr address;
   char normalized[AX_PLATFORM_IP_TEXT_MAX];

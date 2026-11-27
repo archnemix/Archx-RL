@@ -68,6 +68,11 @@ void ax_buffer_free(char *buf) { free(buf); }
 /* config                                                              */
 /* ------------------------------------------------------------------ */
 
+static void clear_secret(char *value, size_t len) {
+  volatile char *p = value;
+  while (len--) *p++ = 0;
+}
+
 static int is_hex_string(const char *s, size_t len) {
   if (len < 32 || (len % 2) != 0) return 0;
   for (size_t i = 0; i < len; i++) {
@@ -100,6 +105,7 @@ ax_core *ax_core_new(const char *config_json, size_t config_len) {
     set_error("ax_core_new: out of memory");
     return NULL;
   }
+  char env_pepper[AX_PLATFORM_SECRET_ENV_MAX] = {0};
   core->capacity = AX_DEFAULT_CAPACITY;
   core->refill_per_sec = AX_DEFAULT_REFILL_PER_SEC;
   core->match_strict = 1;
@@ -118,7 +124,12 @@ ax_core *ax_core_new(const char *config_json, size_t config_len) {
   /* pepper: explicit string, or name of an env var to read it from. */
   const char *pepper = ax_json_get_string(root, "pepper");
   const char *pepper_env = ax_json_get_string(root, "pepper_env");
-  if (!pepper && pepper_env) pepper = getenv(pepper_env);
+  if (!pepper && pepper_env) {
+    if (ax_platform_secret_env(pepper_env, env_pepper, sizeof env_pepper) != 0) {
+      set_error("ax_core_new: invalid or missing pepper environment value"); goto fail;
+    }
+    pepper = env_pepper;
+  }
   if (!pepper || !*pepper) {
     set_error("ax_core_new: config requires \"pepper\" or \"pepper_env\"");
     goto fail;
@@ -202,10 +213,12 @@ ax_core *ax_core_new(const char *config_json, size_t config_len) {
     core->min_matches = min ? (int)min->num : selected;
   } else core->min_matches = AX_DEFAULT_MATCH_SIGNALS;
 
+  clear_secret(env_pepper, sizeof env_pepper);
   ax_json_free(root);
   return core;
 
 fail:
+  clear_secret(env_pepper, sizeof env_pepper);
   ax_json_free(root);
   ax_core_free(core);
   return NULL;

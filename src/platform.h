@@ -23,4 +23,9 @@ int ax_platform_random(void *out, size_t len);
  * The output is untouched on failure; output size must include the NUL. */
 #define AX_PLATFORM_IP_TEXT_MAX 46
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len);
+/* Copy a nonempty environment value of at most 128 bytes, including a NUL.
+ * Return -1 for missing, oversized or invalid values; leave output unchanged.
+ * Callers must not concurrently mutate the process environment. */
+#define AX_PLATFORM_SECRET_ENV_MAX 129
+int ax_platform_secret_env(const char *name, char *out, size_t out_len);
 #endif

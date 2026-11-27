@@ -3,6 +3,7 @@
 #include "store.h"
 #include "thread_local.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #ifdef _WIN32
@@ -73,6 +74,38 @@ int main(void) {
   CHECK(ax_platform_normalize_ip("fe80::1%1", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
   CHECK(ax_platform_normalize_ip("127.0.0.1:80", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
   CHECK(ax_platform_normalize_ip("example.invalid", ip, sizeof ip) == -1 && strcmp(ip, "unchanged") == 0);
+  char env_value[AX_PLATFORM_SECRET_ENV_MAX];
+  memcpy(env_value, "unchanged", sizeof "unchanged");
+#ifdef _WIN32
+  CHECK(_putenv_s("ARCHX_SYNTHETIC_PLATFORM_ENV", "fixture-value") == 0);
+#else
+  CHECK(setenv("ARCHX_SYNTHETIC_PLATFORM_ENV", "fixture-value", 1) == 0);
+#endif
+  CHECK(ax_platform_secret_env("ARCHX_SYNTHETIC_PLATFORM_ENV", env_value, 4) == -1 && strcmp(env_value, "unchanged") == 0);
+  CHECK(ax_platform_secret_env("ARCHX_SYNTHETIC_PLATFORM_ENV", env_value, sizeof env_value) == 0 && strcmp(env_value, "fixture-value") == 0);
+  char long_value[AX_PLATFORM_SECRET_ENV_MAX + 1];
+  memset(long_value, 'x', sizeof long_value);
+  long_value[AX_PLATFORM_SECRET_ENV_MAX - 1] = '\0'; /* 128 bytes */
+#ifdef _WIN32
+  CHECK(_putenv_s("ARCHX_SYNTHETIC_PLATFORM_ENV", long_value) == 0);
+#else
+  CHECK(setenv("ARCHX_SYNTHETIC_PLATFORM_ENV", long_value, 1) == 0);
+#endif
+  CHECK(ax_platform_secret_env("ARCHX_SYNTHETIC_PLATFORM_ENV", env_value, sizeof env_value) == 0 && strlen(env_value) == 128);
+  long_value[AX_PLATFORM_SECRET_ENV_MAX - 1] = 'x';
+  long_value[AX_PLATFORM_SECRET_ENV_MAX] = '\0'; /* 129 bytes */
+#ifdef _WIN32
+  CHECK(_putenv_s("ARCHX_SYNTHETIC_PLATFORM_ENV", long_value) == 0);
+#else
+  CHECK(setenv("ARCHX_SYNTHETIC_PLATFORM_ENV", long_value, 1) == 0);
+#endif
+  CHECK(ax_platform_secret_env("ARCHX_SYNTHETIC_PLATFORM_ENV", env_value, sizeof env_value) == -1 && strlen(env_value) == 128);
+#ifdef _WIN32
+  CHECK(_putenv_s("ARCHX_SYNTHETIC_PLATFORM_ENV", "") == 0);
+#else
+  CHECK(unsetenv("ARCHX_SYNTHETIC_PLATFORM_ENV") == 0);
+#endif
+  CHECK(ax_platform_secret_env("ARCHX_SYNTHETIC_PLATFORM_ENV", env_value, sizeof env_value) == -1 && strlen(env_value) == 128);
   CHECK(ax_platform_random(NULL, 0) == 0);
   CHECK(ax_platform_random(NULL, 1) == -1);
   CHECK(ax_platform_random(random_bytes, sizeof random_bytes + 1) == -1);

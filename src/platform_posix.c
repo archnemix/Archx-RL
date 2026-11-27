@@ -24,6 +24,16 @@ int ax_platform_mutex_lock(ax_platform_mutex *mutex) {
 int ax_platform_mutex_unlock(ax_platform_mutex *mutex) {
   return mutex && pthread_mutex_unlock(&mutex->native) == 0 ? 0 : -1;
 }
+int ax_platform_secret_env(const char *name, char *out, size_t out_len) {
+  if (!name || !*name || !out) return -1;
+  const char *value = getenv(name);
+  if (!value || !*value) return -1;
+  size_t n = 0;
+  while (n < AX_PLATFORM_SECRET_ENV_MAX && value[n]) n++;
+  if (n == AX_PLATFORM_SECRET_ENV_MAX || n + 1 > out_len) return -1;
+  memcpy(out, value, n + 1);
+  return 0;
+}
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
   struct in6_addr address;
   char normalized[AX_PLATFORM_IP_TEXT_MAX];

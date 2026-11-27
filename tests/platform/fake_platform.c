@@ -22,6 +22,11 @@ int ax_platform_monotonic_ms(int64_t *out) {
   *out = ax_test_now; return 0;
 }
 
+int ax_platform_secret_env(const char *name, char *out, size_t out_len) {
+  (void)name; (void)out; (void)out_len;
+  return -1; /* No environment secrets in synthetic fault tests. */
+}
+
 int ax_platform_normalize_ip(const char *input, char *out, size_t out_len) {
   (void)input; (void)out; (void)out_len;
   return -1; /* This fake is for store/entropy faults, not IP parsing. */
