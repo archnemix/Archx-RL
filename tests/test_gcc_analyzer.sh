@@ -5,7 +5,11 @@ set -eu
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 cc=${CC:-gcc}
-"$cc" --version | head -n 1
+version=$("$cc" --version | head -n 1)
+printf '%s\n' "$version"
+if [ "${GITHUB_ACTIONS:-}" = true ]; then
+  printf '::notice::%s\n' "$version"
+fi
 analyze() {
   name=$1
   shift
