@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'demo'))
 from bounded_server import BoundedDemoServer
 from engine import Engine, policy
 from server import Handler
+from replay import MemoryReplay
 
 
 class ObservedServer(BoundedDemoServer):
@@ -61,11 +62,19 @@ class BoundaryTests(unittest.TestCase):
     def test_global_quota_covers_get_challenge_and_post_and_recovers(self):
         now = [100.0]
         server = self.start_server(connection_rate=1, connection_burst=3, clock=lambda: now[0])
+        # Enable the real challenge endpoint and replay store, not merely a
+        # route with a challenge-shaped name. This synthetic key is not used
+        # to decrypt anything in this test.
+        server.sealed_key = bytes(32)
+        server.replay = MemoryReplay(server.engine.secret, server.engine.clock)
         self.assertEqual(self.http(server, 'GET', '/'), 200)
-        self.assertEqual(self.http(server, 'GET', '/api/v2/challenge'), 404)
-        self.assertEqual(self.http(server, 'POST', '/unknown', '{}'), 404)
-        with self.assertRaises((http.client.RemoteDisconnected, ConnectionResetError)):
-            self.http(server, 'GET', '/api/info')
+        self.assertEqual(self.http(server, 'GET', '/api/v2/challenge'), 200)
+        self.assertEqual(self.http(server, 'POST', '/api/demo/run', '{}'), 200)
+        # A real check route is rejected before reaching its request parser.
+        with self.assertRaises((http.client.RemoteDisconnected, ConnectionResetError, BrokenPipeError)):
+            self.http(server, 'POST', '/api/v2/check', '{}')
+        now[0] += 1
+        self.assertEqual(self.http(server, 'POST', '/api/v2/check', '{}'), 400)
         now[0] += 1
         self.assertEqual(self.http(server, 'GET', '/api/info'), 200)
 
@@ -141,6 +150,51 @@ class BoundaryTests(unittest.TestCase):
         else:
             self.fail('slots did not recover after disconnect')
         self.assertEqual(self.http(server, 'GET', '/'), 200)
+
+    def test_slow_body_saturation_blocks_real_mixed_routes_and_recovers(self):
+        server = self.start_server(max_connections=2, connection_rate=10000,
+                                   connection_burst=1000, connection_deadline=2)
+        server.sealed_key = bytes(32)
+        server.replay = MemoryReplay(server.engine.secret, server.engine.clock)
+        held = []
+        try:
+            for path in ('/api/demo/run', '/api/v2/check'):
+                conn = socket.create_connection(('127.0.0.1', server.server_port), timeout=2)
+                held.append(conn)
+                conn.sendall(f'POST {path} HTTP/1.1\r\nHost: x\r\nContent-Type: application/json\r\n'
+                             'Content-Length: 100\r\n\r\n{'.encode())
+            end = time.monotonic() + 2
+            while time.monotonic() < end:
+                with server.lock:
+                    if len(server.active) == 2:
+                        break
+                time.sleep(.01)
+            else:
+                self.fail('slow bodies did not occupy both workers')
+            routes = [('GET', '/', None), ('GET', '/api/v2/challenge', None),
+                      ('POST', '/api/demo/run', '{}'), ('POST', '/api/v2/check', '{}')]
+            def rejected(route):
+                try:
+                    self.http(server, *route)
+                    return False
+                except (http.client.RemoteDisconnected, ConnectionResetError, BrokenPipeError):
+                    return True
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                self.assertTrue(all(pool.map(rejected, routes * 4)))
+            with server.lock:
+                self.assertEqual(len(server.active), 2)
+        finally:
+            for conn in held: conn.close()
+        end = time.monotonic() + 2
+        while time.monotonic() < end:
+            with server.lock:
+                if not server.active:
+                    break
+            time.sleep(.01)
+        else:
+            self.fail('slow body workers did not release')
+        self.assertEqual(self.http(server, 'GET', '/api/v2/challenge'), 200)
+        self.assertEqual(self.http(server, 'POST', '/api/demo/run', '{}'), 200)
 
     def test_worker_start_failure_releases_slot_and_socket(self):
         with ObservedServer(('127.0.0.1', 0), Handler, max_connections=1) as server:
