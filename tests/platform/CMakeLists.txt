@@ -150,3 +150,25 @@ install(FILES ../../include/archx.h DESTINATION include)
 install(EXPORT ArchxSyntheticTargets NAMESPACE ArchxSynthetic::
   DESTINATION lib/cmake/ArchxSynthetic)
 install(FILES ArchxSyntheticConfig.cmake DESTINATION lib/cmake/ArchxSynthetic)
+
+# POSIX per-user fallback tests operate only on temporary synthetic files.
+# macOS support here is research evidence, not a product collector or approval.
+if(NOT WIN32)
+  add_executable(archx_posix_fallback test_posix_fallback.c ../../src/fallback_posix.c
+    ../../src/sha256.c ${platform_sources})
+  target_include_directories(archx_posix_fallback PRIVATE ../../src)
+  target_compile_options(archx_posix_fallback PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_compile_definitions(archx_posix_fallback PRIVATE _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+  target_link_libraries(archx_posix_fallback PRIVATE Threads::Threads)
+  if(APPLE)
+    target_compile_definitions(archx_posix_fallback PRIVATE _DARWIN_C_SOURCE)
+    target_link_libraries(archx_posix_fallback PRIVATE ${SECURITY_FRAMEWORK})
+  endif()
+  add_test(NAME synthetic_posix_fallback COMMAND archx_posix_fallback)
+  set_tests_properties(synthetic_posix_fallback PROPERTIES TIMEOUT 30)
+  add_executable(archx_posix_fallback_faults ../test_fallback_faults.c fake_platform.c ../../src/sha256.c)
+  target_include_directories(archx_posix_fallback_faults PRIVATE ../../src .)
+  target_compile_options(archx_posix_fallback_faults PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+  target_compile_definitions(archx_posix_fallback_faults PRIVATE _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+  add_test(NAME synthetic_posix_fallback_faults COMMAND archx_posix_fallback_faults)
+endif()

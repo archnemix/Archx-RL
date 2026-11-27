@@ -33,7 +33,7 @@ static int test_close(int fd);
 #define write test_write
 #define fsync test_fsync
 #define close test_close
-#include "../src/signals_linux.c"
+#include "../src/fallback_posix.c"
 #undef mkdir
 #undef open
 #undef flock

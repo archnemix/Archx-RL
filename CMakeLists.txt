@@ -25,7 +25,7 @@ if(NOT abi_line MATCHES "^#define AX_ABI_VERSION ([0-9]+)$")
 endif()
 set(ARCHX_ABI_VERSION "${CMAKE_MATCH_1}")
 
-set(core_sources src/archx.c src/sha256.c src/json.c src/signals_linux.c src/signals.c
+set(core_sources src/archx.c src/sha256.c src/json.c src/signals_linux.c src/fallback_posix.c src/signals.c
     src/store.c src/platform_posix.c src/platform_linux.c)
 add_library(archx_objects OBJECT ${core_sources})
 set_target_properties(archx_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
