@@ -103,13 +103,17 @@ int main(void) {
   pos = 0; guarded[0] = '\0';
   assert(json_escape_append(guarded, 4, &pos, "\\\"") != 0 && guarded[4] == 'E');
   char unterminated[] = {'x', 'y', 'z'}; char *out = NULL; size_t out_len = 0;
-  assert(emit_json(unterminated, sizeof unterminated, &out, &out_len) == AX_ERR_INTERNAL && !out);
+  assert(emit_json(unterminated, sizeof unterminated, 2, &out, &out_len) == AX_ERR_INTERNAL && !out);
   assert(strstr(ax_last_error(), "not terminated") != NULL);
+  assert(emit_json(unterminated, sizeof unterminated, sizeof unterminated, &out, &out_len) == AX_ERR_INTERNAL && !out);
+  char embedded[] = {'x', '\0', 'y', '\0'};
+  assert(emit_json(embedded, sizeof embedded, 3, &out, &out_len) == AX_ERR_INTERNAL && !out);
   char valid[] = "{}";
-  assert(emit_json(valid, sizeof valid, &out, &out_len) == AX_OK);
+  assert(emit_json(valid, sizeof valid, 1, &out, &out_len) == AX_ERR_INTERNAL && !out);
+  assert(emit_json(valid, sizeof valid, 2, &out, &out_len) == AX_OK);
   assert(out_len == 2 && strcmp(out, "{}") == 0); ax_buffer_free(out); out = NULL;
   fail_output_allocation = 1;
-  assert(emit_json(valid, sizeof valid, &out, &out_len) == AX_ERR_NOMEM && !out);
+  assert(emit_json(valid, sizeof valid, 2, &out, &out_len) == AX_ERR_NOMEM && !out);
 
   char config[1000] = "{\"app_id\":\"";
   for (int i=0; i<127; i++) strcat(config, "\\u0001");

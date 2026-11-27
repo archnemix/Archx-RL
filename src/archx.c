@@ -276,14 +276,14 @@ static int append_str(char *buf, size_t buf_len, size_t *pos, const char *s) {
 }
 
 /* Hand the stack buffer to the caller as a heap allocation. */
-static ax_result emit_json(char *stack_buf, size_t stack_len,
+static ax_result emit_json(char *stack_buf, size_t stack_len, size_t n,
                            char **out_json, size_t *out_len) {
-  const char *end = (const char *)memchr(stack_buf, '\0', stack_len);
-  if (!end) {
+  /* Builders supply the number of initialized output bytes. Validate the
+   * terminator within the allocation before copying that exact prefix. */
+  if (n >= stack_len || stack_buf[n] != '\0' || memchr(stack_buf, '\0', n)) {
     set_error("result JSON is not terminated within its buffer");
     return AX_ERR_INTERNAL;
   }
-  size_t n = (size_t)(end - stack_buf);
   char *heap = (char *)malloc(n + 1);
   if (!heap) {
     set_error("out of memory building result JSON");
@@ -335,7 +335,7 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
   if (append_str(buf, sizeof buf, &pos, "]}")) {
     set_error("ax_collect: output too long"); return AX_ERR_INTERNAL;
   }
-  return emit_json(buf, sizeof buf, out_json, out_len);
+  return emit_json(buf, sizeof buf, pos, out_json, out_len);
 }
 
 /* Versioned metadata, intentionally separate from the ABI-v1 collect shape.
@@ -381,7 +381,7 @@ ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *
   if (n < 0 || (size_t)n >= sizeof buf) {
     set_error("ax_collect_capabilities: output too long"); return AX_ERR_INTERNAL;
   }
-  return emit_json(buf, sizeof buf, out_json, out_len);
+  return emit_json(buf, sizeof buf, (size_t)n, out_json, out_len);
 }
 
 /* ------------------------------------------------------------------ */
@@ -470,7 +470,7 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
       append_str(buf, sizeof buf, &pos, "\"}")) {
     set_error("ax_identify: output too long"); return AX_ERR_INTERNAL;
   }
-  return emit_json(buf, sizeof buf, out_json, out_len);
+  return emit_json(buf, sizeof buf, pos, out_json, out_len);
 }
 
 /* Per-signal HMACs permit comparison without publishing raw identifiers. */
@@ -518,7 +518,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
     pos += (size_t)n; first = 0;
   }
   if (append_str(buf, sizeof buf, &pos, "}}")) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
-  return emit_json(buf, sizeof buf, out_json, out_len);
+  return emit_json(buf, sizeof buf, pos, out_json, out_len);
 }
 
 ax_result ax_profile(const ax_core *core, char **out_json, size_t *out_len) {
@@ -594,7 +594,7 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
                    result, matches, changed, unavailable, details);
   ax_json_free(a); ax_json_free(b);
   if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_compare: output too long"); return AX_ERR_INTERNAL; }
-  return emit_json(buf, sizeof buf, out_json, out_len);
+  return emit_json(buf, sizeof buf, (size_t)n, out_json, out_len);
 }
 
 /* ------------------------------------------------------------------ */
