@@ -53,6 +53,8 @@ jobs:
           ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_https_wsgi_unix.py
       - name: Fuzz SMBIOS parser smoke
         run: ./tests/fuzz_smbios.sh
+      - name: Fuzz C JSON, config and profile smoke
+        run: sh tests/fuzz_core.sh
       - name: Verify Linux GCC and Clang CMake installation and consumers
         run: |
           CC=gcc ./tests/test_cmake_install.sh
