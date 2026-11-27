@@ -1,4 +1,5 @@
 #include "signals_linux.h"
+#include "platform_signals.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -253,4 +254,15 @@ done:
   if (close(fd) != 0) result = -1;
   if (result == 0) memcpy(out, hex, 65);
   return result;
+}
+
+/* Adapt the unchanged Linux collector and fallback to the common core. */
+int ax_platform_collect_signals(ax_signal_set *out) {
+  return ax_signals_collect_linux(out);
+}
+int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) {
+  return ax_signals_collect_linux_selected(out, mask);
+}
+int ax_platform_fallback_id(char *out, size_t out_len) {
+  return ax_signals_fallback_id(out, out_len);
 }

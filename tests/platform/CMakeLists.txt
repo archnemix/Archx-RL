@@ -1,4 +1,4 @@
-# Only the platform entropy/clock/mutex and C bucket store; not a full Archx build.
+# Experimental primitives and actual core with a synthetic collector; not a product build.
 cmake_minimum_required(VERSION 3.20)
 project(archx_platform_conformance LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
@@ -92,3 +92,30 @@ if(NOT MSVC)
 endif()
 add_test(NAME synthetic_crypto_known_answer COMMAND archx_crypto_vectors)
 add_test(NAME synthetic_json_contract COMMAND archx_json_contract)
+
+# Actual common ABI linked to a synthetic Linux-shaped collector, solely for
+# native core portability testing. This is not a supported non-Linux product.
+add_library(archx_synthetic_core SHARED ../../src/archx.c ../../src/json.c
+  ../../src/sha256.c ../../src/signals.c ../../src/store.c
+  synthetic_collector.c ${platform_sources})
+set_target_properties(archx_synthetic_core PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+target_include_directories(archx_synthetic_core PRIVATE ../../include ../../src)
+add_executable(archx_synthetic_core_test test_core_synthetic.c)
+target_include_directories(archx_synthetic_core_test PRIVATE ../../include)
+target_link_libraries(archx_synthetic_core_test PRIVATE archx_synthetic_core)
+if(MSVC)
+  target_compile_options(archx_synthetic_core PRIVATE /W4 /WX)
+  target_compile_options(archx_synthetic_core_test PRIVATE /W4 /WX)
+  target_link_libraries(archx_synthetic_core PRIVATE bcrypt ws2_32)
+else()
+  foreach(target IN ITEMS archx_synthetic_core archx_synthetic_core_test)
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_compile_definitions(${target} PRIVATE _POSIX_C_SOURCE=200809L _DEFAULT_SOURCE)
+  endforeach()
+  target_link_libraries(archx_synthetic_core PRIVATE Threads::Threads m)
+  if(APPLE)
+    target_compile_definitions(archx_synthetic_core PRIVATE _DARWIN_C_SOURCE)
+    target_link_libraries(archx_synthetic_core PRIVATE ${SECURITY_FRAMEWORK})
+  endif()
+endif()
+add_test(NAME synthetic_actual_core_abi COMMAND archx_synthetic_core_test)

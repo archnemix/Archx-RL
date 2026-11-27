@@ -39,14 +39,14 @@ static void fake_signals(ax_signal_set *out) {
   snprintf(out->signals[0].value, sizeof out->signals[0].value, "synthetic");
   out->signals[0].readable = !fake_no_signals; out->signals[0].weight = 60;
 }
-int ax_signals_collect_linux(ax_signal_set *out) { fake_signals(out); return 0; }
-int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask) { (void)mask; fake_signals(out); return 0; }
+int ax_platform_collect_signals(ax_signal_set *out) { fake_signals(out); return 0; }
+int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) { (void)mask; fake_signals(out); return 0; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {
   (void)set;
   if (fail_canonical) return SIZE_MAX;
   int n = snprintf(out, len, "synthetic"); return n < 0 ? SIZE_MAX : (size_t)n;
 }
-int ax_signals_fallback_id(char *out, size_t len) {
+int ax_platform_fallback_id(char *out, size_t len) {
   if (!fake_no_signals || len < 65) return -1;
   memset(out, 'a', 64); out[64] = '\0'; return 0;
 }

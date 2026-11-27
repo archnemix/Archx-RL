@@ -1,4 +1,4 @@
-# Experimental entropy/clock/mutex/store adapter conformance only; not native product support.
+# Experimental primitives and synthetic-collector core tests; not native product support.
 name: Experimental platform primitives
 
 on:

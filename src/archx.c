@@ -22,7 +22,7 @@
 
 #include "json.h"
 #include "sha256.h"
-#include "signals_linux.h"
+#include "platform_signals.h"
 #include "store.h"
 #include "platform.h"
 #include "thread_local.h"
@@ -295,7 +295,7 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
   *out_json = NULL;
 
   ax_signal_set set;
-  if (ax_signals_collect_linux(&set) != 0) {
+  if (ax_platform_collect_signals(&set) != 0) {
     set_error("ax_collect: signal collection failed");
     return AX_ERR_INTERNAL;
   }
@@ -352,7 +352,7 @@ ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *
   if (!core || !out_json) { set_error("ax_collect_capabilities: invalid arguments"); return AX_ERR_INVALID; }
   *out_json = NULL;
   ax_signal_set set;
-  if (ax_signals_collect_linux(&set) != 0) {
+  if (ax_platform_collect_signals(&set) != 0) {
     set_error("ax_collect_capabilities: signal collection failed"); return AX_ERR_INTERNAL;
   }
   char buf[1024];
@@ -384,7 +384,7 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
   *out_json = NULL;
 
   ax_signal_set set;
-  if (ax_signals_collect_linux(&set) != 0) {
+  if (ax_platform_collect_signals(&set) != 0) {
     set_error("ax_identify: signal collection failed");
     return AX_ERR_INTERNAL;
   }
@@ -413,7 +413,7 @@ ax_result ax_identify(const ax_core *core, char **out_json, size_t *out_len) {
     /* No OS signal readable: use a persisted per-user random ID. ABI v1
      * uses a fixed marker of 10, not an identity probability or coverage. */
     char fallback[80];
-    if (ax_signals_fallback_id(fallback, sizeof fallback) != 0) {
+    if (ax_platform_fallback_id(fallback, sizeof fallback) != 0) {
       set_error("ax_identify: no readable signals and fallback ID unavailable");
       return AX_ERR_INTERNAL;
     }
@@ -485,7 +485,7 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   unsigned mask = 0;
   for (size_t i = 0; i < AX_DEFAULT_MATCH_SIGNALS; i++) if (core->match_roles[i]) mask |= 1u << i;
   ax_signal_set set;
-  if (ax_signals_collect_linux_selected(&set, mask)) { set_error("ax_profile: collection failed"); return AX_ERR_INTERNAL; }
+  if (ax_platform_collect_selected(&set, mask)) { set_error("ax_profile: collection failed"); return AX_ERR_INTERNAL; }
   char scope[65], buf[1024]; size_t pos = 0;
   if (match_digest(core, "scope", "linux", scope)) { set_error("ax_profile: digest formatting failed"); return AX_ERR_INTERNAL; }
   int n = snprintf(buf, sizeof buf, "{\"version\":1,\"scope\":\"%s\",\"signals\":{", scope);

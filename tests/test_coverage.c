@@ -1,7 +1,7 @@
 /* ABI v1 synthetic coverage-score semantics, independent of host identifiers. */
 #include "archx.h"
 #include "json.h"
-#include "signals_linux.h"
+#include "platform_signals.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,12 +23,12 @@ static void signals(ax_signal_set *out, unsigned selected) {
     sig->status = fake_status;
   }
 }
-int ax_signals_collect_linux(ax_signal_set *out) { signals(out, 7); return 0; }
-int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned selected) { signals(out, selected); return 0; }
+int ax_platform_collect_signals(ax_signal_set *out) { signals(out, 7); return 0; }
+int ax_platform_collect_selected(ax_signal_set *out, unsigned selected) { signals(out, selected); return 0; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {
   (void)set; int n = snprintf(out, len, "synthetic-%u", mask); return n < 0 ? 0 : (size_t)n;
 }
-int ax_signals_fallback_id(char *out, size_t len) {
+int ax_platform_fallback_id(char *out, size_t len) {
   if (fallback_fails || len < 65) return -1;
   memset(out, 'a', 64); out[64] = '\0'; return 0;
 }

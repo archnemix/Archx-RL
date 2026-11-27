@@ -24,10 +24,10 @@ static void *fault_calloc(size_t n, size_t size) {
 static void fault_free(void *p) {
   if (p) { assert(live > 0); live--; free(p); }
 }
-int ax_signals_collect_linux(ax_signal_set *out) { (void)out; return -1; }
-int ax_signals_collect_linux_selected(ax_signal_set *out, unsigned mask) { (void)out; (void)mask; return -1; }
+int ax_platform_collect_signals(ax_signal_set *out) { (void)out; return -1; }
+int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) { (void)out; (void)mask; return -1; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t size) { (void)set; (void)out; (void)size; return SIZE_MAX; }
-int ax_signals_fallback_id(char *out, size_t size) { (void)out; (void)size; return -1; }
+int ax_platform_fallback_id(char *out, size_t size) { (void)out; (void)size; return -1; }
 int main(void) {
   const char *config = "{\"app_id\":\"test\",\"pepper\":\"synthetic\",\"store_capacity\":16}";
   calls=0; fail_at=0;
