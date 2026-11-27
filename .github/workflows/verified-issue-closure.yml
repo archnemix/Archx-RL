@@ -1,0 +1,19 @@
+# One-time closure of verified single-process overload controls.
+name: Close verified overload issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close tested overload issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 19 --repo archnemix/Archx-RL --reason completed --comment 'Single-process coarse overload controls and evidence are on arena/328e63a8-archx-rl, not merged into main. The private demo uses a global accepted-connection token bucket, fixed maximum active handlers, finite requested backlog, an absolute socket deadline and close-on-overload policy before all routes. One request per connection prevents pipelining bypass. tests/test_boundaries.py exercises actual GET, enabled challenge, demo POST and check POST routes through the same bucket, concurrent mixed-route rejection while two slow bodies occupy both workers, slow-header dribbling, pipelining and recovery. Local runs and Linux CI https://github.com/archnemix/Archx-RL/actions/runs/46007040631 passed. Docs/Guides/Boundary-Overload.md records parameters and limitations; a separate experimental nginx/Unix candidate adds per-route-independent limits but is not a production deployment. This completion is limited to those single-process controls, not an assertion of a supported production topology: stalled application work cannot be cancelled and can exhaust the fixed pool, and kernel/upstream queues, fairness, multiprocess coordination, proxy trust, identity and operational readiness are separate concerns. Supported entrypoint and trusted proxy remain open in #29 and #25.'
