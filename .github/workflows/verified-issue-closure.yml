@@ -1,0 +1,19 @@
+# One-time closure of owner-decided licensing and documented release governance.
+name: Close verified license issue
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/verified-issue-closure.yml']
+permissions:
+  issues: write
+jobs:
+  close:
+    if: github.repository == 'archnemix/Archx-RL' && github.ref == 'refs/heads/arena/328e63a8-archx-rl'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Close tested license and governance issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close 16 --repo archnemix/Archx-RL --reason completed --comment 'The project owner explicitly chose the 0BSD license for project-owned code. Commit 2862151 adds the license, consistent Python/Node package metadata and license files, CMake license/notice installation, contribution guidance, third-party dependency notices and a prototype support/release checklist; 7963f90 records actual source and Linux C artifact SHA-256 hashes. tools/reproduce_linux.sh builds two clean git-archive extractions with the same toolchain and verifies identical Linux C artifacts. Local packaging, CMake consumer and rebuild tests passed; Linux CI https://github.com/archnemix/Archx-RL/actions/runs/46103137602 passed, as did synthetic native primitives and binding matrix CI. Scope and limitations are explicit: third-party dependencies retain their own terms, Python transitive dependencies are not fully locked, same-host Linux rebuilds are not cross-machine reproducibility proof, no release was published, and the checklist does not assert security review, a private reporting channel or completion of other release gates. All work is on arena/328e63a8-archx-rl and not yet merged to main.'
