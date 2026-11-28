@@ -1,0 +1,169 @@
+"""SQLite persistence for the request-policy prototype.
+
+SQLite provides transaction serialization on one host, not a multi-host store.
+The database and its parent directory must be private to the service operator.
+"""
+import hashlib
+import hmac
+import ipaddress
+import json
+import math
+import os
+import sqlite3
+import stat
+from pathlib import Path
+
+from engine import Engine
+
+SCHEMA = (
+    'CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS windows (key TEXT PRIMARY KEY, start REAL NOT NULL, count INTEGER NOT NULL)',
+    'CREATE INDEX IF NOT EXISTS windows_start ON windows(start)',
+    'CREATE TABLE IF NOT EXISTS observations (id INTEGER PRIMARY KEY, expires REAL NOT NULL, fingerprint TEXT NOT NULL UNIQUE)',
+    'CREATE INDEX IF NOT EXISTS observations_expires ON observations(expires)',
+    'CREATE TABLE IF NOT EXISTS signals (observation_id INTEGER NOT NULL REFERENCES observations(id) ON DELETE CASCADE, name TEXT NOT NULL, token TEXT NOT NULL, PRIMARY KEY (observation_id, name))',
+    'CREATE INDEX IF NOT EXISTS signals_lookup ON signals(name, token, observation_id)',
+    'CREATE INDEX IF NOT EXISTS signals_by_name ON signals(name, observation_id)',
+)
+
+class SQLiteEngine(Engine):
+    def __init__(self, db_path, settings, secret, **kwargs):
+        if not isinstance(secret, bytes) or len(secret) < 32:
+            raise ValueError('Persistent mode requires an explicit secret of at least 32 bytes')
+        if not db_path or str(db_path) == ':memory:':
+            raise ValueError('Persistent mode requires a file path')
+        super().__init__(settings=settings, secret=secret, **kwargs)
+        self.db_path = str(Path(db_path).absolute())
+        flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW
+        fd = os.open(self.db_path, flags, 0o600)
+        try:
+            st = os.fstat(fd)
+            if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or st.st_mode & 0o077:
+                raise ValueError('Database must be a private regular file owned by the service user')
+        finally:
+            os.close(fd)
+        self._initialize()
+
+    def connect(self):
+        con = sqlite3.connect(Path(self.db_path).as_uri() + '?mode=rw', uri=True, timeout=5, isolation_level=None)
+        con.execute('PRAGMA foreign_keys=ON')
+        con.execute('PRAGMA secure_delete=ON')
+        con.execute('PRAGMA busy_timeout=5000')
+        return con
+
+    def _initialize(self):
+        con = self.connect()
+        try:
+            con.execute('PRAGMA journal_mode=WAL')
+            con.execute('BEGIN IMMEDIATE')
+            for sql in SCHEMA: con.execute(sql)
+            key_check = hmac.new(self.secret, b'archx-persistent-key-check-v1', hashlib.sha256).hexdigest()
+            policy_check = hashlib.sha256(json.dumps(self.settings, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            for key, expected in [('schema','2'), ('key_check',key_check), ('policy_check',policy_check)]:
+                row = con.execute('SELECT value FROM meta WHERE name=?',(key,)).fetchone()
+                if row is None:
+                    con.execute('INSERT INTO meta(name,value) VALUES(?,?)',(key,expected))
+                elif not hmac.compare_digest(row[0], expected):
+                    raise ValueError('Database secret, policy, or schema does not match; use a new database or migrate explicitly')
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
+    def _prune_windows(self, con, now):
+        con.execute('DELETE FROM windows WHERE start <= ?', (now - self.settings['window_seconds'],))
+
+    def _charge(self, con, keys, now):
+        self._prune_windows(con, now)
+        keys = list(dict.fromkeys(keys))
+        marks = ','.join('?' for _ in keys)
+        rows = {key:(start,count) for key,start,count in con.execute(f'SELECT key,start,count FROM windows WHERE key IN ({marks})', keys)}
+        count = con.execute('SELECT count(*) FROM windows').fetchone()[0]
+        if count + sum(k not in rows for k in keys) > self.max_entries:
+            return {'decision':'capacity_exceeded','retry_after_seconds':self.settings['window_seconds'],'relation':'inconclusive'}
+        retry = 0
+        for key in keys:
+            start, old = rows.get(key, (now, 0))
+            con.execute('INSERT INTO windows(key,start,count) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET count=excluded.count', (key, start, old+1))
+            if old+1 > self.settings['max_requests']:
+                retry = max(retry, math.ceil(self.settings['window_seconds'] - (now - start)))
+        return {'decision':'rate_limited','retry_after_seconds':retry,'relation':'inconclusive'} if retry else None
+
+    @staticmethod
+    def _storage_error():
+        return {'decision':'storage_error','retry_after_seconds':1,'relation':'inconclusive'}
+
+    def reject_malformed(self, peer):
+        now = self.clock()
+        ip = ipaddress.ip_address(peer)
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
+        try:
+            con = self.connect()
+            try:
+                con.execute('BEGIN IMMEDIATE')
+                result = self._charge(con, [self.token('ip', str(ip))], now)
+                con.commit()
+                return result
+            except Exception:
+                con.rollback()
+                raise
+            finally:
+                con.close()
+        except sqlite3.Error:
+            return self._storage_error()
+
+    def check(self, raw, peer):
+        now, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        try:
+            con = self.connect()
+            try:
+                con.execute('BEGIN IMMEDIATE')
+                failure = self._charge(con, tokens.values(), now)
+                if failure is None: failure = self.decision_before_matching(missing, zone, clock_status)
+                if failure:
+                    con.commit()
+                    return failure
+                con.execute('DELETE FROM observations WHERE expires <= ?', (now,))
+                # All matching fields must refer to the same prior observation.
+                predicates = ' OR '.join('(name=? AND token=?)' for _ in tokens)
+                params = [x for pair in tokens.items() for x in pair]
+                rows = con.execute(f'SELECT observation_id, name FROM signals WHERE {predicates} ORDER BY observation_id', params).fetchall()
+                matches = {}
+                for obs_id, name in rows: matches.setdefault(obs_id, set()).add(name)
+                best_set = max(matches.values(), key=len) if matches else set()
+                best = [name for name in tokens if name in best_set]
+                threshold = self.settings['min_matches']
+                if len(best) >= threshold:
+                    relation = 'related'
+                elif con.execute('SELECT 1 FROM observations LIMIT 1').fetchone() is None:
+                    relation = 'new'
+                else:
+                    marks = ','.join('?' for _ in tokens)
+                    comparable = con.execute(f'SELECT 1 FROM signals WHERE name IN ({marks}) GROUP BY observation_id HAVING count(*) >= ? LIMIT 1', [*tokens,threshold]).fetchone()
+                    relation = 'below_threshold' if comparable else 'inconclusive'
+                # Keep one record for an identical signal snapshot, rather than
+                # consuming one history slot per repeated request.
+                fingerprint = hashlib.sha256(json.dumps(sorted(tokens.items()), separators=(',', ':')).encode()).hexdigest()
+                existing = con.execute('SELECT id FROM observations WHERE fingerprint=?', (fingerprint,)).fetchone()
+                expires = now + self.settings['history_seconds']
+                if existing:
+                    con.execute('UPDATE observations SET expires=? WHERE id=?', (expires, existing[0]))
+                else:
+                    if con.execute('SELECT count(*) FROM observations').fetchone()[0] >= self.max_entries:
+                        earliest = con.execute('SELECT min(expires) FROM observations').fetchone()[0]
+                        con.commit()
+                        return {'decision':'capacity_exceeded','retry_after_seconds':max(1, math.ceil(earliest-now)), 'relation':'inconclusive'}
+                    cur = con.execute('INSERT INTO observations(expires, fingerprint) VALUES(?,?)', (expires, fingerprint))
+                    con.executemany('INSERT INTO signals(observation_id,name,token) VALUES(?,?,?)', [(cur.lastrowid, name, token) for name,token in tokens.items()])
+                con.commit()
+                return {'decision':'allow','relation':relation,'matched_signals':best, 'timezone':zone, 'clock':clock_status,
+                        'retry_after_seconds':0, 'warning':'A relation is not proof of the same person; shared IPs can link unrelated users.'}
+            except Exception:
+                con.rollback()
+                raise
+            finally:
+                con.close()
+        except sqlite3.Error:
+            return self._storage_error()

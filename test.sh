@@ -71,6 +71,7 @@ python3 tests/test_boundaries.py
 python3 tests/test_sqlite_engine.py
 python3 tests/test_limiter_model.py
 python3 tests/test_sqlite_policy_migration.py
+python3 tests/test_empty_schema_migration.py
 python3 tests/test_empty_key_rotation.py
 python3 tests/test_sqlite_snapshot.py
 python3 tests/test_sqlite_restore_risk.py

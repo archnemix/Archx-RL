@@ -12,7 +12,7 @@ The transaction does not create a backup and **does not make restoring one safe*
 
 ## Historical schema distinction
 
-Schema 2 and 3 use different token derivation and input handling. In historical commit `7ad21f1`, schema 3 introduced domain-separated `archx-raw-v2` HMACs and raw-signal normalization in place of schema 2's caller-supplied hashes. Existing pseudonymous keys cannot be transformed into the new keys without original inputs. Relabeling schema 2 as 3 or simply changing its policy marker would silently orphan active limits and observations. Both schema-2 upgrade and reversible key/token migration require a separate design; this experiment rejects them.
+A separate [empty-store schema transition experiment](Empty-Schema-Migration.md) now tests metadata upgrade and rollback with no quota/history/replay state; it cannot migrate active state or make restore safe. Schema 2 and 3 use different token derivation and input handling. In historical commit `7ad21f1`, schema 3 introduced domain-separated `archx-raw-v2` HMACs and raw-signal normalization in place of schema 2's caller-supplied hashes. Existing pseudonymous keys cannot be transformed into the new keys without original inputs. Relabeling schema 2 as 3 or simply changing its policy marker would silently orphan active limits and observations. Both schema-2 upgrade and reversible key/token migration require a separate design; this experiment rejects them.
 
 ## Evidence and limitations
 
