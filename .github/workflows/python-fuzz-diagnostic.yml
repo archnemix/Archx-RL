@@ -12,8 +12,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        id: fuzzpython
+        with:
+          python-version: '3.12'
+          update-environment: false
       - run: |
-          python3 -m venv "$RUNNER_TEMP/venv"
+          '${{ steps.fuzzpython.outputs.python-path }}' -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-fuzz.txt
           export PATH="$RUNNER_TEMP/venv/bin:$PATH"
           if ! sh tests/fuzz_python.sh > "$RUNNER_TEMP/fuzz.log" 2>&1; then

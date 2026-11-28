@@ -1,6 +1,6 @@
 # Python input fuzz smoke
 
-This is partial synthetic evidence toward #41, not a security audit. On Linux with `demo/requirements-secure.txt` and the optional pinned `tests/requirements-fuzz.txt`, `sh tests/fuzz_python.sh` runs an Atheris/libFuzzer target for five seconds. PR/push Linux CI runs the same smoke; the ordinary regression suite does not require Atheris.
+This is partial synthetic evidence toward #41, not a security audit. On Linux with Python 3.12, `demo/requirements-secure.txt` and the optional pinned `tests/requirements-fuzz.txt`, `sh tests/fuzz_python.sh` runs an Atheris/libFuzzer target for five seconds. PR/push Linux CI runs the same smoke in a dedicated Python 3.12 virtual environment; the ordinary regression suite does not require Atheris. Atheris 3.0.0 does not support the hosted runner's Python 3.14 bytecode.
 
 The target feeds fuzzed UTF-8/replacement input to each signal normalizer and checks that accepted normalized output is ASCII and idempotent. For sealed v2 and experimental v3, it encrypts fuzzed synthetic inner bytes using a public test-only private key to exercise prefix/key-ID and length validation beyond decryption. It also sends fuzzed raw outer ciphertext strings and verifies generic rejection or a byte result. The seed corpus includes correctly prefixed payloads and plaintext/ciphertext-size boundaries. All input, keys and any crash artifacts are synthetic; artifacts stay in a temporary directory, which is removed on exit. No network, real device collection or provider credential is needed.
 
