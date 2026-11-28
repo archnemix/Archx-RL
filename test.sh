@@ -80,6 +80,7 @@ python3 tests/test_sqlite_soak_profile.py
 python3 tests/test_state_clock.py
 python3 tests/test_engine_clock_faults.py
 python3 tests/test_security.py
+python3 tests/test_service_json_numeric.py
 python3 tests/test_turnstile_staging.py
 python3 tests/test_transport_key_rotation.py
 python3 tests/test_browser.py

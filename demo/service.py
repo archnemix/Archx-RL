@@ -4,6 +4,7 @@ The host supplies an IP obtained from its own trusted transport boundary and
 must enforce every returned decision. This is not authentication or middleware.
 """
 import json
+import math
 import time
 
 from metrics import ServiceMetrics
@@ -25,8 +26,15 @@ def parse_json(data):
     def invalid_constant(_):
         raise ValueError('Invalid JSON constant')
 
+    def finite_float(text):
+        result = float(text)
+        if not math.isfinite(result):
+            raise ValueError('JSON number outside finite range')
+        return result
+
     try:
-        return json.loads(data, object_pairs_hook=unique_pairs, parse_constant=invalid_constant)
+        return json.loads(data, object_pairs_hook=unique_pairs,
+                          parse_constant=invalid_constant, parse_float=finite_float)
     except (UnicodeError, ValueError, RecursionError):
         raise ValueError('Invalid JSON') from None
 

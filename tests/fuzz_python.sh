@@ -13,6 +13,9 @@ printf '\001archx-sealed-check-v2\000{}' > "$tmp/corpus/v2"
 printf '\002archx-sealed-check-v3\000\004test{}' > "$tmp/corpus/v3"
 printf '\003notbase64' > "$tmp/corpus/cipher-v2"
 printf '\004notbase64' > "$tmp/corpus/cipher-v3"
+printf '\005{"timestamp":1e999}' > "$tmp/corpus/json-overflow"
+printf '\005{"a":[1.5,0,-2]}' > "$tmp/corpus/json-finite"
+printf '\005{"a":1,"a":2}' > "$tmp/corpus/json-duplicate"
 python=$(command -v python3)
 "$python" - "$tmp/corpus" <<'PY'
 import pathlib,sys
