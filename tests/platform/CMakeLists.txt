@@ -153,6 +153,15 @@ else()
   target_link_libraries(archx_store_nonfinite PRIVATE m)
 endif()
 add_test(NAME synthetic_store_nonfinite COMMAND archx_store_nonfinite)
+add_executable(archx_store_model test_store_model.c fake_platform.c ../../src/store.c)
+target_include_directories(archx_store_model PRIVATE ../../src .)
+if(MSVC)
+  target_compile_options(archx_store_model PRIVATE /W4 /WX)
+else()
+  target_compile_options(archx_store_model PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_link_libraries(archx_store_model PRIVATE m)
+endif()
+add_test(NAME synthetic_store_model COMMAND archx_store_model)
 
 # Deliberately named and isolated synthetic-only install, never a release artifact.
 install(TARGETS archx_synthetic_core archx_synthetic_static EXPORT ArchxSyntheticTargets
