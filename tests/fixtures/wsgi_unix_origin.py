@@ -43,7 +43,11 @@ app = ProtectedApplication(protected, resolve_principal=lambda env:'synthetic-te
 # string, must restrict which processes can connect to the Unix socket.
 if os.environ.get('ARCHX_TEST_EXPERIMENTAL_INGRESS') == '1':
     from archx_wsgi.ingress import serve_unix
-    serve_unix(app, os.environ['ARCHX_TEST_SOCKET'])
+    uid = os.environ.get('ARCHX_TEST_PROXY_UID')
+    gid = os.environ.get('ARCHX_TEST_SOCKET_GID')
+    serve_unix(app, os.environ['ARCHX_TEST_SOCKET'],
+               proxy_uid=None if uid is None else int(uid),
+               socket_gid=None if gid is None else int(gid))
 else:
     serve(app, unix_socket=os.environ['ARCHX_TEST_SOCKET'], unix_socket_perms='600',
           threads=2, connection_limit=8, backlog=8, max_request_header_size=8192,

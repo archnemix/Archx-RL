@@ -8,7 +8,9 @@ import fcntl
 import os
 from pathlib import Path
 import re
+import socket
 import stat
+import struct
 import threading
 
 from . import ProtectedApplication
@@ -93,12 +95,16 @@ http {{
 '''
 
 
-def serve_unix(application, socket_path):
-    """Run one Waitress process on a private, exclusively-owned Unix socket.
+def serve_unix(application, socket_path, *, proxy_uid=None, socket_gid=None):
+    """Run one Waitress process on an exclusively-owned Unix socket.
 
-    Must run in a fresh non-root process; the nginx worker must use the same
-    trusted UID. This local UID and the host application are trusted. The
-    containing directory and every ancestor must be controlled by the operator.
+    With both proxy_uid and socket_gid, experimental Linux peer credentials
+    restrict connections to that distinct non-root UID. The socket directory
+    must be owned by the origin UID, group-owned by socket_gid and mode 0710;
+    the origin process must be a member of that group. Without them the
+    legacy mode trusts all same-UID peers. Both the proxy UID and origin UID,
+    their code and the directory's ancestors remain trusted. Run in a fresh,
+    non-root process; this is not a supported production profile.
     """
     if not isinstance(application, ProtectedApplication) or application.max_inflight > 4:
         raise ValueError('A ProtectedApplication with at most four in-flight slots is required')
@@ -110,6 +116,13 @@ def serve_unix(application, socket_path):
         raise ValueError('Invalid or symlinked socket path')
     if os.geteuid() == 0 or threading.active_count() != 1:
         raise ValueError('Origin requires a fresh non-root process')
+    separated = proxy_uid is not None or socket_gid is not None
+    if separated:
+        if (type(proxy_uid) is not int or not 0 < proxy_uid < 2**32 - 1 or proxy_uid == os.geteuid() or
+                type(socket_gid) is not int or not 0 < socket_gid < 2**32 - 1 or
+                socket_gid not in set(os.getgroups()) | {os.getegid()} or
+                not hasattr(socket, 'SO_PEERCRED')):
+            raise ValueError('Distinct proxy UID and an accessible socket group are required')
     flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
     dirfd = os.open(parent, flags)
     lockfd = None
@@ -118,7 +131,9 @@ def serve_unix(application, socket_path):
     created = None
     try:
         info = os.fstat(dirfd)
-        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or
+                (separated and (stat.S_IMODE(info.st_mode) != 0o710 or info.st_gid != socket_gid)) or
+                (not separated and info.st_mode & 0o077)):
             raise ValueError('Socket directory must be private and owned by the service UID')
         lockfd = os.open('.archx-origin.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC,
                          0o600, dir_fd=dirfd)
@@ -159,6 +174,35 @@ def serve_unix(application, socket_path):
         created = os.stat(name, dir_fd=dirfd, follow_symlinks=False)
         if not stat.S_ISSOCK(created.st_mode) or created.st_uid != os.geteuid() or stat.S_IMODE(created.st_mode) != 0o600:
             raise ValueError('Unexpected socket ownership or permissions')
+        if separated:
+            os.chown(name, -1, socket_gid, dir_fd=dirfd, follow_symlinks=False)
+            # Parent and origin UID are trusted. There is no protection from a
+            # process with the origin UID racing this path-based chmod.
+            os.chmod(socket_path, 0o660)
+            checked = os.stat(name, dir_fd=dirfd, follow_symlinks=False)
+            if (not stat.S_ISSOCK(checked.st_mode) or checked.st_uid != os.geteuid() or
+                    checked.st_gid != socket_gid or stat.S_IMODE(checked.st_mode) != 0o660 or
+                    (checked.st_dev, checked.st_ino) != (created.st_dev, created.st_ino)):
+                raise ValueError('Unexpected group socket ownership or permissions')
+            original_accept = server.accept
+            def accept_proxy_only():
+                # Waitress 3.0.2 calls accept() before constructing a channel.
+                # Reject unexpected UIDs before it parses or trusts headers.
+                pair = original_accept()
+                if pair is None:
+                    return None
+                conn, _ = pair
+                try:
+                    credentials = conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('iII'))
+                    _, uid, _ = struct.unpack('iII', credentials)
+                except (OSError, ValueError, struct.error):
+                    conn.close()
+                    return None
+                if uid != proxy_uid:
+                    conn.close()
+                    return None
+                return pair
+            server.accept = accept_proxy_only
         server.run()
     finally:
         if dispatcher is not None:

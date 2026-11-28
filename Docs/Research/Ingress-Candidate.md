@@ -8,6 +8,20 @@ This is research towards #19, #25 and #29, **not a supported deployment profile 
 
 `serve_unix` accepts a `ProtectedApplication` with at most four in-flight permits and runs a single non-root Waitress process with four workers, a 64-channel limit, backlog of 32 and 8 KiB header/body limits. A private, owner-only socket directory is mandatory, its path must not resolve through a symlink, and a nonblocking `flock` prevents cooperative duplicate instances. Existing socket paths, including stale sockets, are refused rather than unlinked. The socket is created under a restrictive umask and checked for ownership and mode 0600. The directory and its ancestors must be operator-controlled; the service UID and every process with equivalent filesystem privileges are **trusted**. The code does not defend against that UID racing path checks or impersonating the proxy. The nginx worker must have access to the socket, and in this experiment runs as that same UID: its compromise or a malicious same-UID process can bypass all proxy controls and forge the peer. Root can also bypass isolation. `SIGKILL`, termination and crashes may leave a stale socket; after confirming the origin really is stopped, an operator must inspect and remove it before restarting. The lock file is deliberately retained. No coordinated service manager, hot upgrade, graceful drain or automated stale-socket recovery is provided.
 
+## Distinct-UID peer-credential experiment
+
+The optional `serve_unix(app, path, proxy_uid=..., socket_gid=...)` mode tests a different Linux-only isolation boundary. It requires distinct non-root proxy and origin UIDs; the origin belongs to the non-root socket group, owns a mode-0710 directory with that group, and creates a mode-0660 group-owned socket. On each accepted Unix connection, the origin checks Linux `SO_PEERCRED` and rejects every UID except the configured proxy UID **before** Waitress creates a channel or processes headers. A group member can connect at the filesystem layer but is then rejected, including a same-origin-UID process. Invalid identities and directory modes fail startup. The unchanged default mode continues to trust same-UID peers. This experiment depends on Waitress 3.0.2's accept path and must be revalidated before any upgrade.
+
+Run the real-UID experiment with nginx, OpenSSL, Waitress 3.0.2 and passwordless sudo to the origin UID and two distinct non-root accounts. The test uses an isolated temporary directory and creates no accounts; the named non-root group must be usable as the primary group for those sudo commands:
+
+```
+ARCHX_TEST_NGINX=/absolute/path/to/nginx ARCHX_TEST_PROXY_USER=nobody \\
+ARCHX_TEST_SOCKET_GROUP=nogroup ARCHX_TEST_DENIED_USER=daemon \\
+    python3 tests/test_ingress_peer_uid.py -v
+```
+
+The regression exercises real TLS nginx traffic under the distinct proxy UID, single/chained/duplicate forwarding-header spoofing, rejected origin-UID and other-group-member connections, configuration failures, and a **successful direct forgery by the proxy UID**. Peer credentials establish only the originating OS UID: every process with that UID can impersonate nginx, and root can assume that identity. The operator must control all ancestor directories and the origin UID; a process with the origin UID can race socket path checks, alter the service or access its data. Socket creation has no claim of protection against a hostile origin UID. This narrows the previously observed same-origin-UID network bypass but does not make the origin UID a security sandbox or prove a production-ready proxy.
+
 ## Evidence and limits
 
 With nginx, OpenSSL, Waitress 3.0.2 and optional passwordless sudo to a distinct unprivileged account, run:
