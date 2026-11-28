@@ -1,0 +1,7 @@
+# Synthetic replay entropy and collision faults
+
+This regression is partial #41 work, not proof of random-number quality. Both prototype replay stores generate 32 random bytes using Python's `secrets.token_urlsafe`. Before this change, an injected duplicate token could overwrite a live in-memory challenge, while a malformed generator return could be persisted or returned as an unusable challenge. SQLite already rejected duplicate non-null digests via its primary key; SQLite can accept NULL in a non-integer primary key, so a bad generator result was not safely handled by relying on that constraint alone.
+
+The stores now validate generated token shape before persistence, reject a live digest collision instead of overwriting it, and convert generator failures to generic replay unavailability. They do not retry a collision. `tests/test_replay_rng_faults.py` injects malformed results, entropy exceptions and duplicate tokens, checks existing challenges remain single-use and peer-bound, and runs concurrent collision attempts against both backends. The test also checks recovery and that exception details are not returned to the caller. Inputs and injected tokens are synthetic.
+
+This does **not** detect an entropy provider that returns valid-looking predictable values, prove independence, ensure secure memory erasure, or protect against stale restores or compromised keys. The OS, Python runtime and dependency patching remain security dependencies. #41 remains open.

@@ -55,6 +55,18 @@ class MemoryReplay:
             return None
         return self._digest('nonce', token)
 
+    def _new_token(self):
+        # Treat entropy-provider errors and malformed outputs as unavailability;
+        # never persist an unusable token or include provider details in errors.
+        try:
+            token = secrets.token_urlsafe(32)
+            digest = self._token(token)
+            if digest is None:
+                raise ValueError('Invalid generated token')
+            return token, digest
+        except Exception:
+            raise ReplayUnavailable('Challenge generation unavailable') from None
+
     def _validated_time(self):
         # SQLite stores REAL timestamps; use the same representation in memory.
         # Validate before *any* prune/consume so a bad sample cannot erase live
@@ -106,8 +118,10 @@ class MemoryReplay:
             self._prune(now)
             if len(self.pending) >= self.capacity or sum(value[0] == peer_key for value in self.pending.values()) >= self.per_peer:
                 raise ReplayUnavailable('Challenge capacity exceeded')
-            token = secrets.token_urlsafe(32)
-            self.pending[self._token(token)] = (peer_key, expiry)
+            token, digest = self._new_token()
+            if digest in self.pending:
+                raise ReplayUnavailable('Challenge generation unavailable')
+            self.pending[digest] = (peer_key, expiry)
             return token
 
     def consume(self, token, peer):
@@ -202,8 +216,8 @@ class SQLiteReplay(MemoryReplay):
                 count = con.execute('SELECT count(*) FROM replay_challenges_v1 WHERE peer = ?', (peer_key,)).fetchone()[0]
                 if total >= self.capacity or count >= self.per_peer:
                     raise ReplayUnavailable('Challenge capacity exceeded')
-                token = secrets.token_urlsafe(32)
-                con.execute('INSERT INTO replay_challenges_v1(token,peer,expires) VALUES(?,?,?)', (self._token(token), peer_key, expiry))
+                token, digest = self._new_token()
+                con.execute('INSERT INTO replay_challenges_v1(token,peer,expires) VALUES(?,?,?)', (digest, peer_key, expiry))
                 con.commit()
                 return token
             except Exception:
