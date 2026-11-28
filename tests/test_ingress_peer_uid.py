@@ -74,7 +74,7 @@ class DistinctPeerExperiment(unittest.TestCase):
         passed = [f'{key}={env[key]}' for key in ('ARCHX_TEST_SOCKET', 'ARCHX_TEST_EXPERIMENTAL_INGRESS',
                                                     'ARCHX_TEST_PROXY_UID', 'ARCHX_TEST_SOCKET_GID')]
         cls.origin_prefix = ([] if cls.group_gid in set(os.getgroups()) | {os.getegid()}
-                             else ['sudo', '-n', '-u', cls.origin_user, '-g', GROUP])
+                             else cls.as_uid(cls.origin_uid, cls.group_gid))
         cls.origin = subprocess.Popen([*cls.origin_prefix, '/usr/bin/env', *passed, sys.executable,
                                       str(ROOT / 'tests/fixtures/wsgi_unix_origin.py')],
                                      stdout=cls.log, stderr=subprocess.STDOUT)
@@ -103,7 +103,7 @@ class DistinctPeerExperiment(unittest.TestCase):
         subprocess.run(['sudo', '-n', 'chown', '-R', f'{cls.proxy_uid}:{cls.group_gid}', str(proxy_dir)], check=True)
         cls.log_proxy = open(cls.root / 'proxy.log', 'wb')
         cls.addClassCleanup(cls.log_proxy.close)
-        cls.proxy = subprocess.Popen(['sudo', '-n', '-u', PROXY, '-g', GROUP, str(binary),
+        cls.proxy = subprocess.Popen([*cls.as_uid(cls.proxy_uid, cls.group_gid), str(binary),
                      '-p', str(proxy_dir), '-c', str(config), '-g', 'daemon off;'],
                     stdout=cls.log_proxy, stderr=subprocess.STDOUT)
         cls.addClassCleanup(cls.stop, cls.proxy)
@@ -122,6 +122,12 @@ class DistinctPeerExperiment(unittest.TestCase):
             except OSError:
                 if time.monotonic() > deadline: raise
                 time.sleep(.05)
+
+    @staticmethod
+    def as_uid(uid, gid):
+        # GitHub-hosted sudo policy permits root but not arbitrary run-as users.
+        # setpriv drops all supplemental groups before executing the test peer.
+        return ['sudo', '-n', '/usr/bin/setpriv', f'--reuid={uid}', f'--regid={gid}', '--clear-groups']
 
     @staticmethod
     def stop(proc):
@@ -186,7 +192,7 @@ print("rejected-after-connect")
         for user in (self.origin_user, DENIED):
             with self.subTest(user=user):
                 prefix = (self.origin_prefix if user == self.origin_user else
-                          ['sudo', '-n', '-u', user, '-g', GROUP])
+                          self.as_uid(pwd.getpwnam(user).pw_uid, self.group_gid))
                 proc = subprocess.run([*prefix, '/usr/bin/python3', '-c', script, str(self.sockpath)],
                                       capture_output=True, timeout=8)
                 self.assertEqual(proc.returncode, 0, proc.stderr.decode())
@@ -199,7 +205,7 @@ s=socket.socket(socket.AF_UNIX);s.settimeout(4);s.connect(sys.argv[1]);body=sys.
 s.sendall(b"POST /protected HTTP/1.0\\r\\nX-Forwarded-For: 192.0.2.201\\r\\nContent-Length: " + str(len(body)).encode() + b"\\r\\n\\r\\n" + body)
 print(s.recv(100).decode('ascii',errors='replace'))
 '''
-        proc = subprocess.run(['sudo', '-n', '-u', PROXY, '-g', GROUP, '/usr/bin/python3',
+        proc = subprocess.run([*self.as_uid(self.proxy_uid, self.group_gid), '/usr/bin/python3',
                                '-c', script, str(self.sockpath), self.body('proxy-direct').decode()],
                               capture_output=True, timeout=8)
         self.assertEqual(proc.returncode, 0, proc.stderr.decode())

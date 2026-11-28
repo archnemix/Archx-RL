@@ -19,8 +19,7 @@ jobs:
           sudo groupadd archxsocket
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxproxy
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxdenied
-          sudo usermod -a -G archxsocket "$(id -un)"
-          env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied sg archxsocket -c '"$RUNNER_TEMP/venv/bin/python" tests/test_ingress_peer_uid.py -v' > "$RUNNER_TEMP/peer.log" 2>&1 || {
+          env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied "$RUNNER_TEMP/venv/bin/python" tests/test_ingress_peer_uid.py -v > "$RUNNER_TEMP/peer.log" 2>&1 || {
             cat "$RUNNER_TEMP/peer.log"
             python3 -c 'import pathlib,sys; s=pathlib.Path(sys.argv[1]).read_text(); print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' "$RUNNER_TEMP/peer.log"
             exit 1
