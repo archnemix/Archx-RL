@@ -10,6 +10,8 @@ run_case() {
     -DCMAKE_INSTALL_PREFIX="$root/prefix" -DCMAKE_INSTALL_BINDIR="$bin_dir" -DCMAKE_INSTALL_LIBDIR="$lib_dir"
   cmake --build "$root/build" --parallel 2
   cmake --install "$root/build"
+  cmp LICENSE "$root/prefix/share/licenses/archx/LICENSE"
+  cmp THIRD_PARTY_NOTICES.md "$root/prefix/share/licenses/archx/THIRD_PARTY_NOTICES.md"
   mv "$root/prefix" "$root/relocated"
   if [ "$case_name" = default ]; then
     cmake -S tests/cmake_consumer -B "$root/consumer" -DCMAKE_PREFIX_PATH="$root/relocated"

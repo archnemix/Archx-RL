@@ -7,3 +7,5 @@ name = "archx-native"
 version = "0.0.0"
 description = "Experimental Python binding for the Archx C ABI v1"
 requires-python = ">=3.9"
+
+license = {file = "LICENSE"}

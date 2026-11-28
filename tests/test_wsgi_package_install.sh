@@ -3,13 +3,17 @@ set -eu
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir "$tmp/source"
-cp integrations/wsgi/pyproject.toml "$tmp/source/"
+cp integrations/wsgi/pyproject.toml integrations/wsgi/LICENSE "$tmp/source/"
 cp -R integrations/wsgi/archx_wsgi "$tmp/source/"
 python3 -m pip install --disable-pip-version-check --no-deps --target "$tmp/install" "$tmp/source"
 PYTHONPATH="$tmp/install" python3 - <<'PY'
 import os
 from pathlib import Path
+from importlib.metadata import distribution
 import archx_wsgi
+metadata = distribution('archx-wsgi')
+assert 'Permission to use, copy, modify' in metadata.metadata['License']
+assert any(str(path).endswith('LICENSE') for path in metadata.files)
 assert Path(archx_wsgi.__file__).is_relative_to(Path(os.environ['PYTHONPATH']))
 app = archx_wsgi.ProtectedApplication(
     lambda env,start: (start('200 OK', []),[b'ok'])[1],

@@ -7,3 +7,5 @@ name = "archx-wsgi"
 version = "0.0.0"
 description = "Bounded single-process WSGI decision enforcement integration"
 requires-python = ">=3.9"
+
+license = {file = "LICENSE"}

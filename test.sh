@@ -45,6 +45,7 @@ else
   echo 'Skipping Node binding tests; install dependencies with npm ci --prefix bindings/node'
 fi
 python3 tests/test_crypto_differential.py
+python3 tests/test_license_and_release.py
 python3 tests/test_threat_model.py
 python3 tests/test_coverage_docs.py
 python3 tests/test_guides.py

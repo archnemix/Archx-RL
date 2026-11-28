@@ -4,6 +4,11 @@
   "private": true,
   "description": "Experimental Node binding for the Archx C ABI v1",
   "main": "index.js",
-  "engines": { "node": ">=20" },
-  "dependencies": { "koffi": "2.16.4" }
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "koffi": "2.16.4"
+  },
+  "license": "0BSD"
 }
