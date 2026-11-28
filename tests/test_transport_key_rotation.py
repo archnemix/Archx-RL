@@ -1,8 +1,11 @@
 """Synthetic sealed-v3 key-grace experiment; not a key-management system."""
+import ipaddress
 import json
+import sqlite3
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +64,33 @@ class TransportRotationTests(unittest.TestCase):
         box = seal_v3({'ok': True}, 'old', bytes(self.old.public_key))
         self.assertEqual(json.loads(unseal_v3(box, copied)), {'ok': True})
         self.assertNotIn(bytes(self.old).hex(), repr(copied))
+
+    def test_concurrent_old_and_new_keys_share_nonce_and_quota_state(self):
+        secret = b'synthetic-rotation-secret-at-least-32-bytes'
+        settings = policy(override={'max_requests': 100})
+        peer = '192.0.2.44'
+        with tempfile.TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / 'state.sqlite')
+            def service(keys):
+                engine = SQLiteEngine(path, settings, secret, clock=lambda: 1700000000.0)
+                return RequestService(engine, sealed_key=TransportKeyRing(keys), replay=SQLiteReplay(engine))
+            old = service({'old': bytes(self.old)})
+            new = service({'new': bytes(self.new)})
+            nonce = old.challenge(peer)['nonce']
+            body = {'nonce': nonce, 'signals': {'machine_id': synthetic_signal('machine_id', 'rotation-race')}}
+            boxes = [(old, seal_v3(body, 'old', bytes(self.old.public_key))),
+                     (new, seal_v3(body, 'new', bytes(self.new.public_key)))]
+            with ThreadPoolExecutor(max_workers=16) as pool:
+                results = list(pool.map(lambda item: item[0].check(item[1], peer), boxes * 12))
+            self.assertEqual(sum(result['decision'] == 'allow' for result in results), 1)
+            self.assertEqual(sum(result.get('reason') == 'replay_rejected' for result in results), 23)
+            # Rebuilding either service must not resurrect a consumed nonce.
+            restarted = service({'old': bytes(self.old), 'new': bytes(self.new)})
+            self.assertEqual(restarted.check(boxes[0][1], peer)['reason'], 'replay_rejected')
+            self.assertEqual(restarted.check(boxes[1][1], peer)['reason'], 'replay_rejected')
+            with sqlite3.connect(path) as con:
+                ip_key = restarted.engine.ip_key(ipaddress.ip_address(peer))
+                self.assertEqual(con.execute('SELECT count FROM windows WHERE key=?', (ip_key,)).fetchone(), (26,))
 
     def test_grace_restart_replay_and_rollback_preserve_sqlite_limits(self):
         secret = b'synthetic-rotation-secret-at-least-32-bytes'
