@@ -49,13 +49,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y nginx
           nginx -v
-          ARCHX_TEST_NGINX="$(command -v nginx)" python3 tests/test_https_proxy.py
-          ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_https_wsgi_unix.py
-          ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_experimental_ingress.py
+          # Capture test failures as annotations as well as ordinary logs.
+          run_proxy_test() {
+            local log="$RUNNER_TEMP/proxy-test.log"
+            if "$@" >"$log" 2>&1; then
+              cat "$log"
+            else
+              cat "$log"
+              python3 -c 'import pathlib,sys; s=pathlib.Path(sys.argv[1]).read_text(); print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' "$log"
+              return 1
+            fi
+          }
+          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" python3 tests/test_https_proxy.py
+          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_https_wsgi_unix.py
+          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_OTHER_USER=nobody python3 tests/test_experimental_ingress.py
           sudo groupadd archxsocket
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxproxy
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxdenied
-          ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied python3 tests/test_ingress_peer_uid.py
+          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied python3 tests/test_ingress_peer_uid.py
       - name: Verify clean same-toolchain Linux rebuild
         run: sh tools/reproduce_linux.sh "$GITHUB_SHA"
       - name: Focused GCC analyzer regression
