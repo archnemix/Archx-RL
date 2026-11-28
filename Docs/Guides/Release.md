@@ -17,6 +17,8 @@ sh tools/reproduce_linux.sh HEAD       # or pass an explicit commit ID
 
 The script fixes locale, timezone and umask, records commit and tool versions, hashes the source archive, builds twice in distinct temporary directories, compares all three binaries byte-for-byte and prints their SHA-256 hashes. It cleans its temporary files and exits nonzero on a failed build or mismatch. The build uses the exact options in `build.sh`; its host C library, compiler, binutils and filesystem remain inputs. Select a compiler with `CC=/absolute/path/to/compiler`. Record the OS/architecture, compiler, linker, archiver, Git, libc and environment in any evidence; for independent verification provide a genuinely pinned build environment and retain the built artifact, source archive and hashes. Never include private device data or secrets in evidence.
 
+A [same-host example with source and artifact hashes](../Test-Results/unreleased/linux-reproducibility-2862151.md) records one actual Linux run; it is not a published release.
+
 Browser and Node dependencies use committed lockfiles and `npm ci`; the browser bundler includes third-party code. Optional Python requirements pin direct packages but not all transitive dependencies or hashes, so they are not fully reproducible or supply-chain locked. A release must capture a resolved dependency inventory and all applicable notices for each artifact, not merely the direct lists. Artifact hashes confirm bytes only if the manifest is obtained from a trusted source; this procedure does not sign releases or establish provenance.
 
 ## Pre-release checklist
