@@ -1,0 +1,24 @@
+name: Temporary Python fuzz diagnostic
+on:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/python-fuzz-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-fuzz.txt
+          export PATH="$RUNNER_TEMP/venv/bin:$PATH"
+          if ! sh tests/fuzz_python.sh > "$RUNNER_TEMP/fuzz.log" 2>&1; then
+            cat "$RUNNER_TEMP/fuzz.log"
+            python3 -c 'import pathlib,sys; s=pathlib.Path(sys.argv[1]).read_text()[-5000:]; print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' "$RUNNER_TEMP/fuzz.log"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/fuzz.log"

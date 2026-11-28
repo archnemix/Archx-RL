@@ -182,6 +182,7 @@ int ax_signals_collect_linux(ax_signal_set *out) {
 }
 
 /* Adapt the unchanged Linux collector and fallback to the common core. */
+ax_platform_scope ax_platform_profile_scope(void) { return AX_PLATFORM_SCOPE_LINUX; }
 int ax_platform_collect_signals(ax_signal_set *out) {
   return ax_signals_collect_linux(out);
 }

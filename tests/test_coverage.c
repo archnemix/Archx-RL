@@ -23,6 +23,7 @@ static void signals(ax_signal_set *out, unsigned selected) {
     sig->status = fake_status;
   }
 }
+ax_platform_scope ax_platform_profile_scope(void) { return AX_PLATFORM_SCOPE_LINUX; }
 int ax_platform_collect_signals(ax_signal_set *out) { signals(out, 7); return 0; }
 int ax_platform_collect_selected(ax_signal_set *out, unsigned selected) { signals(out, selected); return 0; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {

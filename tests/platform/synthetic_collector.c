@@ -4,7 +4,10 @@
 #include <string.h>
 
 static int fail_collect;
+static ax_platform_scope scope = AX_PLATFORM_SCOPE_LINUX;
 void ax_test_collector_failure(int value) { fail_collect = value; }
+void ax_test_collector_scope(int value) { scope = (ax_platform_scope)value; }
+ax_platform_scope ax_platform_profile_scope(void) { return scope; }
 int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) {
   static const char *const names[] = {"machine_id", "product_uuid", "board_serial"};
   static const int weights[] = {60, 25, 15};

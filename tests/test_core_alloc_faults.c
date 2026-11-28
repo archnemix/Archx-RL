@@ -24,6 +24,7 @@ static void *fault_calloc(size_t n, size_t size) {
 static void fault_free(void *p) {
   if (p) { assert(live > 0); live--; free(p); }
 }
+ax_platform_scope ax_platform_profile_scope(void) { return AX_PLATFORM_SCOPE_LINUX; }
 int ax_platform_collect_signals(ax_signal_set *out) { (void)out; return -1; }
 int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) { (void)out; (void)mask; return -1; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t size) { (void)set; (void)out; (void)size; return SIZE_MAX; }

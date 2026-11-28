@@ -76,7 +76,14 @@ jobs:
       - name: Fuzz C JSON, config and profile smoke
         run: sh tests/fuzz_core.sh
       - name: Fuzz Python normalization and sealed envelopes smoke
-        run: sh tests/fuzz_python.sh
+        shell: bash
+        run: |
+          if ! sh tests/fuzz_python.sh > "$RUNNER_TEMP/python-fuzz.log" 2>&1; then
+            cat "$RUNNER_TEMP/python-fuzz.log"
+            python3 -c 'import pathlib,sys; s=pathlib.Path(sys.argv[1]).read_text()[-5000:]; print("::error::" + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' "$RUNNER_TEMP/python-fuzz.log"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/python-fuzz.log"
       - name: Verify Linux GCC and Clang CMake installation and consumers
         run: |
           CC=gcc ./tests/test_cmake_install.sh

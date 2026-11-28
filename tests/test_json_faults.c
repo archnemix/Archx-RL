@@ -1,7 +1,7 @@
 /* Deterministic parser allocation faults and public error propagation.
  * The injection boundary affects only json.c, never real device signals. */
 #include "archx.h"
-#include "signals.h"
+#include "platform_signals.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +50,7 @@ static void fake_signals(ax_signal_set *out) {
   snprintf(out->signals[0].value, sizeof out->signals[0].value, "synthetic");
   out->signals[0].readable = 1; out->signals[0].weight = 60;
 }
+ax_platform_scope ax_platform_profile_scope(void) { return AX_PLATFORM_SCOPE_LINUX; }
 int ax_platform_collect_signals(ax_signal_set *out) { fake_signals(out); return 0; }
 int ax_platform_collect_selected(ax_signal_set *out, unsigned mask) { (void)mask; fake_signals(out); return 0; }
 size_t ax_signals_canonical(const ax_signal_set *set, char *out, size_t len) {

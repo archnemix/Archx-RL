@@ -338,6 +338,16 @@ ax_result ax_collect(const ax_core *core, char **out_json, size_t *out_len) {
   return emit_json(buf, sizeof buf, pos, out_json, out_len);
 }
 
+/* Closed set of adapter-provided domain names; do not interpolate arbitrary
+ * adapter strings into JSON or silently reuse another platform's profile. */
+static const char *platform_scope_name(void) {
+  switch (ax_platform_profile_scope()) {
+    case AX_PLATFORM_SCOPE_LINUX: return "linux";
+    case AX_PLATFORM_SCOPE_SYNTHETIC: return "synthetic";
+    default: return NULL;
+  }
+}
+
 /* Versioned metadata, intentionally separate from the ABI-v1 collect shape.
  * Never serialize ax_signal.value: it contains sensitive raw local input. */
 static const char *capability_status(const ax_signal_set *set, const char *name) {
@@ -368,15 +378,17 @@ ax_result ax_collect_capabilities(const ax_core *core, char **out_json, size_t *
   if (ax_platform_collect_signals(&set) != 0) {
     set_error("ax_collect_capabilities: signal collection failed"); return AX_ERR_INTERNAL;
   }
+  const char *platform = platform_scope_name();
+  if (!platform) { set_error("ax_collect_capabilities: unsupported platform scope"); return AX_ERR_INTERNAL; }
   char buf[1024] = {0};
   int n = snprintf(buf, sizeof buf,
-    "{\"schema\":\"archx.capabilities\",\"version\":1,\"platform\":\"linux\",\"signals\":{"
+    "{\"schema\":\"archx.capabilities\",\"version\":1,\"platform\":\"%s\",\"signals\":{"
     "\"machine_id\":{\"kind\":\"os_install\",\"status\":\"%s\"},"
     "\"product_uuid\":{\"kind\":\"firmware\",\"status\":\"%s\"},"
     "\"board_serial\":{\"kind\":\"firmware\",\"status\":\"%s\"},"
     "\"app_install\":{\"kind\":\"app_install\",\"status\":\"not_collected\"},"
     "\"ip\":{\"kind\":\"network\",\"status\":\"host_provided\"}}}",
-    capability_status(&set, "machine_id"), capability_status(&set, "product_uuid"),
+    platform, capability_status(&set, "machine_id"), capability_status(&set, "product_uuid"),
     capability_status(&set, "board_serial"));
   if (n < 0 || (size_t)n >= sizeof buf) {
     set_error("ax_collect_capabilities: output too long"); return AX_ERR_INTERNAL;
@@ -500,7 +512,8 @@ ax_result ax_profile_with_ip(const ax_core *core, const char *ip, char **out_jso
   ax_signal_set set;
   if (ax_platform_collect_selected(&set, mask)) { set_error("ax_profile: collection failed"); return AX_ERR_INTERNAL; }
   char scope[65], buf[1024] = {0}; size_t pos = 0;
-  if (match_digest(core, "scope", "linux", scope)) { set_error("ax_profile: digest formatting failed"); return AX_ERR_INTERNAL; }
+  const char *platform = platform_scope_name();
+  if (!platform || match_digest(core, "scope", platform, scope)) { set_error("ax_profile: invalid platform scope or digest formatting failed"); return AX_ERR_INTERNAL; }
   int n = snprintf(buf, sizeof buf, "{\"version\":1,\"scope\":\"%s\",\"signals\":{", scope);
   if (n < 0 || (size_t)n >= sizeof buf) { set_error("ax_profile: output too long"); return AX_ERR_INTERNAL; }
   pos = (size_t)n;
@@ -532,7 +545,8 @@ static int validate_profile(const ax_core *core, const ax_json_value *profile) {
   const ax_json_value *scope = ax_json_get(profile, "scope");
   const ax_json_value *signals = ax_json_get(profile, "signals");
   char expected[65];
-  if (match_digest(core, "scope", "linux", expected)) return -1;
+  const char *platform = platform_scope_name();
+  if (!platform || match_digest(core, "scope", platform, expected)) return -1;
   if (!version || version->type != AX_J_NUMBER || version->num != 1 ||
       !scope || scope->type != AX_J_STRING || strcmp(scope->str, expected) ||
       !signals || signals->type != AX_J_OBJECT) return 0;
@@ -566,7 +580,7 @@ ax_result ax_compare(const ax_core *core, const char *baseline, size_t baseline_
       set_error("ax_compare: out of memory parsing profile"); return AX_ERR_NOMEM;
     }
     if (valid_a < 0 || valid_b < 0) {
-      set_error("ax_compare: digest formatting failed"); return AX_ERR_INTERNAL;
+      set_error("ax_compare: invalid platform scope or digest formatting failed"); return AX_ERR_INTERNAL;
     }
     set_error("ax_compare: invalid or incompatible profile"); return AX_ERR_INVALID;
   }
