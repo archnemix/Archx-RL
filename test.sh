@@ -53,6 +53,7 @@ python3 tests/test_license_and_release.py
 python3 tests/test_threat_model.py
 python3 tests/test_coverage_docs.py
 python3 tests/test_guides.py
+python3 tests/test_platform_adrs.py
 python3 tests/test_matching.py
 python3 tests/test_demo.py
 python3 tests/test_separate_quotas.py

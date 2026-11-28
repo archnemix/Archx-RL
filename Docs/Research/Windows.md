@@ -1,5 +1,7 @@
 # Windows research: experimental SMBIOS collector
 
+The [platform ADR dossier](Platform-ADRs.md) records the distinct RSMB, MachineGuid and deferred per-user fallback decisions and their evidence boundaries.
+
 ## Decision and boundaries
 
 This is a partial implementation, not a supported Windows release. The internal desktop-only `signals_windows.c` queries `GetSystemFirmwareTable` (`<windows.h>`, `<sysinfoapi.h>`) with the documented `RSMB` provider, using a size query followed by a bounded (1 MiB maximum) read. It rejects changes between query/read and clears the temporary raw buffer. `smbios.c` parses a bounded `RawSMBIOSData` header and Type 1/2 structures into internal, transient firmware UUID, system serial and baseboard-or-module serial evidence; no public ABI, fallback persistence, Windows DLL/static library, CLI or Python/Node binding is implemented. The synthetic provider tests and availability-only OS call ran on a hosted Windows Server 2022 x64 runner; a hosted runner is not Windows 11, physical-device or standard-user permission evidence.

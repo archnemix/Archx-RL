@@ -1,5 +1,7 @@
 # macOS: CoreFoundation value validation and distribution gate
 
+The [platform ADR dossier](Platform-ADRs.md) records the IOKit and deferred per-user fallback decisions, native survey and distribution boundaries.
+
 ## Decision, 2026-11-22
 
 This is a preparatory, internal component, **not a macOS collector or platform support**. `macos_cf_uuid.c` accepts a borrowed `CFTypeRef`, checks for `CFString`, bounds the value at exactly 36 UTF-16 code units, and rejects non-ASCII, embedded NUL, malformed or placeholder UUID text. `uuid_value.c` normalizes valid hyphenated UUID text to lower-case ASCII. Both only process values supplied by a caller; neither queries the I/O registry or reads a host identifier. A returned canonical value is not authenticated or guaranteed unique, stable or legally usable. Malformed, missing and placeholder results are distinct; this is not the planned versioned cross-platform signal schema.
