@@ -1,0 +1,2 @@
+# Optional instrumentation for synthetic, partial coverage reports.
+coverage==7.12.0
