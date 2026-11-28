@@ -54,7 +54,7 @@ This tracks the requested next version; issues contain the implementation and ac
 | D06 | P1 | Profile SQLite performance and faults | [#39](https://github.com/archnemix/Archx-RL/issues/39) |
 | D07 | P2 | Optimize near-full C store | [#40](https://github.com/archnemix/Archx-RL/issues/40) |
 
-Additional release-wide tracks: [test matrix #41](https://github.com/archnemix/Archx-RL/issues/41) and [platform research/ADRs #42](https://github.com/archnemix/Archx-RL/issues/42). The [platform ADR dossier](../Research/Platform-ADRs.md) records the research decisions, evidence and explicit deferrals; it does not establish native product support or privacy/distribution approval.
+Additional release-wide tracks: [test matrix #41](https://github.com/archnemix/Archx-RL/issues/41) and [platform research/ADRs #42](https://github.com/archnemix/Archx-RL/issues/42). The [platform ADR dossier](../Research/Platform-ADRs.md) completes the research issue's decision and evidence record. #42 is closed for that scope only; native product support, secure fallback implementation and privacy/distribution approval remain open under their respective product and release issues.
 
 Implementation order: foundation A01–A02, B01–B03, C01; portability A05–A08/C02 and native A03/A04; performance/parity D01–D06/B04–B07; operational release A09–A15/B08–B12/C03–C05 and release tests. A16/D07 are later. The [distributed-enforcement requirements](../Research/Distributed-Enforcement-Requirements.md) are a proposal, not an implemented or funded backend. Completion requires linked evidence, not just a closed issue.
 
