@@ -1,6 +1,9 @@
 #!/bin/sh
 # Five-second coverage-guided smoke. Requires PyNaCl and Atheris 3.0.0.
 set -eu
+seconds=${ARCHX_FUZZ_SECONDS:-5}
+case "$seconds" in *[!0-9]*|'') echo 'Invalid fuzz duration' >&2; exit 2;; esac
+[ "${#seconds}" -le 3 ] && [ "$seconds" -ge 1 ] && [ "$seconds" -le 300 ] || { echo 'Invalid fuzz duration' >&2; exit 2; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir "$tmp/corpus"
@@ -19,4 +22,4 @@ for mode, prefix in ((1, b'archx-sealed-check-v2\0'), (2, b'archx-sealed-check-v
         (p / f'boundary-{mode}-{length}').write_bytes(bytes([mode]) + prefix + b'x' * (length - len(prefix)))
 PY
 env -i PATH="$PATH" "$python" tests/fuzz_python_inputs.py \
-  -max_total_time=5 -max_len=9000 -timeout=5 -artifact_prefix="$tmp/" "$tmp/corpus"
+  -max_total_time="$seconds" -max_len=9000 -timeout=5 -artifact_prefix="$tmp/" "$tmp/corpus"

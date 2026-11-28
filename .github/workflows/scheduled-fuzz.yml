@@ -1,0 +1,36 @@
+# Scheduled jobs become active only when this workflow reaches the default branch.
+name: Synthetic extended fuzz
+on:
+  schedule:
+    - cron: '19 4 * * 2'
+  workflow_dispatch:
+  push:
+    branches: [arena/328e63a8-archx-rl]
+    paths: ['.github/workflows/scheduled-fuzz.yml']
+permissions:
+  contents: read
+concurrency:
+  group: synthetic-extended-fuzz-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
+        with:
+          python-version: '3.12'
+      - name: Install synthetic Python fuzz dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/archx-fuzz-venv"
+          "$RUNNER_TEMP/archx-fuzz-venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-fuzz.txt
+          echo "$RUNNER_TEMP/archx-fuzz-venv/bin" >> "$GITHUB_PATH"
+      - name: Synthetic C firmware fuzz
+        run: ARCHX_FUZZ_SECONDS=30 sh tests/fuzz_smbios.sh
+      - name: Synthetic C JSON config and profile fuzz
+        run: ARCHX_FUZZ_SECONDS=30 sh tests/fuzz_core.sh
+      - name: Synthetic Python normalization and sealed-envelope fuzz
+        run: ARCHX_FUZZ_SECONDS=30 sh tests/fuzz_python.sh

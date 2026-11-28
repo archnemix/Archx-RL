@@ -1,6 +1,9 @@
 #!/bin/sh
 # Fixed-duration synthetic libFuzzer smoke. Requires clang and sanitizers.
 set -eu
+seconds=${ARCHX_FUZZ_SECONDS:-5}
+case "$seconds" in *[!0-9]*|'') echo 'Invalid fuzz duration' >&2; exit 2;; esac
+[ "${#seconds}" -le 3 ] && [ "$seconds" -ge 1 ] && [ "$seconds" -le 300 ] || { echo 'Invalid fuzz duration' >&2; exit 2; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 mkdir "$tmp/corpus"
@@ -16,4 +19,4 @@ clang -std=c11 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -g -O1 -fno-omit-fram
 # No inherited project secrets or user-specific environment. Crashes/artifacts
 # stay in the temporary directory; a nonzero exit fails the CI job.
 env -i PATH="$PATH" ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
-  "$tmp/fuzz_core" -max_total_time=5 -max_len=8192 -timeout=5 -artifact_prefix="$tmp/" "$tmp/corpus"
+  "$tmp/fuzz_core" -max_total_time="$seconds" -max_len=8192 -timeout=5 -artifact_prefix="$tmp/" "$tmp/corpus"
