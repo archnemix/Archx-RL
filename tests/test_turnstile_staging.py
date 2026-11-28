@@ -11,7 +11,6 @@ from urllib.parse import parse_qs
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from turnstile_staging import NAMES, main, run_scenarios
-from security import Turnstile
 
 VALUES = {'SITEKEY': 'synthetic-sitekey', 'SECRET': 'private-secret-marker',
           'HOSTNAME': 'staging.example.invalid', 'ACTION': 'staging_action',
@@ -41,14 +40,35 @@ class FakeProvider:
 class StagingTests(unittest.TestCase):
     def test_all_scenarios_against_fake_provider(self):
         fake = FakeProvider()
-        def factory(site, secret, host, action, opener=None):
-            return Turnstile(site, secret, host, action, opener=opener or fake)
-        results = run_scenarios(VALUES, factory)
+        results = run_scenarios(VALUES, opener_factory=lambda _label: fake)
         self.assertEqual([label for label, _ in results], [
             'provider_success', 'provider_invalid_token', 'provider_hostname_mismatch',
             'provider_action_mismatch', 'provider_invalid_secret', 'simulated_timeout', 'simulated_upstream_failure'])
         self.assertTrue(all(ok for _, ok in results))
         self.assertEqual(fake.tokens, ['fresh-one', 'archx-synthetic-invalid-token', 'fresh-two', 'fresh-three', 'fresh-four'])
+
+    def test_mismatch_cases_require_provider_accepted_tokens(self):
+        class ExpiredProvider(FakeProvider):
+            def open(self, request, timeout):
+                token = parse_qs(request.data.decode())['response'][0]
+                if token in ('fresh-two', 'fresh-three'):
+                    return Response({'success': False, 'error-codes': ['timeout-or-duplicate']})
+                return super().open(request, timeout)
+        fake = ExpiredProvider()
+        result = dict(run_scenarios(VALUES, opener_factory=lambda _label: fake))
+        self.assertFalse(result['provider_hostname_mismatch'])
+        self.assertFalse(result['provider_action_mismatch'])
+        self.assertTrue(result['provider_success'])
+
+    def test_invalid_secret_requires_specific_provider_error(self):
+        class OutageProvider(FakeProvider):
+            def open(self, request, timeout):
+                if parse_qs(request.data.decode())['response'][0] == 'fresh-four':
+                    return Response({'success': False, 'error-codes': ['internal-error']})
+                return super().open(request, timeout)
+        fake = OutageProvider()
+        result = dict(run_scenarios(VALUES, opener_factory=lambda _label: fake))
+        self.assertFalse(result['provider_invalid_secret'])
 
     def test_distinct_tokens_required_before_any_verification(self):
         duplicate = {**VALUES, 'TOKEN_SECRET': VALUES['TOKEN_SUCCESS']}
