@@ -4,7 +4,7 @@ Archx is an **unaudited prototype**, not an authentication, authorization, attes
 
 ## Reporting
 
-Please do not disclose suspected vulnerabilities, secrets, raw device identifiers or working exploits in a public issue. GitHub's private vulnerability reporting was **disabled when last checked**; a maintainer must enable it or publish another verified private contact method. Contact the repository maintainers privately through a method they provide; no working private reporting channel, response time or supported-version policy has yet been verified. Do not assume a security SLA.
+Please do not disclose suspected vulnerabilities, secrets, raw device identifiers or working exploits in a public issue. Use [GitHub private vulnerability reporting](https://github.com/archnemix/Archx-RL/security/advisories/new), or open the repository's **Security → Advisories** page and choose **Report a vulnerability**. Include the affected revision, impact and reproduction steps; use synthetic data where possible. The repository setting has been verified enabled, but an end-to-end outside-reporter submission and maintainer notification have not yet been tested. There is no stated response time, supported-version policy or security SLA.
 
 ## Deployment and recovery
 

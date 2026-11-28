@@ -73,6 +73,28 @@ class SecurityTests(unittest.TestCase):
         t.opener=Down();self.assertEqual(t.verify('x'),'unavailable')
 
 class KeyTests(unittest.TestCase):
+    def test_substituted_public_key_exposes_sealed_payload(self):
+        # Negative evidence: encryption cannot authenticate a key supplied by
+        # an attacker. These are fresh test-only keys and synthetic data.
+        try:
+            from nacl.public import PrivateKey
+            from sealed_payload import seal, unseal
+        except ImportError:
+            self.skipTest('install demo/requirements-secure.txt to test encryption')
+        intended = PrivateKey.generate()
+        attacker = PrivateKey.generate()
+        payload = {'signals': {'machine_id': synthetic_signal('machine_id', 'key-substitution')}}
+        envelope = seal(payload, bytes(attacker.public_key))
+        self.assertEqual(json.loads(unseal(envelope, bytes(attacker))), payload)
+        with self.assertRaises(ValueError):
+            unseal(envelope, bytes(intended))
+        # The same payload sealed to the authentic key is unreadable with the
+        # substituted key, but independent key authentication is external.
+        genuine = seal(payload, bytes(intended.public_key))
+        with self.assertRaises(ValueError):
+            unseal(genuine, bytes(attacker))
+        self.assertEqual(json.loads(unseal(genuine, bytes(intended))), payload)
+
     def test_key_creation_and_permissions(self):
         try:
             from sealed_payload import create_keys, read_key, seal, unseal

@@ -13,13 +13,13 @@ REFERENCE = re.compile(r'\[`([^`]+)`\]\(\.\./((?:tests|tools)/[^)]+)\)')
 
 
 class ThreatModelTests(unittest.TestCase):
-    def test_security_policy_discloses_unverified_private_reporting(self):
+    def test_security_policy_links_private_reporting_and_its_limits(self):
         text=(ROOT/'SECURITY.md').read_text(encoding='utf-8')
-        self.assertIn('private vulnerability reporting was **disabled when last checked**',text)
-        self.assertIn('no working private reporting channel',text)
+        self.assertIn('https://github.com/archnemix/Archx-RL/security/advisories/new', text)
+        self.assertIn('not yet been tested', text)
         self.assertIn('do not disclose',text.lower())
 
-    def test_threats_have_traceable_evidence_or_known_limitation(self):
+    def test_every_threat_has_traceable_regression(self):
         text = MODEL.read_text(encoding='utf-8')
         rows = [line for line in text.splitlines() if re.match(r'^\| T\d{2} \|', line)]
         ids = [line.split('|')[1].strip() for line in rows]
@@ -30,7 +30,7 @@ class ThreatModelTests(unittest.TestCase):
             threat, evidence, response = cells[1:]
             self.assertTrue(threat and response)
             refs = REFERENCE.findall(evidence)
-            self.assertTrue(refs or '**Known limitation:**' in evidence, cells[0])
+            self.assertTrue(refs, cells[0])
             for label, relative in refs:
                 path = ROOT / relative
                 self.assertTrue(path.is_file(), relative)

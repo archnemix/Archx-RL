@@ -9,7 +9,7 @@ Purpose: record concise decisions, problems and outcomes rather than private rea
 - Move the existing canonical algorithm and signal structs into collector-independent C files without changing output or the public ABI. Keep Linux collection and persistence separate. Reuse synthetic malformed/bounds fixtures as an experimental native CI target with checks active even in release builds; full native cores and platform collections remain open.
 
 ## Issue evidence and threat traceability
-- B01 has implemented saturation and recovery evidence, but GitHub rejected both comment and close actions due to integration permissions. The A01 threat inventory now links named regressions or explicit limitations and has a reference integrity check; a link does not establish mitigation or formal risk acceptance. Maintainer review and private reporting availability are still unverified.
+- B01 has implemented saturation and recovery evidence; consult GitHub for current issue state. The A01 threat inventory links every listed threat to a named regression and has a reference integrity check; a link does not establish mitigation or formal risk acceptance. GitHub private vulnerability reporting is enabled; end-to-end reporting, notification and independent review remain unverified.
 
 ## SQLite replay startup marker
 - Create challenge tables and a marker together in one write transaction, validate existing schema, and adopt intact pre-marker stores without deleting challenges. Failed setup rolls back and closes; concurrent initializers serialize. Loss of both marker and tables is indistinguishable from first enablement, and rollback/downgrade or runtime tampering remain unresolved.
