@@ -73,8 +73,9 @@ class DistinctPeerExperiment(unittest.TestCase):
         cls.addClassCleanup(cls.log.close)
         passed = [f'{key}={env[key]}' for key in ('ARCHX_TEST_SOCKET', 'ARCHX_TEST_EXPERIMENTAL_INGRESS',
                                                     'ARCHX_TEST_PROXY_UID', 'ARCHX_TEST_SOCKET_GID')]
-        cls.origin = subprocess.Popen(['sudo', '-n', '-u', cls.origin_user, '-g', GROUP,
-                                      '/usr/bin/env', *passed, sys.executable,
+        cls.origin_prefix = ([] if cls.group_gid in set(os.getgroups()) | {os.getegid()}
+                             else ['sudo', '-n', '-u', cls.origin_user, '-g', GROUP])
+        cls.origin = subprocess.Popen([*cls.origin_prefix, '/usr/bin/env', *passed, sys.executable,
                                       str(ROOT / 'tests/fixtures/wsgi_unix_origin.py')],
                                      stdout=cls.log, stderr=subprocess.STDOUT)
         cls.addClassCleanup(cls.stop, cls.origin)
@@ -154,8 +155,7 @@ class DistinctPeerExperiment(unittest.TestCase):
                 root.chmod(mode)
                 values = [f'ARCHX_TEST_SOCKET={path}', 'ARCHX_TEST_EXPERIMENTAL_INGRESS=1',
                           f'ARCHX_TEST_PROXY_UID={uid}', f'ARCHX_TEST_SOCKET_GID={self.group_gid}']
-                proc = subprocess.run(['sudo', '-n', '-u', self.origin_user, '-g', GROUP,
-                                       '/usr/bin/env', *values, sys.executable,
+                proc = subprocess.run([*self.origin_prefix, '/usr/bin/env', *values, sys.executable,
                                        str(ROOT / 'tests/fixtures/wsgi_unix_origin.py')],
                                       capture_output=True, timeout=8)
                 self.assertNotEqual(proc.returncode, 0)
@@ -185,8 +185,10 @@ print("rejected-after-connect")
 '''
         for user in (self.origin_user, DENIED):
             with self.subTest(user=user):
-                proc = subprocess.run(['sudo', '-n', '-u', user, '-g', GROUP, '/usr/bin/python3',
-                                       '-c', script, str(self.sockpath)], capture_output=True, timeout=8)
+                prefix = (self.origin_prefix if user == self.origin_user else
+                          ['sudo', '-n', '-u', user, '-g', GROUP])
+                proc = subprocess.run([*prefix, '/usr/bin/python3', '-c', script, str(self.sockpath)],
+                                      capture_output=True, timeout=8)
                 self.assertEqual(proc.returncode, 0, proc.stderr.decode())
                 self.assertIn(b'rejected-after-connect', proc.stdout)
 

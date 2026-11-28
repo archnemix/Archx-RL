@@ -66,7 +66,8 @@ jobs:
           sudo groupadd archxsocket
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxproxy
           sudo useradd --no-create-home --shell /usr/sbin/nologin archxdenied
-          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied python3 tests/test_ingress_peer_uid.py
+          sudo usermod -a -G archxsocket "$(id -un)"
+          run_proxy_test env ARCHX_TEST_NGINX="$(command -v nginx)" ARCHX_TEST_PROXY_USER=archxproxy ARCHX_TEST_SOCKET_GROUP=archxsocket ARCHX_TEST_DENIED_USER=archxdenied sg archxsocket -c 'python3 tests/test_ingress_peer_uid.py -v'
       - name: Verify clean same-toolchain Linux rebuild
         run: sh tools/reproduce_linux.sh "$GITHUB_SHA"
       - name: Focused GCC analyzer regression
