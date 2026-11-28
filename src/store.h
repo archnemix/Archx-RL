@@ -25,7 +25,8 @@ void      ax_store_free(ax_store *s);
  * *retry_after_ms (optional) gets ms until at least `cost` tokens are
  *   available when denied (0 when allowed).
  * Returns 1 = allowed, 0 = rate limited, -1 = store saturated,
- * -2 = platform error (deny; a failed unlock may follow a charge).
+ * -2 = platform error or non-finite numeric input (deny; a failed unlock may
+ * follow a charge). Non-finite inputs fail before any state change.
  */
 int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
                           double capacity, double refill_per_sec, double cost,

@@ -143,6 +143,17 @@ endif()
 add_test(NAME synthetic_core_threadlocal COMMAND archx_core_threadlocal_test)
 set_tests_properties(synthetic_core_threadlocal PROPERTIES TIMEOUT 15)
 
+# Deterministic invalid-number regression against a fake clock/mutex.
+add_executable(archx_store_nonfinite test_store_nonfinite.c fake_platform.c ../../src/store.c)
+target_include_directories(archx_store_nonfinite PRIVATE ../../src .)
+if(MSVC)
+  target_compile_options(archx_store_nonfinite PRIVATE /W4 /WX)
+else()
+  target_compile_options(archx_store_nonfinite PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_link_libraries(archx_store_nonfinite PRIVATE m)
+endif()
+add_test(NAME synthetic_store_nonfinite COMMAND archx_store_nonfinite)
+
 # Deliberately named and isolated synthetic-only install, never a release artifact.
 install(TARGETS archx_synthetic_core archx_synthetic_static EXPORT ArchxSyntheticTargets
   RUNTIME DESTINATION bin LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)

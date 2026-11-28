@@ -112,7 +112,7 @@ int ax_store_token_bucket(ax_store *s, const uint8_t key[32],
                           double *remaining, int64_t *retry_after_ms) {
   if (remaining) *remaining = 0;
   if (retry_after_ms) *retry_after_ms = -1;
-  if (!s || !key) return -2;
+  if (!s || !key || !isfinite(capacity) || !isfinite(refill_per_sec) || !isfinite(cost)) return -2;
   if (capacity < 0) capacity = 0;
   if (refill_per_sec < 0) refill_per_sec = 0;
   if (cost < 0) cost = 0;

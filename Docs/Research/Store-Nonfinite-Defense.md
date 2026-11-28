@@ -1,0 +1,5 @@
+# C bucket non-finite input defense
+
+The internal `ax_store_token_bucket` now rejects non-finite capacity, refill and cost values before locking, insertion, arithmetic or integer conversion. Its error outputs remain zero remaining and retry `-1`, and an existing bucket remains unchanged. This is defense in depth: the public core parses finite JSON numbers and bounds its configuration, and its public cost is an integer; no public path accepting these non-finite values was demonstrated. It is not a claim that this change fixes an exploitable public vulnerability.
+
+`tests/platform/test_store_nonfinite.c` injects NaN and both infinities for each numeric argument, verifies no bucket was created, verifies that an existing bucket is not charged, then performs a normal charge. It uses a synthetic clock/mutex. Linux `test.sh` also runs it under ASan/UBSan with float-to-integer overflow detection; experimental native platform CI runs the portable fixture on Windows and macOS. This is a focused fault regression toward #41, not a complete model, production audit or native product-support claim.
