@@ -95,6 +95,42 @@ http {{
 '''
 
 
+def _bounded_dispatcher():
+    """Build a Waitress 3.0.2 dispatcher with a fixed pending-task limit.
+
+    This depends on private Waitress internals and is not an independently
+    supported server. Waitress calls add_task while holding the channel's
+    request lock; do not reacquire it on the rejection path.
+    """
+    from waitress.task import ThreadedTaskDispatcher
+
+    class BoundedDispatcher(ThreadedTaskDispatcher):
+        max_pending = 16
+
+        def add_task(self, task):
+            with self.lock:
+                running = len(self.threads) - self.stop_count
+                if running > 0 and len(self.queue) < self.max_pending:
+                    self.queue.append(task)
+                    self.queue_cv.notify()
+                    return
+            # Reject, don't queue. In Waitress 3.0.2 the caller holds the
+            # channel request lock. Close buffered parsers before cancel drops
+            # references; disconnected channels may otherwise accumulate.
+            for request in task.requests:
+                try:
+                    request.close()
+                except Exception:
+                    pass
+            task.cancel()
+            try:
+                task.server.pull_trigger()
+            except OSError:
+                pass
+
+    return BoundedDispatcher()
+
+
 def serve_unix(application, socket_path, *, proxy_uid=None, socket_gid=None):
     """Run one Waitress process on an exclusively-owned Unix socket.
 
@@ -155,8 +191,7 @@ def serve_unix(application, socket_path, *, proxy_uid=None, socket_gid=None):
         if version('waitress') != '3.0.2':
             raise ValueError('This prototype requires Waitress 3.0.2')
         from waitress.server import create_server
-        from waitress.task import ThreadedTaskDispatcher
-        dispatcher = ThreadedTaskDispatcher()
+        dispatcher = _bounded_dispatcher()
         dispatcher.set_thread_count(4)
         # Waitress binds before chmod; use a restrictive umask in this dedicated
         # process to avoid an initially world-accessible Unix socket. The pinned
