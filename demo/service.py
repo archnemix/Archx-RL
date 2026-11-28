@@ -7,6 +7,7 @@ import json
 import time
 
 from metrics import ServiceMetrics
+from engine import StateClockUnavailable
 
 from replay import ReplayUnavailable
 from sealed_payload import TransportKeyRing, unseal, unseal_v3
@@ -145,5 +146,7 @@ class RequestService:
             if info is not None:
                 result['reputation'] = info
             return result
+        except StateClockUnavailable:
+            return self.failure('storage_error', 'storage_error')
         except (ValueError, TypeError, KeyError):
             return self.failure('invalid', 'invalid_request')

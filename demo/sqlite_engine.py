@@ -16,7 +16,7 @@ import time
 from contextlib import suppress
 from pathlib import Path
 
-from engine import Engine, CLEANUP_BUDGET
+from engine import Engine, CLEANUP_BUDGET, StateClockUnavailable
 
 SCHEMA = {
     'meta': 'CREATE TABLE IF NOT EXISTS meta (name TEXT PRIMARY KEY, value TEXT NOT NULL)',
@@ -141,9 +141,7 @@ class SQLiteEngine(Engine):
         con = self.connect()
         try:
             self._begin_writer(con)
-            now = self.clock()
-            if type(now) not in (int, float) or not math.isfinite(now):
-                raise ValueError('Invalid maintenance clock')
+            now = self._state_time()
             result = {'windows_pending': self._prune_windows(con, now),
                       'observations_pending': self._prune_observations(con, now)}
             con.commit()
@@ -212,7 +210,7 @@ class SQLiteEngine(Engine):
             con = self.connect()
             try:
                 self._begin_writer(con)
-                now = self.clock()
+                now = self._state_time()
                 result = self._cleanup_busy() if self._prune_windows(con, now) else self._charge(con, {self.ip_key(ip):self._quota('ip')}, now, self.ip_key(ip))
                 con.commit()
                 return result
@@ -221,17 +219,18 @@ class SQLiteEngine(Engine):
                 raise
             finally:
                 con.close()
-        except sqlite3.Error:
+        except (sqlite3.Error, StateClockUnavailable):
             return self._storage_error()
 
     def check(self, raw, peer, *, _ip_precharged=False):
-        _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        try: _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        except StateClockUnavailable: return self._storage_error()
         try:
             con = self.connect()
             try:
                 self._begin_writer(con)
                 # A waiting writer must not use a stale pre-transaction time.
-                now = self.clock()
+                now = self._state_time()
                 if self._prune_windows(con, now):
                     con.commit()
                     return self._cleanup_busy()
@@ -285,5 +284,5 @@ class SQLiteEngine(Engine):
                 raise
             finally:
                 con.close()
-        except sqlite3.Error:
+        except (sqlite3.Error, StateClockUnavailable):
             return self._storage_error()

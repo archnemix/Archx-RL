@@ -16,6 +16,11 @@ from metrics import ServiceMetrics
 
 CLEANUP_BUDGET = 64
 
+
+class StateClockUnavailable(ValueError):
+    """The local state clock could not be sampled safely."""
+
+
 DEFAULT_MESSAGES = {
     'rate_limited': 'Too many requests. Please wait and try again.',
     'rate_challenge': 'Additional verification is required. Contact the service for help.',
@@ -116,6 +121,28 @@ class Engine:
         return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),
                 'retry_after_seconds':1, 'relation':'inconclusive'}
 
+    def _storage_error(self):
+        return {'decision':'storage_error','message':self.message('storage_error'),
+                'retry_after_seconds':1, 'relation':'inconclusive'}
+
+    def _state_time(self):
+        # Validate before changing quota/history state. The check does not detect
+        # plausible but wrong wall-clock jumps, stale restores, or hostile clocks.
+        try:
+            value = self.clock()
+            if type(value) not in (int, float): raise ValueError('Invalid clock type')
+            now = float(value)
+            window, history = self.settings['window_seconds'], self.settings['history_seconds']
+            # Keep Unix time within Python datetime's UTC range with a full
+            # day of headroom for timezone conversion and portable arithmetic.
+            if (not math.isfinite(now) or not -62135510400 <= now <= 253402214399 or
+                    not math.isfinite(now + history) or
+                    now + history <= now or now - window >= now):
+                raise ValueError('Unrepresentable clock')
+            return now
+        except Exception:
+            raise StateClockUnavailable('State clock unavailable') from None
+
     def _prune_windows(self, now):
         """Drain at most CLEANUP_BUDGET; callers deny if stale entries remain."""
         cutoff = now - self.settings['window_seconds']
@@ -137,9 +164,7 @@ class Engine:
         The caller must explicitly schedule/retry it and monitor failures.
         """
         with self._serialized():
-            now = self.clock()
-            if type(now) not in (int, float) or not math.isfinite(now):
-                raise ValueError('Invalid maintenance clock')
+            now = self._state_time()
             return {'windows_pending': self._prune_windows(now),
                     'observations_pending': self.observations.prune(now, CLEANUP_BUDGET)}
 
@@ -204,7 +229,8 @@ class Engine:
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
         key = self.ip_key(ip); window = self.settings['window_seconds']
         with self._serialized():
-            now = self.clock()
+            try: now = self._state_time()
+            except StateClockUnavailable: return self._storage_error()
             if self._prune_windows(now): return self._cleanup_busy()
             if key not in self.windows and len(self.windows) >= self.max_entries:
                 return {'decision':'capacity_exceeded','message':self.message('capacity_exceeded'),'retry_after_seconds':window,'relation':'inconclusive'}
@@ -216,7 +242,7 @@ class Engine:
         return None
 
     def prepare(self, raw, peer):
-        now = self.clock()
+        now = self._state_time()
         ip = ipaddress.ip_address(peer)
         if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped: ip = ip.ipv4_mapped
         # Validate shape; IP always comes from server connection, never client input.
@@ -245,7 +271,8 @@ class Engine:
         return None
 
     def check(self, raw, peer, *, _ip_precharged=False):
-        _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        try: _, tokens, missing, zone, clock_status = self.prepare(raw, peer)
+        except StateClockUnavailable: return self._storage_error()
         # The service precharges the IP before expensive verification. Direct callers
         # use the default and charge all buckets together under one lock.
         # A digest collision, however unlikely, charges once at the stricter limit.
@@ -257,7 +284,8 @@ class Engine:
         with self._serialized():
             # State time must be sampled after waiting for the lock: an earlier
             # timestamp can expire a newly charged window or history too soon.
-            now = self.clock()
+            try: now = self._state_time()
+            except StateClockUnavailable: return self._storage_error()
             if self._prune_windows(now): return self._cleanup_busy()
             cleanup_pending = self.observations.prune(now, CLEANUP_BUDGET)
             missing_keys = sum(1 for key in key_limits if key not in self.windows)

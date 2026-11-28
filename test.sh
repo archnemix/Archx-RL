@@ -77,11 +77,13 @@ python3 tests/test_sqlite_restore_risk.py
 python3 tests/test_sqlite_multiprocess_probe.py
 python3 tests/test_sqlite_soak_profile.py
 python3 tests/test_state_clock.py
+python3 tests/test_engine_clock_faults.py
 python3 tests/test_security.py
 python3 tests/test_turnstile_staging.py
 python3 tests/test_transport_key_rotation.py
 python3 tests/test_browser.py
 python3 tests/test_replay.py
+python3 tests/test_replay_clock_faults.py
 python3 tests/test_proxy.py
 python3 tests/test_host_integration.py
 python3 tests/test_wsgi_package.py

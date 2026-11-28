@@ -34,7 +34,10 @@ def canonical_ip(peer):
 
 class MemoryReplay:
     def __init__(self, secret, clock, ttl=120, capacity=10000, per_peer=5):
-        if not isinstance(secret, bytes) or not secret or not 1 <= ttl <= 300 or not 1 <= per_peer <= capacity:
+        if (not isinstance(secret, bytes) or not secret or not callable(clock) or
+                type(ttl) not in (int, float) or not 1 <= ttl <= 300 or
+                type(capacity) is not int or type(per_peer) is not int or
+                not 1 <= per_peer <= capacity):
             raise ValueError('Invalid replay-store configuration')
         self.secret, self.clock, self.ttl = secret, clock, ttl
         self.capacity, self.per_peer = capacity, per_peer
@@ -52,15 +55,38 @@ class MemoryReplay:
             return None
         return self._digest('nonce', token)
 
+    def _validated_time(self):
+        # SQLite stores REAL timestamps; use the same representation in memory.
+        # Validate before *any* prune/consume so a bad sample cannot erase live
+        # challenges. This does not detect a plausible but incorrect wall clock.
+        try:
+            raw = self.clock()
+            if type(raw) not in (int, float):
+                raise ValueError('Invalid clock type')
+            now = float(raw)
+            if (type(self.ttl) not in (int, float) or not 1 <= self.ttl <= 300 or
+                    not math.isfinite(now)):
+                raise ValueError('Invalid clock or TTL')
+            expiry = now + self.ttl
+            if not math.isfinite(expiry) or expiry <= now:
+                raise ValueError('Unrepresentable challenge expiry')
+            return now, expiry
+        except Exception:
+            raise ValueError('Invalid replay clock or expiry') from None
+
+    def _operation_time(self):
+        try:
+            return self._validated_time()
+        except ValueError:
+            raise ReplayUnavailable('Challenge clock unavailable') from None
+
     def _prune(self, now):
         self.pending = {key:value for key,value in self.pending.items() if value[1] > now}
 
     def cleanup_expired(self):
         """Delete at most 64 expired challenges; scan is bounded by capacity."""
         with self.lock:
-            now = self.clock()
-            if type(now) not in (int,float) or not math.isfinite(now):
-                raise ValueError('Invalid maintenance clock')
+            now, _ = self._validated_time()
             expired = []
             pending = False
             for key, (_, expires) in self.pending.items():
@@ -76,12 +102,12 @@ class MemoryReplay:
         peer_key = self._peer(peer)
         with self.lock:
             # Expiry must be checked after waiting for the lock.
-            now = self.clock()
+            now, expiry = self._operation_time()
             self._prune(now)
             if len(self.pending) >= self.capacity or sum(value[0] == peer_key for value in self.pending.values()) >= self.per_peer:
                 raise ReplayUnavailable('Challenge capacity exceeded')
             token = secrets.token_urlsafe(32)
-            self.pending[self._token(token)] = (peer_key, now + self.ttl)
+            self.pending[self._token(token)] = (peer_key, expiry)
             return token
 
     def consume(self, token, peer):
@@ -91,7 +117,7 @@ class MemoryReplay:
         peer_key = self._peer(peer)
         with self.lock:
             # Expiry must be checked after waiting for the lock.
-            now = self.clock()
+            now, _ = self._operation_time()
             self._prune(now)
             if key not in self.pending or self.pending[key][0] != peer_key:
                 return False
@@ -151,9 +177,7 @@ class SQLiteReplay(MemoryReplay):
             con = self.engine.connect()
             try:
                 self._begin_writer(con)
-                now = self.clock()
-                if type(now) not in (int,float) or not math.isfinite(now):
-                    raise ValueError('Invalid maintenance clock')
+                now, _ = self._validated_time()
                 con.execute('DELETE FROM replay_challenges_v1 WHERE token IN (SELECT token FROM replay_challenges_v1 WHERE expires <= ? ORDER BY expires LIMIT 64)', (now,))
                 pending=con.execute('SELECT 1 FROM replay_challenges_v1 WHERE expires <= ? LIMIT 1',(now,)).fetchone() is not None
                 con.commit()
@@ -172,14 +196,14 @@ class SQLiteReplay(MemoryReplay):
             con = self.engine.connect()
             try:
                 self._begin_writer(con)
-                now = self.clock()
+                now, expiry = self._operation_time()
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
                 total = con.execute('SELECT count(*) FROM replay_challenges_v1').fetchone()[0]
                 count = con.execute('SELECT count(*) FROM replay_challenges_v1 WHERE peer = ?', (peer_key,)).fetchone()[0]
                 if total >= self.capacity or count >= self.per_peer:
                     raise ReplayUnavailable('Challenge capacity exceeded')
                 token = secrets.token_urlsafe(32)
-                con.execute('INSERT INTO replay_challenges_v1(token,peer,expires) VALUES(?,?,?)', (self._token(token), peer_key, now + self.ttl))
+                con.execute('INSERT INTO replay_challenges_v1(token,peer,expires) VALUES(?,?,?)', (self._token(token), peer_key, expiry))
                 con.commit()
                 return token
             except Exception:
@@ -199,7 +223,7 @@ class SQLiteReplay(MemoryReplay):
             con = self.engine.connect()
             try:
                 self._begin_writer(con)
-                now = self.clock()
+                now, _ = self._operation_time()
                 count = con.execute('DELETE FROM replay_challenges_v1 WHERE token=? AND peer=? AND expires>?', (key, peer_key, now)).rowcount
                 con.execute('DELETE FROM replay_challenges_v1 WHERE expires <= ?', (now,))
                 con.commit()
