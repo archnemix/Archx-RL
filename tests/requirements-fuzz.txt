@@ -1,0 +1,2 @@
+# Optional Linux coverage-guided Python smoke, separate from runtime dependencies.
+atheris==3.0.0

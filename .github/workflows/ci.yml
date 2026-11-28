@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           python3 -m venv "$RUNNER_TEMP/archx-test-venv"
-          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-proxy.txt
+          "$RUNNER_TEMP/archx-test-venv/bin/pip" install -r demo/requirements-secure.txt -r tests/requirements-proxy.txt -r tests/requirements-fuzz.txt
           echo "$RUNNER_TEMP/archx-test-venv/bin" >> "$GITHUB_PATH"
           npm ci --prefix demo/browser
           npm ci --prefix bindings/node
@@ -75,6 +75,8 @@ jobs:
         run: ./tests/fuzz_smbios.sh
       - name: Fuzz C JSON, config and profile smoke
         run: sh tests/fuzz_core.sh
+      - name: Fuzz Python normalization and sealed envelopes smoke
+        run: sh tests/fuzz_python.sh
       - name: Verify Linux GCC and Clang CMake installation and consumers
         run: |
           CC=gcc ./tests/test_cmake_install.sh
