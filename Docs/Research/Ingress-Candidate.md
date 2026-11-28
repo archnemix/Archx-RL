@@ -12,7 +12,7 @@ This is research towards #19, #25 and #29, **not a supported deployment profile 
 
 The optional `serve_unix(app, path, proxy_uid=..., socket_gid=...)` mode tests a different Linux-only isolation boundary. It requires distinct non-root proxy and origin UIDs; the origin belongs to the non-root socket group, owns a mode-0710 directory with that group, and creates a mode-0660 group-owned socket. On each accepted Unix connection, the origin checks Linux `SO_PEERCRED` and rejects every UID except the configured proxy UID **before** Waitress creates a channel or processes headers. A group member can connect at the filesystem layer but is then rejected, including a same-origin-UID process. Invalid identities and directory modes fail startup. The unchanged default mode continues to trust same-UID peers. This experiment depends on Waitress 3.0.2's accept path and must be revalidated before any upgrade.
 
-Run the real-UID experiment with nginx, OpenSSL, Waitress 3.0.2 and passwordless sudo to the origin UID and two distinct non-root accounts. The test uses an isolated temporary directory and creates no accounts; the named non-root group must be usable as the primary group for those sudo commands:
+Run the real-UID experiment with nginx, OpenSSL, Waitress 3.0.2, Linux `setpriv` and passwordless sudo to root. The test drops privileges to the origin UID and two distinct non-root accounts, uses an isolated temporary directory and creates no accounts; the named non-root group must exist:
 
 ```
 ARCHX_TEST_NGINX=/absolute/path/to/nginx ARCHX_TEST_PROXY_USER=nobody \\
