@@ -1,0 +1,18 @@
+# CI and branch-protection verification
+
+This is an operator checklist for open issue #3, **not evidence that branch protection or fork behavior is already configured**. The current integration could not read `main` branch protection (GitHub returned HTTP 403). Only a repository administrator can configure or attest to these settings. Ordinary test workflows in this branch use `pull_request`/`push`, declare `contents: read`, do not reference project secrets and disable checkout credential persistence. The separately scoped, write-enabled Linux survey workflow is not a pull-request test and must not be made a required PR check.
+
+## Administrator setup
+
+1. Review the code and merge the intended read-only workflows into the default branch through the repository's normal review process. Then obtain a successful run so GitHub can discover the check names. Do not assume workflow files on an unmerged branch protect `main`.
+2. In repository **Settings → Branches** (or applicable rulesets), configure protection for `main`: require pull requests and require the intended test status checks, including the actual `Linux full regression` job. Choose the other native/binding/coverage checks appropriate to the agreed release scope and select GitHub Actions as the expected source where available. Review bypass permissions, direct pushes, force-push/deletion permissions and whether checks must use an up-to-date base. GitHub documents the exact available options in [1](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule) and [2](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+3. Review fork workflow settings and organization policies: do not enable sending write tokens or secrets to untrusted fork PRs. Do not run fork code under `pull_request_target` with privileged credentials; see [3](https://docs.github.com/en/actions/reference/security/securely-using-pull_request_target). Pin actions and keep PR tests independent of staging credentials.
+
+## Evidence to collect
+
+- Open a source-only test PR from a disposable fork, following repository/organization approval policy. Verify the required checks run on the PR's tested commit and record links and conclusions, without printing credentials, environment variables or sensitive data.
+- In the disposable fork only, deliberately make a harmless test fail and confirm the required check fails **and GitHub blocks merging** for an identity that has no bypass privilege. Restore the test and confirm it passes. Do not merge the deliberately failing commit. An administrator may bypass protections depending on configuration, so test the actual intended contributor role.
+- Inspect the fork run's displayed `GITHUB_TOKEN` permission summary and the repository/organization fork settings; verify no project secret is available or referenced. Do not print or transmit token/secret values and do not execute untrusted code with elevated credentials.
+- Record the configured required check names, expected source, bypass rules, effective branch/ruleset protection and sanitized links to the passing and failing PR runs. Check skipped/neutral behavior explicitly: GitHub can treat skipped jobs as successful, so required jobs must not be silently skipped for relevant PRs [4](https://docs.github.com/en/pull-requests/reference/status-checks).
+
+These checks demonstrate only the tested configuration and events. They do not certify third-party actions, host dependencies, every future workflow change or production readiness. Until the administrator supplies and reviews actual evidence, #3 remains open.
